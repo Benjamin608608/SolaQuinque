@@ -525,15 +525,10 @@
         }
 
         .example-questions {
-            margin-top: 2rem;
-        }
-
-        .example-questions h3 {
-            color: var(--deep-red);
-            font-family: 'Playfair Display', serif;
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
         }
 
         .example-item {
@@ -541,17 +536,27 @@
             border: 1px solid var(--border-gold);
             border-radius: 8px;
             padding: 0.8rem 1rem;
-            margin-bottom: 0.5rem;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: 'Crimson Text', serif;
             color: var(--dark-brown);
+            flex: 1;
+            max-width: 200px;
+            text-align: center;
         }
 
         .example-item:hover {
             background: linear-gradient(135deg, #F0E6D2, var(--light-gold));
-            transform: translateX(5px);
-            box-shadow: 0 2px 8px rgba(139, 0, 0, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
+        }
+
+        .example-item.left {
+            text-align: left;
+        }
+
+        .example-item.right {
+            text-align: right;
         }
 
         /* 結果面板 */
@@ -1073,13 +1078,16 @@
         <div class="main-content" id="mainContent">
             
             <div class="search-panel">
+                <div class="example-questions">
+                    <div class="example-item left" data-question="什麼是三位一體？">什麼是三位一體？</div>
+                    <div class="example-item right" data-question="什麼是原罪？">什麼是原罪？</div>
+                </div>
                 <form class="search-form" id="searchForm">
                     <div class="form-group">
-                        <label for="question">請輸入您的問題：</label>
                         <textarea 
                             id="question" 
                             class="search-input" 
-                            placeholder="例如：什麼是救恩？加爾文的預定論是什麼？路德的因信稱義如何理解？"
+                            placeholder="請輸入您的問題..."
                             required
                         ></textarea>
                     </div>
@@ -1088,15 +1096,6 @@
                         <span id="searchBtnText">搜尋答案</span>
                     </button>
                 </form>
-
-                <div class="example-questions">
-                    <h3>💡 範例問題</h3>
-                    <div class="example-item" data-question="什麼是三位一體？">什麼是三位一體？</div>
-                    <div class="example-item" data-question="路德的因信稱義是什麼意思？">路德的因信稱義是什麼意思？</div>
-                    <div class="example-item" data-question="加爾文的預定論如何理解？">加爾文的預定論如何理解？</div>
-                    <div class="example-item" data-question="什麼是原罪？">什麼是原罪？</div>
-                    <div class="example-item" data-question="教會的本質是什麼？">教會的本質是什麼？</div>
-                </div>
             </div>
 
             <div class="results-panel">
@@ -1254,6 +1253,12 @@
                 const question = this.questionInput.value.trim();
                 if (!question) return;
 
+                // 隱藏預設問題
+                const exampleQuestions = document.querySelector('.example-questions');
+                if (exampleQuestions) {
+                    exampleQuestions.style.display = 'none';
+                }
+
                 this.showLoading();
                 this.startLoadingAnimation();
 
@@ -1388,6 +1393,12 @@
             document.getElementById('mainContent').style.display = 'block';
             document.getElementById('homeNav').classList.add('active');
             document.getElementById('catalogNav').classList.remove('active');
+            
+            // 重新顯示預設問題
+            const exampleQuestions = document.querySelector('.example-questions');
+            if (exampleQuestions) {
+                exampleQuestions.style.display = 'flex';
+            }
         }
 
         function showCatalog() {
