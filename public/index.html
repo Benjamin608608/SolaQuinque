@@ -438,9 +438,14 @@
             border-radius: 15px;
             padding: 1.5rem;
             box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
-            margin-top: 2rem;
+            margin-top: 1rem;
             position: relative;
             z-index: 10;
+            transition: margin-top 0.3s ease;
+        }
+
+        .chat-input-area.with-messages {
+            margin-top: 2rem;
         }
 
         .search-form {
@@ -1337,6 +1342,12 @@
                 this.chatMessages.appendChild(userMessage);
                 this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
 
+                // 調整輸入區域位置
+                const chatInputArea = document.querySelector('.chat-input-area');
+                if (chatInputArea) {
+                    chatInputArea.classList.add('with-messages');
+                }
+
                 // 清空輸入欄位
                 this.questionInput.value = '';
 
@@ -1490,6 +1501,18 @@
             const exampleQuestions = document.querySelector('.example-questions');
             if (exampleQuestions) {
                 exampleQuestions.style.display = 'flex';
+            }
+            
+            // 重置輸入區域位置
+            const chatInputArea = document.querySelector('.chat-input-area');
+            if (chatInputArea) {
+                chatInputArea.classList.remove('with-messages');
+            }
+            
+            // 清空聊天記錄
+            const chatMessages = document.getElementById('chatMessages');
+            if (chatMessages) {
+                chatMessages.innerHTML = '<div class="empty-state" id="emptyState" style="display: none;"></div>';
             }
         }
 
