@@ -430,26 +430,32 @@ class VectorService {
         const queryEmbedding = await this.generateEmbedding(query);
         
         // 執行 FAISS 搜索
-        const { IndexFlatL2 } = require('faiss-node');
-        const results = this.faissIndex.search(queryEmbedding, topK);
-        
-        console.log(`📊 找到 ${results.length} 個相關文本片段`);
-        
-        // 返回相關文本片段
-        const relevantTexts = results.map((result, index) => {
-            const textIndex = result.id;
-            const similarity = result.score;
-            const text = this.texts[textIndex];
+        try {
+            const queryVector = Array.from(queryEmbedding);
+            const searchResults = this.faissIndex.search(queryVector, topK);
             
-            return {
-                text: text.text,
-                fileName: text.fileName,
-                similarity: similarity,
-                index: textIndex
-            };
-        });
-        
-        return relevantTexts;
+            console.log(`📊 找到 ${searchResults.labels.length} 個相關文本片段`);
+            
+            // 返回相關文本片段
+            const relevantTexts = searchResults.labels.map((textIndex, index) => {
+                const distance = searchResults.distances[index];
+                const similarity = 1 / (1 + distance); // 將距離轉換為相似度分數
+                const text = this.texts[textIndex];
+                
+                return {
+                    text: text.text,
+                    fileName: text.fileName,
+                    similarity: similarity,
+                    distance: distance,
+                    index: textIndex
+                };
+            });
+            
+            return relevantTexts;
+        } catch (error) {
+            console.error('FAISS 搜索失敗:', error);
+            throw error;
+        }
     }
 
     // 混合搜索策略：結合 FAISS 和 Assistant API
