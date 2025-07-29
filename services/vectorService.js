@@ -149,6 +149,12 @@ class VectorService {
     async listGoogleDriveFiles(folderId) {
         console.log(`📋 列出 Google Drive 資料夾中的文件: ${folderId}`);
         
+        // 調試：檢查環境變數
+        console.log('🔍 環境變數調試信息:');
+        console.log(`   - NODE_ENV: ${process.env.NODE_ENV}`);
+        console.log(`   - GOOGLE_DRIVE_API_KEY 是否存在: ${process.env.GOOGLE_DRIVE_API_KEY ? '是' : '否'}`);
+        console.log(`   - 所有環境變數鍵: ${Object.keys(process.env).filter(key => key.includes('GOOGLE')).join(', ')}`);
+        
         try {
             // 從環境變數獲取 Google Drive API 密鑰
             const apiKey = process.env.GOOGLE_DRIVE_API_KEY || 'AIzaSyCdI0rjMKiPW7lJKiMtmbc8B1EuzWqzWdM';
@@ -157,6 +163,7 @@ class VectorService {
             // 方法 1: 使用 Google Drive API v3 列出文件
             console.log('🔗 使用 Google Drive API v3 列出文件');
             const apiUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size)&pageSize=1000&key=${apiKey}`;
+            console.log(`🌐 API URL: ${apiUrl.substring(0, 100)}...`);
             
             const response = await fetch(apiUrl);
             
