@@ -1197,16 +1197,23 @@
                 margin: 0;
                 padding: 1rem;
                 max-width: 100%;
+                height: calc(100vh - 150px);
+                display: flex;
+                flex-direction: column;
             }
 
             .chat-messages {
                 padding: 1rem;
                 margin-bottom: 120px;
+                min-height: calc(100vh - 200px);
+                display: flex;
+                flex-direction: column;
             }
 
             .message {
                 margin-bottom: 1rem;
                 padding: 0.8rem;
+                flex-shrink: 0;
             }
 
             .message-content {
@@ -1606,11 +1613,15 @@
                 const question = this.questionInput.value.trim();
                 if (!question) return;
 
-                // 在手機版隱藏標題區域
+                // 在手機版隱藏標題區域，但保留導航按鈕
                 if (window.innerWidth <= 768) {
                     const header = document.querySelector('.header');
                     if (header) {
-                        header.style.display = 'none';
+                        // 只隱藏標題文字，保留導航按鈕
+                        const headerTitle = header.querySelector('h1');
+                        const headerDesc = header.querySelector('p');
+                        if (headerTitle) headerTitle.style.display = 'none';
+                        if (headerDesc) headerDesc.style.display = 'none';
                     }
                 }
 
@@ -1784,7 +1795,10 @@
             if (window.innerWidth <= 768) {
                 const header = document.querySelector('.header');
                 if (header) {
-                    header.style.display = 'block';
+                    const headerTitle = header.querySelector('h1');
+                    const headerDesc = header.querySelector('p');
+                    if (headerTitle) headerTitle.style.display = 'block';
+                    if (headerDesc) headerDesc.style.display = 'block';
                 }
             }
             
