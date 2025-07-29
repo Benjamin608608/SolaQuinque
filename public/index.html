@@ -1362,26 +1362,29 @@
                 `;
                 this.chatMessages.appendChild(loadingMessage);
                 this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                
+                // 開始載入動畫
+                this.startLoadingAnimation();
             }
 
             startLoadingAnimation() {
                 this.currentLoadingIndex = 0;
-                this.updateLoadingMessage();
                 
                 this.loadingInterval = setInterval(() => {
                     this.currentLoadingIndex = (this.currentLoadingIndex + 1) % this.loadingMessages.length;
-                    this.updateLoadingMessage();
                 }, 2000);
-            }
-
-            updateLoadingMessage() {
-                this.loadingText.textContent = this.loadingMessages[this.currentLoadingIndex];
             }
 
             showResult(question, answer, sources) {
                 clearInterval(this.loadingInterval);
                 
                 console.log('顯示結果:', { question, answer, sources });
+                
+                // 移除載入消息
+                const loadingMessages = this.chatMessages.querySelectorAll('.message.assistant');
+                if (loadingMessages.length > 0) {
+                    loadingMessages[loadingMessages.length - 1].remove();
+                }
                 
                 // 隱藏空狀態
                 this.emptyState.style.display = 'none';
