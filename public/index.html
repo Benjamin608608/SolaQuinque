@@ -1077,83 +1077,102 @@
             }
 
             .header {
-                margin-bottom: 2rem;
-                padding: 1rem 0;
+                margin-bottom: 1rem;
+                padding: 0.5rem 0;
             }
 
             .header h1 {
-                font-size: 2rem;
-                margin-bottom: 1rem;
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .header p {
+                font-size: 0.9rem;
+                margin-bottom: 0.5rem;
             }
 
             .top-navigation {
-                flex-direction: column;
-                gap: 1rem;
-                padding: 1rem;
-                margin-bottom: 1.5rem;
+                flex-direction: row;
+                gap: 0.5rem;
+                padding: 0.5rem;
+                margin-bottom: 1rem;
+                align-items: center;
+                flex-wrap: wrap;
             }
 
             .nav-buttons {
-                width: 100%;
-                justify-content: space-between;
+                display: flex;
+                gap: 0.3rem;
+                flex: 1;
             }
 
             .nav-btn {
-                flex: 1;
-                padding: 0.8rem 0.5rem;
-                font-size: 0.9rem;
+                padding: 0.4rem 0.6rem;
+                font-size: 0.7rem;
+                min-width: auto;
+                flex: 0 1 auto;
             }
 
             .nav-icon {
-                font-size: 1rem;
-            }
-
-            .nav-text {
                 font-size: 0.8rem;
             }
 
+            .nav-text {
+                font-size: 0.6rem;
+            }
+
             .language-buttons {
-                width: 100%;
-                justify-content: center;
-                gap: 1rem;
+                display: flex;
+                gap: 0.3rem;
             }
 
             .lang-btn {
-                padding: 0.6rem 1rem;
-                font-size: 0.9rem;
+                padding: 0.3rem 0.5rem;
+                font-size: 0.7rem;
             }
 
             .user-info {
                 position: relative;
                 top: auto;
                 right: auto;
-                margin: 0 auto 1rem auto;
-                max-width: 100%;
-                flex-direction: column;
-                gap: 1rem;
-                padding: 1rem;
+                margin: 0;
+                max-width: none;
+                flex-direction: row;
+                gap: 0.5rem;
+                padding: 0.3rem 0.5rem;
+                align-items: center;
+                background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(107, 0, 0, 0.9));
+                border: 1px solid var(--gold);
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(139, 0, 0, 0.2);
             }
 
             .user-avatar {
-                width: 50px;
-                height: 50px;
+                width: 25px;
+                height: 25px;
             }
 
             .user-details {
-                text-align: center;
+                text-align: left;
+                flex: 1;
             }
 
             .user-name {
-                font-size: 1rem;
+                font-size: 0.7rem;
+                color: var(--parchment);
             }
 
             .user-email {
-                font-size: 0.8rem;
+                font-size: 0.6rem;
+                color: var(--light-gold);
             }
 
             .logout-btn {
-                padding: 0.6rem 1rem;
-                font-size: 0.9rem;
+                padding: 0.3rem 0.5rem;
+                font-size: 0.7rem;
+                background: var(--ochre);
+                color: var(--deep-red);
+                border: 1px solid var(--gold);
             }
 
             .login-container {
@@ -1587,7 +1606,13 @@
                 const question = this.questionInput.value.trim();
                 if (!question) return;
 
-
+                // 在手機版隱藏標題區域
+                if (window.innerWidth <= 768) {
+                    const header = document.querySelector('.header');
+                    if (header) {
+                        header.style.display = 'none';
+                    }
+                }
 
                 // 立即顯示用戶對話泡泡
                 const userMessage = document.createElement('div');
@@ -1754,6 +1779,14 @@
             document.getElementById('mainContent').style.display = 'block';
             document.getElementById('homeNav').classList.add('active');
             document.getElementById('catalogNav').classList.remove('active');
+            
+            // 在手機版重新顯示標題區域
+            if (window.innerWidth <= 768) {
+                const header = document.querySelector('.header');
+                if (header) {
+                    header.style.display = 'block';
+                }
+            }
             
             // 顯示輸入區域
             const chatInputArea = document.getElementById('chatInputArea');
