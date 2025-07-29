@@ -138,7 +138,9 @@ class VectorService {
         if (this.embeddings.length > 0) {
             // 逐個添加向量到 FAISS 索引
             for (let i = 0; i < this.embeddings.length; i++) {
-                this.faissIndex.add(this.embeddings[i]);
+                // 確保向量是正確的 JavaScript Array 格式
+                const vector = Array.from(this.embeddings[i]);
+                this.faissIndex.add(vector);
             }
             console.log('FAISS 索引建立完成');
         } else {
@@ -375,7 +377,9 @@ class VectorService {
                 dimensions: 1536
             });
             
-            return response.data[0].embedding;
+            // 確保返回的是 JavaScript Array
+            const embedding = response.data[0].embedding;
+            return Array.from(embedding);
         } catch (error) {
             console.error('生成嵌入向量失敗:', error);
             throw error;
