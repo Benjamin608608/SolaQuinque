@@ -84,6 +84,61 @@
             animation: fadeInUp 1.5s ease-out forwards;
         }
 
+        .top-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
+            border: 2px solid var(--border-gold);
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
+        }
+
+        .top-navigation .nav-btn {
+            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
+            border: 2px solid var(--border-gold);
+            border-radius: 10px;
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Crimson Text', serif;
+            color: var(--dark-brown);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .top-navigation .nav-btn:hover {
+            background: linear-gradient(135deg, #F0E6D2, var(--light-gold));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
+        }
+
+        .top-navigation .nav-btn.active {
+            background: linear-gradient(135deg, var(--deep-red), #6B0000);
+            color: var(--parchment);
+            border-color: var(--gold);
+        }
+
+        .top-navigation .user-info {
+            position: static;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: linear-gradient(135deg, var(--deep-red), #6B0000);
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            border: 2px solid var(--gold);
+            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            animation: fadeInRight 1s ease-out 1s forwards;
+        }
+
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -323,41 +378,6 @@
             width: 24px;
             height: 24px;
             filter: brightness(0) invert(1);
-        }
-
-        /* 導航區域 */
-        .navigation-panel {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            justify-content: center;
-        }
-
-        .nav-btn {
-            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
-            border: 2px solid var(--border-gold);
-            border-radius: 10px;
-            padding: 0.8rem 1.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Crimson Text', serif;
-            color: var(--dark-brown);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 600;
-        }
-
-        .nav-btn:hover {
-            background: linear-gradient(135deg, #F0E6D2, var(--light-gold));
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
-        }
-
-        .nav-btn.active {
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            color: var(--parchment);
-            border-color: var(--gold);
         }
 
         .nav-icon {
@@ -985,6 +1005,25 @@
 
         <!-- 頁首 -->
         <div class="header">
+            <div class="top-navigation">
+                <button class="nav-btn active" id="homeNav" onclick="showHome()">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">首頁</span>
+                </button>
+                <button class="nav-btn" id="catalogNav" onclick="showCatalog()">
+                    <span class="nav-icon">📚</span>
+                    <span class="nav-text">參考書目</span>
+                </button>
+                <div class="user-info" id="userInfo" style="display: none;">
+                    <div class="user-avatar">
+                        <img id="userAvatar" src="" alt="用戶頭像">
+                    </div>
+                    <div class="user-details">
+                        <span id="userName">用戶名</span>
+                        <button class="logout-btn" onclick="logout()">登出</button>
+                    </div>
+                </div>
+            </div>
             <div class="medieval-logo">
                 <div class="cross-icon"></div>
                 <h1>神學知識庫</h1>
@@ -1014,17 +1053,6 @@
 
         <!-- 主要內容區域 -->
         <div class="main-content" id="mainContent">
-            <!-- 導航區域 -->
-            <div class="navigation-panel">
-                <button class="nav-btn active" id="homeNav" onclick="showHome()">
-                    <span class="nav-icon">🏠</span>
-                    <span class="nav-text">首頁</span>
-                </button>
-                <button class="nav-btn" id="catalogNav" onclick="showCatalog()">
-                    <span class="nav-icon">📚</span>
-                    <span class="nav-text">參考書目</span>
-                </button>
-            </div>
             
             <div class="search-panel">
                 <form class="search-form" id="searchForm">
@@ -1183,12 +1211,13 @@
                 const userInfo = document.getElementById('userInfo');
                 const userAvatar = document.getElementById('userAvatar');
                 const userName = document.getElementById('userName');
-                const userEmail = document.getElementById('userEmail');
 
                 userAvatar.src = user.picture || '/default-avatar.png';
-                userName.textContent = user.name;
-                userEmail.textContent = user.email;
+                userName.textContent = user.name || user.displayName || '用戶';
                 userInfo.style.display = 'flex';
+                
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
             }
 
             showMainContent() {
@@ -1198,6 +1227,7 @@
             }
 
             showLoginContainer() {
+                document.getElementById('userInfo').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('mainContent').style.display = 'none';
             }
