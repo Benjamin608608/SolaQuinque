@@ -1290,6 +1290,15 @@
                 
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('mainContent').style.display = 'block';
+                
+                // 顯示導航按鈕和輸入區域
+                const homeNav = document.getElementById('homeNav');
+                const catalogNav = document.getElementById('catalogNav');
+                const chatInputArea = document.getElementById('chatInputArea');
+                
+                if (homeNav) homeNav.style.display = 'block';
+                if (catalogNav) catalogNav.style.display = 'block';
+                if (chatInputArea) chatInputArea.style.display = 'block';
             }
 
             showMainContent() {
@@ -1302,6 +1311,15 @@
                 document.getElementById('userInfo').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('mainContent').style.display = 'none';
+                
+                // 隱藏導航按鈕和輸入區域
+                const homeNav = document.getElementById('homeNav');
+                const catalogNav = document.getElementById('catalogNav');
+                const chatInputArea = document.getElementById('chatInputArea');
+                
+                if (homeNav) homeNav.style.display = 'none';
+                if (catalogNav) catalogNav.style.display = 'none';
+                if (chatInputArea) chatInputArea.style.display = 'none';
             }
 
             async handleSearch() {
