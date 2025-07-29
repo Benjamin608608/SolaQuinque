@@ -49,83 +49,170 @@ class VectorService {
 
     // 建立向量索引
     async buildIndex() {
-        try {
-            console.log('開始建立向量索引...');
-            
-            // 載入文本資料
-            await this.loadTextData();
-            
-            // 為每個文本片段生成嵌入向量
-            console.log('正在生成嵌入向量...');
-            for (let i = 0; i < this.texts.length; i++) {
-                const text = this.texts[i];
-                const embedding = await this.generateEmbedding(text);
+        console.log('開始建立向量索引...');
+        
+        // 載入文本資料
+        const textData = await this.loadTextData();
+        
+        // 將資料轉換為標準格式
+        if (Array.isArray(textData)) {
+            this.texts = textData.map(item => {
+                if (typeof item === 'string') {
+                    return { text: item, fileName: 'unknown' };
+                }
+                return item;
+            });
+        } else {
+            this.texts = textData;
+        }
+        
+        console.log(`正在生成嵌入向量...`);
+        
+        // 為每個文本片段生成嵌入向量
+        for (let i = 0; i < this.texts.length; i++) {
+            try {
+                const embedding = await this.generateEmbedding(this.texts[i].text);
                 this.embeddings.push(embedding);
                 
-                if ((i + 1) % 100 === 0) {
+                if ((i + 1) % 50 === 0) {
                     console.log(`已處理 ${i + 1}/${this.texts.length} 個文本片段`);
                 }
+            } catch (error) {
+                console.error(`生成第 ${i + 1} 個嵌入向量時發生錯誤:`, error.message);
+                // 跳過這個文本片段
+                this.texts.splice(i, 1);
+                i--;
             }
-            
-            // 建立 FAISS 索引
-            console.log('正在建立 FAISS 索引...');
-            const { Index } = require('faiss-node');
-            this.faissIndex = new Index('Flat', 1536); // 使用 Flat 索引，1536 維度
-            
-            // 將嵌入向量添加到索引
-            const embeddingsArray = new Float32Array(this.embeddings.flat());
-            this.faissIndex.add(embeddingsArray);
-            
-            // 保存索引和文本資料
-            await this.saveIndex();
-            
-            console.log('向量索引建立完成！');
-            this.isInitialized = true;
-            
-        } catch (error) {
-            console.error('建立向量索引失敗:', error);
-            throw error;
         }
+        
+        console.log(`成功生成 ${this.embeddings.length} 個嵌入向量`);
+        
+        // 建立 FAISS 索引
+        const { IndexFlatL2 } = require('faiss-node');
+        this.faissIndex = new IndexFlatL2(this.embeddings[0].length);
+        
+        // 將嵌入向量添加到索引
+        const embeddingsArray = new Float32Array(this.embeddings.flat());
+        this.faissIndex.add(embeddingsArray);
+        
+        console.log('FAISS 索引建立完成');
+        
+        // 保存索引和文本
+        await this.saveIndex();
     }
 
     // 載入文本資料
     async loadTextData() {
+        console.log('📁 正在載入神學資料...');
+        
+        const possibleFiles = [
+            path.join(__dirname, '../data/theology_texts.txt'),
+            path.join(__dirname, '../data/theology_data.json'),
+            path.join(__dirname, '../data/ccel_catalog.json'),
+            path.join(__dirname, '../public/ccel_catalog.json'),
+            path.join(__dirname, '../data/ccel_books.zip')
+        ];
+        
+        for (const filePath of possibleFiles) {
+            try {
+                const stats = fs.statSync(filePath);
+                console.log(`✅ 找到檔案: ${filePath} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+                
+                if (filePath.endsWith('.zip')) {
+                    return await this.loadFromZip(filePath);
+                } else if (filePath.endsWith('.json')) {
+                    return await this.loadFromJSON(filePath);
+                } else {
+                    return await this.loadFromText(filePath);
+                }
+            } catch (error) {
+                console.log(`❌ 檔案不存在: ${filePath}`);
+            }
+        }
+        
+        console.log('⚠️  未找到任何資料檔案，使用預設神學文本');
+        return this.getDefaultTheologyTexts();
+    }
+
+    async loadFromZip(zipPath) {
+        console.log('📦 正在處理壓縮檔案...');
+        
         try {
-            // 嘗試從多個可能的來源載入資料
-            const possiblePaths = [
-                path.join(__dirname, '../data/theology_texts.txt'),
-                path.join(__dirname, '../data/ccel_catalog.json'),
-                path.join(__dirname, '../public/ccel_catalog.json')
-            ];
+            // 使用 Node.js 的內建模組來解壓縮
+            const extract = require('extract-zip');
+            const extractPath = path.join(__dirname, '../data/extracted');
             
-            for (const filePath of possiblePaths) {
+            // 確保解壓縮目錄存在
+            if (!fs.existsSync(extractPath)) {
+                fs.mkdirSync(extractPath, { recursive: true });
+            }
+            
+            await extract(zipPath, { dir: extractPath });
+            console.log('✅ 壓縮檔案解壓縮完成');
+            
+            // 讀取所有 .txt 檔案
+            const txtFiles = this.findTxtFiles(extractPath);
+            console.log(`📚 找到 ${txtFiles.length} 個文本檔案`);
+            
+            let allTexts = [];
+            for (const txtFile of txtFiles) {
                 try {
-                    const data = await fs.readFile(filePath, 'utf8');
-                    
-                    if (filePath.endsWith('.json')) {
-                        // 處理 JSON 格式
-                        const jsonData = JSON.parse(data);
-                        this.texts = this.extractTextsFromJSON(jsonData);
-                    } else {
-                        // 處理純文本格式
-                        this.texts = this.splitTextIntoChunks(data);
-                    }
-                    
-                    console.log(`成功載入 ${this.texts.length} 個文本片段`);
-                    return;
+                    const content = fs.readFileSync(txtFile, 'utf8');
+                    const fileName = path.basename(txtFile, '.txt');
+                    allTexts.push({
+                        text: content,
+                        fileName: fileName
+                    });
                 } catch (error) {
-                    console.log(`無法載入 ${filePath}:`, error.message);
+                    console.log(`⚠️  無法讀取檔案: ${txtFile}`);
                 }
             }
             
-            // 如果沒有找到資料，使用預設的神學文本
-            console.log('使用預設神學文本...');
-            this.texts = this.getDefaultTheologyTexts();
+            return allTexts;
             
         } catch (error) {
-            console.error('載入文本資料失敗:', error);
+            console.error('❌ 解壓縮失敗:', error.message);
             throw error;
         }
+    }
+
+    async loadFromJSON(jsonPath) {
+        console.log('📄 正在載入 JSON 資料...');
+        const data = fs.readFileSync(jsonPath, 'utf8');
+        const jsonData = JSON.parse(data);
+        return this.extractTextsFromJSON(jsonData);
+    }
+
+    async loadFromText(textPath) {
+        console.log('📄 正在載入文本資料...');
+        const data = fs.readFileSync(textPath, 'utf8');
+        return this.splitTextIntoChunks(data);
+    }
+
+    findTxtFiles(dir) {
+        const txtFiles = [];
+        
+        function scanDirectory(currentDir) {
+            try {
+                const items = fs.readdirSync(currentDir);
+                
+                for (const item of items) {
+                    const fullPath = path.join(currentDir, item);
+                    const stat = fs.statSync(fullPath);
+                    
+                    if (stat.isDirectory()) {
+                        scanDirectory(fullPath);
+                    } else if (item.toLowerCase().endsWith('.txt')) {
+                        txtFiles.push(fullPath);
+                    }
+                }
+            } catch (error) {
+                console.log(`⚠️  無法掃描目錄: ${currentDir}`);
+            }
+        }
+        
+        scanDirectory(dir);
+        return txtFiles;
     }
 
     // 從 JSON 資料中提取文本
