@@ -325,6 +325,49 @@
             filter: brightness(0) invert(1);
         }
 
+        /* 導航區域 */
+        .navigation-panel {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            justify-content: center;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
+            border: 2px solid var(--border-gold);
+            border-radius: 10px;
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Crimson Text', serif;
+            color: var(--dark-brown);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .nav-btn:hover {
+            background: linear-gradient(135deg, #F0E6D2, var(--light-gold));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(135deg, var(--deep-red), #6B0000);
+            color: var(--parchment);
+            border-color: var(--gold);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+        }
+
+        .nav-text {
+            font-size: 1rem;
+        }
+
         /* 主要內容區域 */
         .main-content {
             display: none;
@@ -795,6 +838,18 @@
 
         <!-- 主要內容區域 -->
         <div class="main-content" id="mainContent">
+            <!-- 導航區域 -->
+            <div class="navigation-panel">
+                <button class="nav-btn active" id="homeNav" onclick="showHome()">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">首頁</span>
+                </button>
+                <button class="nav-btn" id="catalogNav" onclick="showCatalog()">
+                    <span class="nav-icon">📚</span>
+                    <span class="nav-text">參考書目</span>
+                </button>
+            </div>
+            
             <div class="search-panel">
                 <form class="search-form" id="searchForm">
                     <div class="form-group">
@@ -852,10 +907,10 @@
             </div>
         </div>
 
-        <!-- 作品目錄頁面 -->
+        <!-- 參考書目頁面 -->
         <div class="catalog-page" id="catalogPage">
             <div class="catalog-header">
-                <h2>📚 作品目錄</h2>
+                <h2>📚 參考書目</h2>
                 <p>探索豐富的神學文獻資料庫</p>
             </div>
             <div class="catalog-search">
@@ -1100,37 +1155,35 @@
             window.location.href = '/auth/logout';
         }
 
+        // 導航功能
+        function showHome() {
+            document.getElementById('catalogPage').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('homeNav').classList.add('active');
+            document.getElementById('catalogNav').classList.remove('active');
+        }
+
+        function showCatalog() {
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('catalogPage').style.display = 'block';
+            document.getElementById('catalogNav').classList.add('active');
+            document.getElementById('homeNav').classList.remove('active');
+            
+            // 如果還沒有載入目錄，則載入
+            if (typeof loadCatalog === 'function' && !catalogData || catalogData.length === 0) {
+                loadCatalog();
+            }
+        }
+
         // 初始化應用
         document.addEventListener('DOMContentLoaded', () => {
             new TheologySearchApp();
         });
 
         // 作品目錄功能
-        const catalogNav = document.getElementById('catalogNav');
-        const catalogPage = document.getElementById('catalogPage');
-        const mainContent = document.getElementById('mainContent');
         const catalogList = document.getElementById('catalogList');
         const catalogSearch = document.getElementById('catalogSearch');
         let catalogData = [];
-
-        // 檢查元素是否存在再添加事件監聽器
-        if (catalogNav) {
-            catalogNav.addEventListener('click', (e) => {
-                e.preventDefault();
-                mainContent.style.display = 'none';
-                catalogPage.style.display = 'block';
-                if (catalogData.length === 0) loadCatalog();
-            });
-        }
-        
-        const homeLink = document.querySelector('a[href="/"]');
-        if (homeLink) {
-            homeLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                catalogPage.style.display = 'none';
-                mainContent.style.display = '';
-            });
-        }
 
         async function loadCatalog() {
             catalogList.innerHTML = '<div style="text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">載入中...</div>';
