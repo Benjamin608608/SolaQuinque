@@ -107,17 +107,22 @@ class VectorService {
             }
             
             // 分階段載入策略
-            const INITIAL_BATCH_SIZE = 25;  // 每批 25 個文件
-            const INITIAL_MAX_FILES = 400;  // 初始階段載入 400 個文件
-            const PROGRESS_INTERVAL = 20;   // 每 20 個文件顯示進度
+            const INITIAL_BATCH_SIZE = 20;  // 每批 20 個文件（更小批次）
+            const INITIAL_MAX_FILES = 100;  // 初始階段只載入 100 個文件（確保成功）
+            const PROGRESS_INTERVAL = 10;   // 每 10 個文件顯示進度
+            
+            // Railway 快速啟動模式 - 進一步減少文件數量
+            const RAILWAY_QUICK_START = 50;  // Railway 環境快速啟動只用 50 個文件
             
             // 檢測是否為初始建立索引階段
             const isInitialBuild = process.env.NODE_ENV === 'production' && !process.env.SKIP_INITIAL_LIMIT;
+            const isRailwayEnv = process.env.RAILWAY_ENVIRONMENT_NAME || process.env.RAILWAY_PROJECT_NAME;
             
             let filesToProcess;
             if (isInitialBuild) {
-                filesToProcess = filesList.slice(0, INITIAL_MAX_FILES);
-                console.log(`🚀 初始建立階段：處理前 ${filesToProcess.length} 個文件`);
+                const maxFiles = isRailwayEnv ? RAILWAY_QUICK_START : INITIAL_MAX_FILES;
+                filesToProcess = filesList.slice(0, maxFiles);
+                console.log(`🚀 ${isRailwayEnv ? 'Railway 快速啟動' : '初始建立'}階段：處理前 ${filesToProcess.length} 個文件`);
                 console.log(`📝 剩餘 ${filesList.length - filesToProcess.length} 個文件將在系統啟動後背景載入`);
             } else {
                 filesToProcess = filesList;
@@ -735,8 +740,8 @@ class VectorService {
         console.log(`📊 文本片段總數: ${texts.length}`);
         
         const embeddings = [];
-        const BATCH_SIZE = 100; // 每批處理 100 個文本片段
-        const PROGRESS_INTERVAL = 200; // 每 200 個顯示進度
+        const BATCH_SIZE = 50; // 每批處理 50 個文本片段（減少批次大小）
+        const PROGRESS_INTERVAL = 100; // 每 100 個顯示進度（減少日誌）
         
         let processedCount = 0;
         const totalBatches = Math.ceil(texts.length / BATCH_SIZE);
