@@ -106,22 +106,35 @@ class VectorService {
                 // 目錄可能已存在
             }
             
-            // 優化批量處理設置
-            const BATCH_SIZE = 25;  // 減小批次大小以提高穩定性
-            const PROGRESS_INTERVAL = 20;  // 每 20 個文件顯示一次進度
+            // 分階段載入策略
+            const INITIAL_BATCH_SIZE = 25;  // 每批 25 個文件
+            const INITIAL_MAX_FILES = 400;  // 初始階段載入 400 個文件
+            const PROGRESS_INTERVAL = 20;   // 每 20 個文件顯示進度
             
-            console.log(`🎯 準備處理所有 ${filesList.length} 個文件`);
-            console.log(`📦 批次大小: ${BATCH_SIZE} 個文件/批`);
-            console.log(`📊 預計批次數: ${Math.ceil(filesList.length / BATCH_SIZE)}`);
+            // 檢測是否為初始建立索引階段
+            const isInitialBuild = process.env.NODE_ENV === 'production' && !process.env.SKIP_INITIAL_LIMIT;
             
-            // 分批處理所有文件
-            for (let i = 0; i < filesList.length; i += BATCH_SIZE) {
-                const batch = filesList.slice(i, i + BATCH_SIZE);
-                const batchNum = Math.floor(i/BATCH_SIZE) + 1;
-                const totalBatches = Math.ceil(filesList.length/BATCH_SIZE);
+            let filesToProcess;
+            if (isInitialBuild) {
+                filesToProcess = filesList.slice(0, INITIAL_MAX_FILES);
+                console.log(`🚀 初始建立階段：處理前 ${filesToProcess.length} 個文件`);
+                console.log(`📝 剩餘 ${filesList.length - filesToProcess.length} 個文件將在系統啟動後背景載入`);
+            } else {
+                filesToProcess = filesList;
+                console.log(`🎯 完整載入模式：處理所有 ${filesToProcess.length} 個文件`);
+            }
+            
+            console.log(`📦 批次大小: ${INITIAL_BATCH_SIZE} 個文件/批`);
+            console.log(`📊 預計批次數: ${Math.ceil(filesToProcess.length / INITIAL_BATCH_SIZE)}`);
+            
+            // 分批處理文件
+            for (let i = 0; i < filesToProcess.length; i += INITIAL_BATCH_SIZE) {
+                const batch = filesToProcess.slice(i, i + INITIAL_BATCH_SIZE);
+                const batchNum = Math.floor(i/INITIAL_BATCH_SIZE) + 1;
+                const totalBatches = Math.ceil(filesToProcess.length/INITIAL_BATCH_SIZE);
                 
                 console.log(`\n📦 處理批次 ${batchNum}/${totalBatches} (${batch.length} 個文件)`);
-                console.log(`📈 總進度: ${((i / filesList.length) * 100).toFixed(1)}%`);
+                console.log(`📈 總進度: ${((i / filesToProcess.length) * 100).toFixed(1)}%`);
                 
                 // 處理當前批次
                 for (const file of batch) {
@@ -138,7 +151,7 @@ class VectorService {
                             // 文件不存在，需要下載
                         }
                         
-                        console.log(`📥 下載文件 ${downloadedCount + 1}/${filesList.length}: ${file.name}`);
+                        console.log(`📥 下載文件 ${downloadedCount + 1}/${filesToProcess.length}: ${file.name}`);
                         
                         await this.downloadFromGoogleDrive(file.id, filePath);
                         
@@ -161,7 +174,7 @@ class VectorService {
                         
                         // 定期顯示進度
                         if (downloadedCount % PROGRESS_INTERVAL === 0) {
-                            console.log(`📊 進度更新: 已下載 ${downloadedCount}/${filesList.length} 個文件，跳過 ${skippedCount} 個，提取了 ${processedTextCount} 個文本片段`);
+                            console.log(`📊 進度更新: 已下載 ${downloadedCount}/${filesToProcess.length} 個文件，跳過 ${skippedCount} 個，提取了 ${processedTextCount} 個文本片段`);
                         }
                         
                     } catch (error) {
@@ -172,17 +185,30 @@ class VectorService {
                 }
                 
                 // 批次完成後短暫休息，避免 API 限制和內存壓力
-                if (i + BATCH_SIZE < filesList.length) {
-                    console.log(`⏸️  批次 ${batchNum} 完成，休息 3 秒...`);
-                    await new Promise(resolve => setTimeout(resolve, 3000));
+                if (i + INITIAL_BATCH_SIZE < filesToProcess.length) {
+                    console.log(`⏸️  批次 ${batchNum} 完成，休息 2 秒...`);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
             
-            console.log(`\n🎉 處理完成！`);
+            console.log(`\n🎉 ${isInitialBuild ? '初始階段' : '完整'}處理完成！`);
             console.log(`✅ 成功下載: ${downloadedCount} 個文件`);
             console.log(`⏭️  跳過已存在: ${skippedCount} 個文件`);
             console.log(`📚 提取文本片段: ${texts.length} 個`);
             console.log(`📈 平均每文件片段數: ${(texts.length / Math.max(downloadedCount, 1)).toFixed(1)}`);
+            
+            if (isInitialBuild && filesList.length > INITIAL_MAX_FILES) {
+                console.log(`\n🔄 背景載入計劃:`);
+                console.log(`   - 已載入: ${filesToProcess.length} 個文件`);
+                console.log(`   - 待載入: ${filesList.length - filesToProcess.length} 個文件`);
+                console.log(`   - 系統啟動後將自動背景載入剩餘文件`);
+                
+                // 保存剩餘文件列表供背景載入使用
+                const remainingFiles = filesList.slice(INITIAL_MAX_FILES);
+                const remainingFilesPath = path.join(outputDir, 'remaining_files.json');
+                await fs.writeFile(remainingFilesPath, JSON.stringify(remainingFiles, null, 2));
+                console.log(`💾 剩餘文件列表已保存到: ${remainingFilesPath}`);
+            }
             
             return texts;
             
@@ -201,25 +227,52 @@ class VectorService {
             const apiKey = process.env.GOOGLE_DRIVE_API_KEY || 'AIzaSyCdI0rjMKiPW7lJKiMtmbc8B1EuzWqzWdM';
             console.log(`🔑 使用 API 密鑰: ${apiKey.substring(0, 10)}...`);
             
-            // 使用 Google Drive API v3 列出文件
-            console.log('🔗 使用 Google Drive API v3 列出文件');
-            const apiUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size)&pageSize=1000&key=${apiKey}`;
+            // 使用 Google Drive API v3 列出文件 - 支持分頁獲取所有文件
+            console.log('🔗 使用 Google Drive API v3 列出文件（支持分頁）');
             
-            const response = await fetch(apiUrl);
+            let allFiles = [];
+            let pageToken = null;
+            let pageCount = 0;
             
-            if (response.ok) {
-                const data = await response.json();
-                const files = data.files || [];
-                console.log(`✅ 成功獲取 ${files.length} 個文件`);
-                return this.processFilesList(files);
-            } else {
-                const errorText = await response.text();
-                console.log(`❌ API 請求失敗: ${response.status} - ${errorText}`);
+            do {
+                pageCount++;
+                console.log(`📄 獲取第 ${pageCount} 頁文件...`);
                 
-                // 如果 API 失敗，使用預定義文件列表作為後備
-                console.log('🔄 使用預定義文件列表作為後備');
-                return this.getPreDefinedFilesList(folderId);
-            }
+                let apiUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size),nextPageToken&pageSize=1000&key=${apiKey}`;
+                
+                if (pageToken) {
+                    apiUrl += `&pageToken=${pageToken}`;
+                }
+                
+                const response = await fetch(apiUrl);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const files = data.files || [];
+                    
+                    console.log(`✅ 第 ${pageCount} 頁獲取到 ${files.length} 個文件`);
+                    allFiles.push(...files);
+                    
+                    pageToken = data.nextPageToken;
+                    
+                    if (pageToken) {
+                        console.log(`🔄 發現更多文件，準備獲取下一頁...`);
+                        // 短暫休息避免 API 限制
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.log(`❌ API 請求失敗: ${response.status} - ${errorText}`);
+                    
+                    // 如果 API 失敗，使用預定義文件列表作為後備
+                    console.log('🔄 使用預定義文件列表作為後備');
+                    return this.getPreDefinedFilesList(folderId);
+                }
+                
+            } while (pageToken);
+            
+            console.log(`🎉 總共獲取到 ${allFiles.length} 個文件（共 ${pageCount} 頁）`);
+            return this.processFilesList(allFiles);
             
         } catch (error) {
             console.error('❌ 列出文件失敗:', error.message);
