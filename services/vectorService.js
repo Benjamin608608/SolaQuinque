@@ -77,6 +77,110 @@ class VectorService {
         }
     }
     
+    // 從 Google Drive 資料夾下載所有文件
+    async downloadFromGoogleDriveFolder(folderId, outputDir) {
+        console.log(`📁 正在從 Google Drive 資料夾下載文件: ${folderId}`);
+        
+        try {
+            // 列出資料夾中的所有文件
+            const filesList = await this.listGoogleDriveFiles(folderId);
+            console.log(`📋 找到 ${filesList.length} 個文件`);
+            
+            if (filesList.length === 0) {
+                throw new Error('資料夾中沒有找到文件');
+            }
+            
+            const texts = [];
+            let downloadedCount = 0;
+            
+            // 確保輸出目錄存在
+            try {
+                await fs.mkdir(outputDir, { recursive: true });
+            } catch (error) {
+                // 目錄可能已存在
+            }
+            
+            // 下載每個文件
+            for (const file of filesList) {
+                try {
+                    console.log(`📥 下載文件 ${downloadedCount + 1}/${filesList.length}: ${file.name}`);
+                    
+                    const filePath = path.join(outputDir, file.name);
+                    await this.downloadFromGoogleDrive(file.id, filePath);
+                    
+                    // 如果是文本文件，讀取內容
+                    if (file.name.toLowerCase().endsWith('.txt')) {
+                        console.log(`📚 讀取文本文件: ${file.name}`);
+                        const content = await fs.readFile(filePath, 'utf8');
+                        const chunks = this.splitTextIntoChunks(content);
+                        
+                        chunks.forEach(chunk => {
+                            texts.push({
+                                text: chunk,
+                                fileName: file.name
+                            });
+                        });
+                    }
+                    
+                    downloadedCount++;
+                    
+                } catch (error) {
+                    console.error(`❌ 下載文件失敗 ${file.name}:`, error.message);
+                    continue; // 繼續下載其他文件
+                }
+            }
+            
+            console.log(`✅ 成功下載 ${downloadedCount}/${filesList.length} 個文件`);
+            console.log(`📚 提取了 ${texts.length} 個文本片段`);
+            
+            return texts;
+            
+        } catch (error) {
+            console.error('❌ 從 Google Drive 資料夾下載失敗:', error.message);
+            throw error;
+        }
+    }
+    
+    // 列出 Google Drive 資料夾中的文件
+    async listGoogleDriveFiles(folderId) {
+        console.log(`📋 列出 Google Drive 資料夾中的文件: ${folderId}`);
+        
+        try {
+            // 使用 Google Drive API 列出文件
+            const listUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size)&pageSize=1000`;
+            
+            const response = await fetch(listUrl);
+            
+            if (!response.ok) {
+                throw new Error(`列出文件失敗: ${response.status} ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            const files = data.files || [];
+            
+            // 篩選出文本文件或其他可處理的文件
+            const validFiles = files.filter(file => {
+                const isTextFile = file.name.toLowerCase().endsWith('.txt');
+                const isZipFile = file.name.toLowerCase().endsWith('.zip');
+                const isJsonFile = file.name.toLowerCase().endsWith('.json');
+                return isTextFile || isZipFile || isJsonFile;
+            });
+            
+            console.log(`📄 找到 ${validFiles.length} 個可處理的文件 (總共 ${files.length} 個文件)`);
+            
+            validFiles.forEach(file => {
+                const sizeStr = file.size ? `(${(file.size / 1024 / 1024).toFixed(2)} MB)` : '';
+                console.log(`  - ${file.name} ${sizeStr}`);
+            });
+            
+            return validFiles;
+            
+        } catch (error) {
+            console.error('❌ 列出文件失敗:', error.message);
+            throw error;
+        }
+    }
+    
     // 處理下載響應
     async processDownloadResponse(response, outputPath) {
         // 確保輸出目錄存在
@@ -286,6 +390,15 @@ class VectorService {
         for (const file of googleDriveFiles) {
             try {
                 console.log(`📥 嘗試下載: ${file.name}`);
+                
+                // 檢查是否為資料夾 ID（通過檢查 fileId 和 folderId 是否相同）
+                if (file.fileId === config.folderId) {
+                    console.log('📁 檢測到資料夾 ID，嘗試下載資料夾中的所有文件...');
+                    const outputDir = path.join(__dirname, '../data/downloaded_texts');
+                    return await this.downloadFromGoogleDriveFolder(file.fileId, outputDir);
+                }
+                
+                // 原有的單文件下載邏輯
                 await this.downloadFromGoogleDrive(file.fileId, file.localPath);
                 
                 // 下載成功後處理檔案

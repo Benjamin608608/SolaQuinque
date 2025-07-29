@@ -1,12 +1,12 @@
 {
   "files": [
     {
-      "name": "ccel_books.zip",
+      "name": "神學書籍資料夾",
       "fileId": "1e9Gup33c5nPaM6zRi8bQxI0kqWfUcc2K",
-      "description": "CCEL 書籍壓縮檔案",
-      "localPath": "data/ccel_books.zip"
+      "description": "CCEL 神學書籍資料夾（包含 1300+ txt 文件）",
+      "localPath": "data/downloaded_texts"
     }
   ],
   "folderId": "1e9Gup33c5nPaM6zRi8bQxI0kqWfUcc2K",
-  "description": "神學資料 Google Drive 設定"
+  "description": "神學資料 Google Drive 設定 - 資料夾模式"
 } 
