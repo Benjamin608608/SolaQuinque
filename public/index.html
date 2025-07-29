@@ -425,11 +425,11 @@
             flex: 1;
             overflow-y: auto;
             padding: 1rem;
-            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
-            border: 2px solid var(--border-gold);
-            border-radius: 15px;
+            background: transparent;
+            border: none;
+            border-radius: 0;
             margin-bottom: 1rem;
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
+            box-shadow: none;
         }
 
         .chat-input-area {
@@ -605,12 +605,22 @@
 
         .empty-state {
             text-align: center;
-            padding: 3rem 1rem;
+            padding: 2rem 1rem;
             color: var(--ochre);
         }
 
+        .welcome-content {
+            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
+            border: 2px solid var(--border-gold);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
         .empty-state .icon {
-            font-size: 4rem;
+            font-size: 3rem;
             margin-bottom: 1rem;
             opacity: 0.7;
         }
@@ -1199,9 +1209,11 @@
             <div class="chat-container">
                 <div class="chat-messages" id="chatMessages">
                     <div class="empty-state" id="emptyState">
-                        <div class="icon">📖</div>
-                        <h3>歡迎使用神學知識庫</h3>
-                        <p>請在下方輸入您的問題，或點擊範例問題開始探索</p>
+                        <div class="welcome-content">
+                            <div class="icon">📖</div>
+                            <h3>歡迎使用神學知識庫</h3>
+                            <p>請在下方輸入您的問題，或點擊範例問題開始探索</p>
+                        </div>
                     </div>
                 </div>
 
