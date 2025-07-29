@@ -96,6 +96,7 @@ class VectorService {
             
             const texts = [];
             let downloadedCount = 0;
+            let processedTextCount = 0;
             
             // 確保輸出目錄存在
             try {
@@ -104,38 +105,71 @@ class VectorService {
                 // 目錄可能已存在
             }
             
-            // 下載每個文件
-            for (const file of filesList) {
-                try {
-                    console.log(`📥 下載文件 ${downloadedCount + 1}/${filesList.length}: ${file.name}`);
-                    
-                    const filePath = path.join(outputDir, file.name);
-                    await this.downloadFromGoogleDrive(file.id, filePath);
-                    
-                    // 如果是文本文件，讀取內容
-                    if (file.name.toLowerCase().endsWith('.txt')) {
-                        console.log(`📚 讀取文本文件: ${file.name}`);
-                        const content = await fs.readFile(filePath, 'utf8');
-                        const chunks = this.splitTextIntoChunks(content);
+            // 限制同時處理的文件數量，避免超時
+            const BATCH_SIZE = 50;  // 每批處理 50 個文件
+            const MAX_TOTAL_FILES = 200;  // Railway 環境下限制總文件數
+            
+            const filesToProcess = filesList.slice(0, MAX_TOTAL_FILES);
+            console.log(`📊 為避免超時，限制處理 ${filesToProcess.length} 個文件`);
+            
+            // 分批處理文件
+            for (let i = 0; i < filesToProcess.length; i += BATCH_SIZE) {
+                const batch = filesToProcess.slice(i, i + BATCH_SIZE);
+                console.log(`📦 處理批次 ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(filesToProcess.length/BATCH_SIZE)} (${batch.length} 個文件)`);
+                
+                // 處理當前批次
+                for (const file of batch) {
+                    try {
+                        console.log(`📥 下載文件 ${downloadedCount + 1}/${filesToProcess.length}: ${file.name}`);
                         
-                        chunks.forEach(chunk => {
-                            texts.push({
-                                text: chunk,
-                                fileName: file.name
+                        const filePath = path.join(outputDir, file.name);
+                        await this.downloadFromGoogleDrive(file.id, filePath);
+                        
+                        // 如果是文本文件，讀取內容
+                        if (file.name.toLowerCase().endsWith('.txt')) {
+                            console.log(`📚 讀取文本文件: ${file.name}`);
+                            const content = await fs.readFile(filePath, 'utf8');
+                            const chunks = this.splitTextIntoChunks(content);
+                            
+                            chunks.forEach(chunk => {
+                                texts.push({
+                                    text: chunk,
+                                    fileName: file.name
+                                });
                             });
-                        });
+                            
+                            processedTextCount += chunks.length;
+                        }
+                        
+                        downloadedCount++;
+                        
+                        // 每 10 個文件顯示一次進度
+                        if (downloadedCount % 10 === 0) {
+                            console.log(`📊 進度更新: 已下載 ${downloadedCount}/${filesToProcess.length} 個文件，提取了 ${processedTextCount} 個文本片段`);
+                        }
+                        
+                    } catch (error) {
+                        console.error(`❌ 下載文件失敗 ${file.name}:`, error.message);
+                        continue; // 繼續下載其他文件
                     }
-                    
-                    downloadedCount++;
-                    
-                } catch (error) {
-                    console.error(`❌ 下載文件失敗 ${file.name}:`, error.message);
-                    continue; // 繼續下載其他文件
+                }
+                
+                // 批次完成後短暫休息，避免 API 限制
+                if (i + BATCH_SIZE < filesToProcess.length) {
+                    console.log('⏸️  批次完成，休息 2 秒...');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
             
-            console.log(`✅ 成功下載 ${downloadedCount}/${filesList.length} 個文件`);
+            console.log(`✅ 成功下載 ${downloadedCount}/${filesToProcess.length} 個文件`);
             console.log(`📚 提取了 ${texts.length} 個文本片段`);
+            
+            // 如果沒有提取到足夠的文本，使用預設文本補充
+            if (texts.length < 10) {
+                console.log('📝 文本片段較少，添加預設神學文本以確保系統正常運作');
+                const defaultTexts = this.getDefaultTheologyTexts();
+                texts.push(...defaultTexts);
+            }
             
             return texts;
             
@@ -149,21 +183,14 @@ class VectorService {
     async listGoogleDriveFiles(folderId) {
         console.log(`📋 列出 Google Drive 資料夾中的文件: ${folderId}`);
         
-        // 調試：檢查環境變數
-        console.log('🔍 環境變數調試信息:');
-        console.log(`   - NODE_ENV: ${process.env.NODE_ENV}`);
-        console.log(`   - GOOGLE_DRIVE_API_KEY 是否存在: ${process.env.GOOGLE_DRIVE_API_KEY ? '是' : '否'}`);
-        console.log(`   - 所有環境變數鍵: ${Object.keys(process.env).filter(key => key.includes('GOOGLE')).join(', ')}`);
-        
         try {
             // 從環境變數獲取 Google Drive API 密鑰
             const apiKey = process.env.GOOGLE_DRIVE_API_KEY || 'AIzaSyCdI0rjMKiPW7lJKiMtmbc8B1EuzWqzWdM';
             console.log(`🔑 使用 API 密鑰: ${apiKey.substring(0, 10)}...`);
             
-            // 方法 1: 使用 Google Drive API v3 列出文件
+            // 使用 Google Drive API v3 列出文件
             console.log('🔗 使用 Google Drive API v3 列出文件');
             const apiUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size)&pageSize=1000&key=${apiKey}`;
-            console.log(`🌐 API URL: ${apiUrl.substring(0, 100)}...`);
             
             const response = await fetch(apiUrl);
             
@@ -289,12 +316,10 @@ class VectorService {
             response.body.on('data', (chunk) => {
                 downloadedSize += chunk.length;
                 
-                if (totalSize > 0) {
+                // 只在文件較大時顯示進度（>1MB），且每 5MB 顯示一次
+                if (totalSize > 1024 * 1024 && downloadedSize % (1024 * 1024 * 5) < chunk.length) {
                     const progress = ((downloadedSize / totalSize) * 100).toFixed(1);
-                    // 每 1MB 顯示一次進度，避免日誌過多
-                    if (downloadedSize % (1024 * 1024) < chunk.length) {
-                        console.log(`📊 下載進度: ${progress}% (${(downloadedSize / 1024 / 1024).toFixed(2)} MB)`);
-                    }
+                    console.log(`📊 下載進度: ${progress}% (${(downloadedSize / 1024 / 1024).toFixed(2)} MB)`);
                 }
             });
             
@@ -316,7 +341,7 @@ class VectorService {
                 fileStream.on('error', reject);
             });
             
-            console.log(`✅ 檔案下載完成: ${outputPath} (${(downloadedSize / 1024 / 1024).toFixed(2)} MB)`);
+            console.log(`✅ 檔案下載完成: ${path.basename(outputPath)} (${(downloadedSize / 1024 / 1024).toFixed(2)} MB)`);
             return outputPath;
             
         } catch (error) {
