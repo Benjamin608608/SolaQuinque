@@ -1,0 +1,32 @@
+{
+  "name": "預處理神學向量資料",
+  "description": "預先處理好的神學文本向量資料，包含所有 1300+ 文件的嵌入向量",
+  "version": "1.0.0",
+  "lastUpdated": "2025-07-29T15:30:00.000Z",
+  "files": [
+    {
+      "name": "theology-vectors-compressed.json",
+      "fileId": "PLACEHOLDER_VECTOR_FILE_ID",
+      "localPath": "data/theology-vectors-compressed.json",
+      "description": "壓縮的向量資料文件",
+      "type": "preprocessed_vectors",
+      "expectedSizeMB": 200
+    }
+  ],
+  "preprocessing": {
+    "model": "text-embedding-3-small",
+    "dimensions": 1536,
+    "chunkSize": 1500,
+    "overlap": 200,
+    "totalFiles": 1300,
+    "estimatedChunks": 50000
+  },
+  "usage": {
+    "instructions": [
+      "1. 在本地運行 node scripts/preprocess-vectors.js",
+      "2. 將生成的 theology-vectors-compressed.json 上傳到 Google Drive",
+      "3. 更新此配置文件中的 fileId",
+      "4. 部署到 Railway，享受快速啟動！"
+    ]
+  }
+}

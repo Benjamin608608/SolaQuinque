@@ -510,22 +510,30 @@ class VectorService {
         // 載入文本資料
         const textData = await this.loadTextData();
         
-        // 將資料轉換為標準格式
-        if (Array.isArray(textData)) {
-            this.texts = textData.map(item => {
-                if (typeof item === 'string') {
-                    return { text: item, fileName: 'unknown' };
-                }
-                return item;
-            });
+        // 檢查是否為預處理的向量資料
+        if (textData && textData.isPreprocessedVectors) {
+            console.log('🚀 使用預處理向量資料，跳過嵌入向量生成步驟');
+            this.texts = textData.texts;
+            this.embeddings = textData.embeddings;
+            console.log(`📊 載入了 ${this.texts.length} 個文本片段和對應的嵌入向量`);
         } else {
-            this.texts = textData;
+            // 將資料轉換為標準格式
+            if (Array.isArray(textData)) {
+                this.texts = textData.map(item => {
+                    if (typeof item === 'string') {
+                        return { text: item, fileName: 'unknown' };
+                    }
+                    return item;
+                });
+            } else {
+                this.texts = textData;
+            }
+            
+            console.log(`正在生成嵌入向量...`);
+            
+            // 使用批量處理生成所有嵌入向量
+            this.embeddings = await this.generateEmbeddings(this.texts);
         }
-        
-        console.log(`正在生成嵌入向量...`);
-        
-        // 使用批量處理生成所有嵌入向量
-        this.embeddings = await this.generateEmbeddings(this.texts);
         
         // 建立 FAISS 索引
         const { IndexFlatL2 } = require('faiss-node');
@@ -561,6 +569,16 @@ class VectorService {
     async loadTextData() {
         console.log('📁 正在載入神學資料...');
         
+        // 首先檢查是否有預處理的向量資料
+        const preprocessedVectorPath = path.join(__dirname, '../data/theology-vectors-compressed.json');
+        try {
+            const stats = await fs.stat(preprocessedVectorPath);
+            console.log(`🚀 發現預處理向量資料: ${preprocessedVectorPath} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+            return await this.loadFromPreprocessedVectors(preprocessedVectorPath);
+        } catch (error) {
+            console.log('📝 未找到預處理向量資料，將使用傳統文本處理方式');
+        }
+        
         // 優先嘗試大文件，避免載入小的目錄文件
         const priorityFiles = [
             path.join(__dirname, '../data/ccel_books.zip'),
@@ -589,28 +607,53 @@ class VectorService {
         // 如果本地沒有大文件，嘗試從 Google Drive 下載
         console.log('🔄 本地無大文件，嘗試從 Google Drive 下載神學資料...');
         
-        // 載入 Google Drive 設定
+        // 載入 Google Drive 設定（優先檢查向量資料配置）
         let googleDriveFiles = [];
         let config = null;
+        
+        // 首先嘗試載入預處理向量資料配置
         try {
-            const configPath = path.join(__dirname, '../config/google-drive.json');
-            const configData = await fs.readFile(configPath, 'utf8');
-            config = JSON.parse(configData);
-            googleDriveFiles = config.files.map(file => ({
-                ...file,
-                localPath: path.join(__dirname, '..', file.localPath)
-            }));
-            console.log(`📋 載入 Google Drive 設定，找到 ${googleDriveFiles.length} 個檔案`);
+            const vectorConfigPath = path.join(__dirname, '../config/google-drive-vectors.json');
+            const vectorConfigData = await fs.readFile(vectorConfigPath, 'utf8');
+            const vectorConfig = JSON.parse(vectorConfigData);
+            
+            // 檢查是否有有效的向量資料配置
+            if (vectorConfig.files && vectorConfig.files.length > 0 && 
+                vectorConfig.files[0].fileId !== 'PLACEHOLDER_VECTOR_FILE_ID') {
+                console.log('🚀 發現預處理向量資料配置');
+                googleDriveFiles = vectorConfig.files.map(file => ({
+                    ...file,
+                    localPath: path.join(__dirname, '..', file.localPath)
+                }));
+                config = vectorConfig;
+                console.log(`📋 載入向量資料設定，找到 ${googleDriveFiles.length} 個檔案`);
+            } else {
+                throw new Error('向量資料配置未完成');
+            }
         } catch (error) {
-            console.log('⚠️  無法載入 Google Drive 設定，使用預設設定');
-            googleDriveFiles = [
-                {
-                    name: 'ccel_books.zip',
-                    fileId: '1e9Gup33c5nPaM6zRi8bQxI0kqWfUcc2K',
-                    localPath: path.join(__dirname, '../data/ccel_books.zip')
-                }
-            ];
-            config = { folderId: '1e9Gup33c5nPaM6zRi8bQxI0kqWfUcc2K' };
+            console.log('📝 未找到有效的向量資料配置，嘗試載入原始文本配置');
+            
+            // 載入原始文本配置
+            try {
+                const configPath = path.join(__dirname, '../config/google-drive.json');
+                const configData = await fs.readFile(configPath, 'utf8');
+                config = JSON.parse(configData);
+                googleDriveFiles = config.files.map(file => ({
+                    ...file,
+                    localPath: path.join(__dirname, '..', file.localPath)
+                }));
+                console.log(`📋 載入 Google Drive 設定，找到 ${googleDriveFiles.length} 個檔案`);
+            } catch (error) {
+                console.log('⚠️  無法載入 Google Drive 設定，使用預設設定');
+                googleDriveFiles = [
+                    {
+                        name: 'ccel_books.zip',
+                        fileId: '1e9Gup33c5nPaM6zRi8bQxI0kqWfUcc2K',
+                        localPath: path.join(__dirname, '../data/ccel_books.zip')
+                    }
+                ];
+                config = { folderId: '1e9Gup33c5nPaM6zRi8bQxI0kqWfUcc2K' };
+            }
         }
         
         for (const file of googleDriveFiles) {
@@ -629,7 +672,10 @@ class VectorService {
                 await this.downloadFromGoogleDrive(file.fileId, file.localPath);
                 
                 // 下載成功後處理檔案
-                if (file.localPath.endsWith('.zip')) {
+                if (file.type === 'preprocessed_vectors' || file.name.includes('vectors')) {
+                    console.log('🚀 識別為預處理向量資料文件');
+                    return await this.loadFromPreprocessedVectors(file.localPath);
+                } else if (file.localPath.endsWith('.zip')) {
                     return await this.loadFromZip(file.localPath);
                 } else if (file.localPath.endsWith('.json')) {
                     return await this.loadFromJSON(file.localPath);
@@ -700,6 +746,76 @@ class VectorService {
         console.log('📄 正在載入文本資料...');
         const data = await fs.readFile(textPath, 'utf8');
         return this.splitTextIntoChunks(data);
+    }
+
+    // 載入預處理的向量資料
+    async loadFromPreprocessedVectors(vectorPath) {
+        console.log('🚀 正在載入預處理向量資料...');
+        
+        try {
+            const data = await fs.readFile(vectorPath, 'utf8');
+            const vectorData = JSON.parse(data);
+            
+            console.log(`📊 向量資料版本: ${vectorData.version}`);
+            console.log(`📅 建立時間: ${vectorData.createdAt}`);
+            console.log(`🤖 模型: ${vectorData.model}`);
+            console.log(`📐 維度: ${vectorData.dimensions}`);
+            console.log(`📁 總文件數: ${vectorData.totalFiles}`);
+            console.log(`📚 總片段數: ${vectorData.totalChunks}`);
+            
+            // 驗證資料完整性
+            if (!vectorData.chunks || vectorData.chunks.length === 0) {
+                throw new Error('向量資料中沒有找到文本片段');
+            }
+            
+            if (vectorData.chunks.length !== vectorData.totalChunks) {
+                console.warn(`⚠️  警告：實際片段數 (${vectorData.chunks.length}) 與記錄的總數 (${vectorData.totalChunks}) 不符`);
+            }
+            
+            // 驗證第一個片段的結構
+            const firstChunk = vectorData.chunks[0];
+            if (!firstChunk.text || !firstChunk.embedding || !firstChunk.source) {
+                throw new Error('向量資料格式無效：缺少必要的欄位 (text, embedding, source)');
+            }
+            
+            if (!Array.isArray(firstChunk.embedding) || firstChunk.embedding.length !== vectorData.dimensions) {
+                throw new Error(`向量資料格式無效：嵌入向量維度不正確 (期望 ${vectorData.dimensions}，實際 ${firstChunk.embedding?.length})`);
+            }
+            
+            console.log('✅ 向量資料驗證通過');
+            
+            // 轉換為 VectorService 期望的格式
+            const texts = vectorData.chunks.map(chunk => ({
+                text: chunk.text,
+                fileName: chunk.source,
+                chunkIndex: chunk.chunkIndex || 0,
+                metadata: chunk.metadata || {}
+            }));
+            
+            const embeddings = vectorData.chunks.map(chunk => chunk.embedding);
+            
+            console.log(`🎉 成功載入 ${texts.length} 個文本片段和對應的嵌入向量`);
+            console.log(`📊 平均每個文件 ${(texts.length / vectorData.totalFiles).toFixed(1)} 個片段`);
+            
+            // 返回特殊標記的資料結構
+            return {
+                isPreprocessedVectors: true,
+                texts: texts,
+                embeddings: embeddings,
+                metadata: {
+                    version: vectorData.version,
+                    createdAt: vectorData.createdAt,
+                    model: vectorData.model,
+                    dimensions: vectorData.dimensions,
+                    totalFiles: vectorData.totalFiles,
+                    totalChunks: vectorData.totalChunks
+                }
+            };
+            
+        } catch (error) {
+            console.error('❌ 載入預處理向量資料失敗:', error.message);
+            throw error;
+        }
     }
 
     async findTxtFiles(dir) {
