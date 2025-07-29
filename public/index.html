@@ -988,8 +988,10 @@
                     });
 
                     const data = await response.json();
+                    console.log('API 返回數據:', data);
 
                     if (data.success) {
+                        console.log('調用 showResult:', data.data.answer, data.data.sources);
                         this.showResult(question, data.data.answer, data.data.sources);
                     } else {
                         this.showError(data.error || '搜尋失敗，請稍後再試');
@@ -1024,8 +1026,13 @@
             showResult(question, answer, sources) {
                 clearInterval(this.loadingInterval);
                 
+                console.log('顯示結果:', { question, answer, sources });
+                
                 this.questionText.textContent = question;
-                this.resultBody.innerHTML = this.formatAnswer(answer, sources);
+                const formattedAnswer = this.formatAnswer(answer, sources);
+                console.log('格式化後的答案:', formattedAnswer);
+                
+                this.resultBody.innerHTML = formattedAnswer;
                 
                 this.loadingState.style.display = 'none';
                 this.resultContent.style.display = 'block';
