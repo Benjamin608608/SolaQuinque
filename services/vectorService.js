@@ -363,14 +363,15 @@ class VectorService {
         }
         
         // 如果本地沒有大文件，嘗試從 Google Drive 下載
-        console.log('🔄 本地無大文件，嘗試從 Google Drive 下載 ccel_books.zip...');
+        console.log('🔄 本地無大文件，嘗試從 Google Drive 下載神學資料...');
         
         // 載入 Google Drive 設定
         let googleDriveFiles = [];
+        let config = null;
         try {
             const configPath = path.join(__dirname, '../config/google-drive.json');
             const configData = await fs.readFile(configPath, 'utf8');
-            const config = JSON.parse(configData);
+            config = JSON.parse(configData);
             googleDriveFiles = config.files.map(file => ({
                 ...file,
                 localPath: path.join(__dirname, '..', file.localPath)
@@ -385,14 +386,16 @@ class VectorService {
                     localPath: path.join(__dirname, '../data/ccel_books.zip')
                 }
             ];
+            config = { folderId: '1e9Gup33c5nPaM6zRi8bQxI0kqWfUcc2K' };
         }
         
         for (const file of googleDriveFiles) {
             try {
                 console.log(`📥 嘗試下載: ${file.name}`);
+                console.log(`🔍 檢查資料夾: fileId=${file.fileId}, folderId=${config?.folderId}`);
                 
                 // 檢查是否為資料夾 ID（通過檢查 fileId 和 folderId 是否相同）
-                if (file.fileId === config.folderId) {
+                if (config && file.fileId === config.folderId) {
                     console.log('📁 檢測到資料夾 ID，嘗試下載資料夾中的所有文件...');
                     const outputDir = path.join(__dirname, '../data/downloaded_texts');
                     return await this.downloadFromGoogleDriveFolder(file.fileId, outputDir);
