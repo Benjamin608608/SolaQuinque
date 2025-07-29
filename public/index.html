@@ -159,32 +159,50 @@
             gap: 1rem;
         }
 
-        .cross-icon {
-            width: 60px;
-            height: 60px;
+        .decorative-pillar {
+            width: 40px;
+            height: 80px;
             position: relative;
+            display: flex;
+            align-items: center;
         }
 
-        .cross-icon::before,
-        .cross-icon::after {
+        .decorative-pillar.left {
+            justify-content: flex-end;
+        }
+
+        .decorative-pillar.right {
+            justify-content: flex-start;
+        }
+
+        .decorative-pillar::before {
             content: '';
             position: absolute;
-            background: var(--gold);
-            border: 2px solid var(--deep-red);
-        }
-
-        .cross-icon::before {
-            width: 4px;
+            width: 8px;
             height: 100%;
-            left: 50%;
-            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--gold), #B8860B);
+            border: 2px solid var(--deep-red);
+            border-radius: 4px;
         }
 
-        .cross-icon::after {
-            width: 100%;
-            height: 4px;
-            top: 50%;
-            transform: translateY(-50%);
+        .decorative-pillar::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 8px;
+            background: linear-gradient(135deg, var(--gold), #B8860B);
+            border: 2px solid var(--deep-red);
+            border-radius: 4px;
+        }
+
+        .decorative-pillar.left::after {
+            right: 0;
+            transform: translateX(50%);
+        }
+
+        .decorative-pillar.right::after {
+            left: 0;
+            transform: translateX(-50%);
         }
 
         .header h1 {
@@ -1025,9 +1043,9 @@
                 </div>
             </div>
             <div class="medieval-logo">
-                <div class="cross-icon"></div>
+                <div class="decorative-pillar left"></div>
                 <h1>神學知識庫</h1>
-                <div class="cross-icon"></div>
+                <div class="decorative-pillar right"></div>
             </div>
             <p>探索神學家的智慧，尋找信仰的答案</p>
         </div>
