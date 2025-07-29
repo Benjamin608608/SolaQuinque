@@ -136,11 +136,20 @@ class VectorService {
         this.faissIndex = new IndexFlatL2(this.embeddings[0].length);
         
         if (this.embeddings.length > 0) {
-            // 逐個添加向量到 FAISS 索引
+            // 將所有向量轉換為標準格式並批量添加到 FAISS 索引
+            console.log(`正在建立 FAISS 索引，共 ${this.embeddings.length} 個向量`);
+            console.log(`向量維度: ${this.embeddings[0].length}`);
+            
             for (let i = 0; i < this.embeddings.length; i++) {
-                // 確保向量是正確的 JavaScript Array 格式
-                const vector = Array.from(this.embeddings[i]);
-                this.faissIndex.add(vector);
+                try {
+                    const vector = Array.from(this.embeddings[i]);
+                    console.log(`添加第 ${i + 1} 個向量，類型: ${typeof vector}, 是數組: ${Array.isArray(vector)}, 長度: ${vector.length}`);
+                    this.faissIndex.add(vector);
+                } catch (error) {
+                    console.error(`添加第 ${i + 1} 個向量時出錯:`, error);
+                    console.log(`向量內容:`, this.embeddings[i]);
+                    throw error;
+                }
             }
             console.log('FAISS 索引建立完成');
         } else {
