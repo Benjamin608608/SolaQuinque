@@ -97,6 +97,7 @@ class VectorService {
             const texts = [];
             let downloadedCount = 0;
             let processedTextCount = 0;
+            let skippedCount = 0;
             
             // 確保輸出目錄存在
             try {
@@ -105,29 +106,44 @@ class VectorService {
                 // 目錄可能已存在
             }
             
-            // 限制同時處理的文件數量，避免超時
-            const BATCH_SIZE = 50;  // 每批處理 50 個文件
-            const MAX_TOTAL_FILES = 200;  // Railway 環境下限制總文件數
+            // 優化批量處理設置
+            const BATCH_SIZE = 25;  // 減小批次大小以提高穩定性
+            const PROGRESS_INTERVAL = 20;  // 每 20 個文件顯示一次進度
             
-            const filesToProcess = filesList.slice(0, MAX_TOTAL_FILES);
-            console.log(`📊 為避免超時，限制處理 ${filesToProcess.length} 個文件`);
+            console.log(`🎯 準備處理所有 ${filesList.length} 個文件`);
+            console.log(`📦 批次大小: ${BATCH_SIZE} 個文件/批`);
+            console.log(`📊 預計批次數: ${Math.ceil(filesList.length / BATCH_SIZE)}`);
             
-            // 分批處理文件
-            for (let i = 0; i < filesToProcess.length; i += BATCH_SIZE) {
-                const batch = filesToProcess.slice(i, i + BATCH_SIZE);
-                console.log(`📦 處理批次 ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(filesToProcess.length/BATCH_SIZE)} (${batch.length} 個文件)`);
+            // 分批處理所有文件
+            for (let i = 0; i < filesList.length; i += BATCH_SIZE) {
+                const batch = filesList.slice(i, i + BATCH_SIZE);
+                const batchNum = Math.floor(i/BATCH_SIZE) + 1;
+                const totalBatches = Math.ceil(filesList.length/BATCH_SIZE);
+                
+                console.log(`\n📦 處理批次 ${batchNum}/${totalBatches} (${batch.length} 個文件)`);
+                console.log(`📈 總進度: ${((i / filesList.length) * 100).toFixed(1)}%`);
                 
                 // 處理當前批次
                 for (const file of batch) {
                     try {
-                        console.log(`📥 下載文件 ${downloadedCount + 1}/${filesToProcess.length}: ${file.name}`);
-                        
                         const filePath = path.join(outputDir, file.name);
+                        
+                        // 檢查文件是否已存在（避免重複下載）
+                        try {
+                            await fs.access(filePath);
+                            console.log(`⏭️  跳過已存在文件: ${file.name}`);
+                            skippedCount++;
+                            continue;
+                        } catch (error) {
+                            // 文件不存在，需要下載
+                        }
+                        
+                        console.log(`📥 下載文件 ${downloadedCount + 1}/${filesList.length}: ${file.name}`);
+                        
                         await this.downloadFromGoogleDrive(file.id, filePath);
                         
                         // 如果是文本文件，讀取內容
                         if (file.name.toLowerCase().endsWith('.txt')) {
-                            console.log(`📚 讀取文本文件: ${file.name}`);
                             const content = await fs.readFile(filePath, 'utf8');
                             const chunks = this.splitTextIntoChunks(content);
                             
@@ -143,33 +159,30 @@ class VectorService {
                         
                         downloadedCount++;
                         
-                        // 每 10 個文件顯示一次進度
-                        if (downloadedCount % 10 === 0) {
-                            console.log(`📊 進度更新: 已下載 ${downloadedCount}/${filesToProcess.length} 個文件，提取了 ${processedTextCount} 個文本片段`);
+                        // 定期顯示進度
+                        if (downloadedCount % PROGRESS_INTERVAL === 0) {
+                            console.log(`📊 進度更新: 已下載 ${downloadedCount}/${filesList.length} 個文件，跳過 ${skippedCount} 個，提取了 ${processedTextCount} 個文本片段`);
                         }
                         
                     } catch (error) {
                         console.error(`❌ 下載文件失敗 ${file.name}:`, error.message);
+                        skippedCount++;
                         continue; // 繼續下載其他文件
                     }
                 }
                 
-                // 批次完成後短暫休息，避免 API 限制
-                if (i + BATCH_SIZE < filesToProcess.length) {
-                    console.log('⏸️  批次完成，休息 2 秒...');
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                // 批次完成後短暫休息，避免 API 限制和內存壓力
+                if (i + BATCH_SIZE < filesList.length) {
+                    console.log(`⏸️  批次 ${batchNum} 完成，休息 3 秒...`);
+                    await new Promise(resolve => setTimeout(resolve, 3000));
                 }
             }
             
-            console.log(`✅ 成功下載 ${downloadedCount}/${filesToProcess.length} 個文件`);
-            console.log(`📚 提取了 ${texts.length} 個文本片段`);
-            
-            // 如果沒有提取到足夠的文本，使用預設文本補充
-            if (texts.length < 10) {
-                console.log('📝 文本片段較少，添加預設神學文本以確保系統正常運作');
-                const defaultTexts = this.getDefaultTheologyTexts();
-                texts.push(...defaultTexts);
-            }
+            console.log(`\n🎉 處理完成！`);
+            console.log(`✅ 成功下載: ${downloadedCount} 個文件`);
+            console.log(`⏭️  跳過已存在: ${skippedCount} 個文件`);
+            console.log(`📚 提取文本片段: ${texts.length} 個`);
+            console.log(`📈 平均每文件片段數: ${(texts.length / Math.max(downloadedCount, 1)).toFixed(1)}`);
             
             return texts;
             
@@ -402,36 +415,26 @@ class VectorService {
         
         console.log(`正在生成嵌入向量...`);
         
-        // 為每個文本片段生成嵌入向量
-        for (let i = 0; i < this.texts.length; i++) {
-            try {
-                const embedding = await this.generateEmbedding(this.texts[i].text);
-                this.embeddings.push(embedding);
-                
-                if ((i + 1) % 50 === 0) {
-                    console.log(`已處理 ${i + 1}/${this.texts.length} 個文本片段`);
-                }
-            } catch (error) {
-                console.error(`生成第 ${i + 1} 個嵌入向量時發生錯誤:`, error.message);
-                // 跳過這個文本片段
-                this.texts.splice(i, 1);
-                i--;
-            }
-        }
-        
-        console.log(`成功生成 ${this.embeddings.length} 個嵌入向量`);
+        // 使用批量處理生成所有嵌入向量
+        this.embeddings = await this.generateEmbeddings(this.texts);
         
         // 建立 FAISS 索引
         const { IndexFlatL2 } = require('faiss-node');
         this.faissIndex = new IndexFlatL2(this.embeddings[0].length);
         
         if (this.embeddings.length > 0) {
+            console.log('🔄 正在建立 FAISS 索引...');
             // 將所有向量添加到 FAISS 索引
             for (let i = 0; i < this.embeddings.length; i++) {
                 const vector = Array.from(this.embeddings[i]);
                 this.faissIndex.add(vector);
+                
+                // 每 1000 個向量顯示一次進度
+                if ((i + 1) % 1000 === 0) {
+                    console.log(`📊 FAISS 索引進度: ${((i + 1) / this.embeddings.length * 100).toFixed(1)}% (${i + 1}/${this.embeddings.length})`);
+                }
             }
-            console.log('FAISS 索引建立完成');
+            console.log('✅ FAISS 索引建立完成');
         } else {
             throw new Error('沒有可用的嵌入向量來建立索引');
         }
@@ -671,6 +674,70 @@ class VectorService {
             "聖經是上帝啟示的話語，包含舊約和新約兩部分。它是基督徒信仰和生活的權威指南。",
             "教會是基督的身體，是信徒的聚集。它的使命是傳揚福音、教導真理、施行聖禮、關懷社會。"
         ];
+    }
+
+    // 生成嵌入向量
+    async generateEmbeddings(texts) {
+        console.log(`正在生成嵌入向量...`);
+        console.log(`📊 文本片段總數: ${texts.length}`);
+        
+        const embeddings = [];
+        const BATCH_SIZE = 100; // 每批處理 100 個文本片段
+        const PROGRESS_INTERVAL = 200; // 每 200 個顯示進度
+        
+        let processedCount = 0;
+        const totalBatches = Math.ceil(texts.length / BATCH_SIZE);
+        
+        console.log(`🔄 將分 ${totalBatches} 批處理，每批 ${BATCH_SIZE} 個片段`);
+        
+        for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+            const batch = texts.slice(i, i + BATCH_SIZE);
+            const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+            
+            console.log(`📦 處理嵌入向量批次 ${batchNum}/${totalBatches}`);
+            
+            try {
+                // 並行處理當前批次的嵌入向量
+                const batchPromises = batch.map(async (textObj, index) => {
+                    try {
+                        const embedding = await this.generateEmbedding(textObj.text);
+                        return embedding;
+                    } catch (error) {
+                        console.error(`❌ 生成嵌入向量失敗 (批次 ${batchNum}, 項目 ${index + 1}):`, error.message);
+                        // 返回零向量作為後備
+                        return new Array(1536).fill(0);
+                    }
+                });
+                
+                const batchEmbeddings = await Promise.all(batchPromises);
+                embeddings.push(...batchEmbeddings);
+                
+                processedCount += batch.length;
+                
+                // 顯示進度
+                if (processedCount % PROGRESS_INTERVAL === 0 || batchNum === totalBatches) {
+                    const progress = ((processedCount / texts.length) * 100).toFixed(1);
+                    console.log(`📈 嵌入向量進度: ${progress}% (${processedCount}/${texts.length})`);
+                }
+                
+                // 批次間短暫休息，避免 API 限制
+                if (i + BATCH_SIZE < texts.length) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+            } catch (error) {
+                console.error(`❌ 批次 ${batchNum} 處理失敗:`, error.message);
+                // 為失敗的批次添加零向量
+                const fallbackEmbeddings = new Array(batch.length).fill(null).map(() => new Array(1536).fill(0));
+                embeddings.push(...fallbackEmbeddings);
+                processedCount += batch.length;
+            }
+        }
+        
+        console.log(`✅ 成功生成 ${embeddings.length} 個嵌入向量`);
+        console.log(`📊 嵌入向量維度: ${embeddings[0]?.length || 1536}`);
+        
+        return embeddings;
     }
 
     // 生成嵌入向量
