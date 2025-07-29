@@ -99,6 +99,9 @@ class VectorService {
             let processedTextCount = 0;
             let skippedCount = 0;
             
+            // Railway 環境限制總文本片段數
+            const MAX_TEXT_CHUNKS = isRailwayEnv ? 5000 : 50000;  // Railway 限制 5000 個片段
+            
             // 確保輸出目錄存在
             try {
                 await fs.mkdir(outputDir, { recursive: true });
@@ -112,7 +115,7 @@ class VectorService {
             const PROGRESS_INTERVAL = 10;   // 每 10 個文件顯示進度
             
             // Railway 快速啟動模式 - 進一步減少文件數量
-            const RAILWAY_QUICK_START = 50;  // Railway 環境快速啟動只用 50 個文件
+            const RAILWAY_QUICK_START = 30;  // Railway 環境快速啟動只用 30 個文件（避免文本片段過多）
             
             // 檢測是否為初始建立索引階段
             const isInitialBuild = process.env.NODE_ENV === 'production' && !process.env.SKIP_INITIAL_LIMIT;
@@ -162,17 +165,31 @@ class VectorService {
                         
                         // 如果是文本文件，讀取內容
                         if (file.name.toLowerCase().endsWith('.txt')) {
+                            // 檢查是否已達到文本片段限制
+                            if (texts.length >= MAX_TEXT_CHUNKS) {
+                                console.log(`⚠️  已達到文本片段限制 (${MAX_TEXT_CHUNKS})，跳過剩餘文件`);
+                                break;
+                            }
+                            
                             const content = await fs.readFile(filePath, 'utf8');
                             const chunks = this.splitTextIntoChunks(content);
                             
-                            chunks.forEach(chunk => {
+                            // 只添加不超過限制的片段
+                            const remainingSlots = MAX_TEXT_CHUNKS - texts.length;
+                            const chunksToAdd = chunks.slice(0, remainingSlots);
+                            
+                            chunksToAdd.forEach(chunk => {
                                 texts.push({
                                     text: chunk,
                                     fileName: file.name
                                 });
                             });
                             
-                            processedTextCount += chunks.length;
+                            processedTextCount += chunksToAdd.length;
+                            
+                            if (chunksToAdd.length < chunks.length) {
+                                console.log(`⚠️  文件 ${file.name} 只使用了 ${chunksToAdd.length}/${chunks.length} 個片段（達到限制）`);
+                            }
                         }
                         
                         downloadedCount++;
@@ -699,28 +716,45 @@ class VectorService {
         return texts.filter(text => text && text.trim().length > 10);
     }
 
-    // 將長文本分割成小片段
-    splitTextIntoChunks(text, chunkSize = 1000, overlap = 200) {
+    // 將文本分割成較小的片段
+    splitTextIntoChunks(text, chunkSize = 2000, overlap = 200) {
+        // Railway 環境使用更大的塊以減少總片段數
+        const isRailwayEnv = process.env.RAILWAY_ENVIRONMENT_NAME || process.env.RAILWAY_PROJECT_NAME;
+        if (isRailwayEnv) {
+            chunkSize = 4000;  // Railway 環境使用 4000 字符的大塊
+            overlap = 400;     // 相應增加重疊
+        }
+        
         const chunks = [];
-        const sentences = text.split(/[。！？.!?]/).filter(s => s.trim().length > 0);
+        const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
         
         let currentChunk = '';
+        
         for (const sentence of sentences) {
-            if (currentChunk.length + sentence.length > chunkSize) {
-                if (currentChunk.trim()) {
-                    chunks.push(currentChunk.trim());
-                }
-                currentChunk = sentence;
+            const trimmedSentence = sentence.trim();
+            
+            if (currentChunk.length + trimmedSentence.length + 1 <= chunkSize) {
+                currentChunk += (currentChunk ? '. ' : '') + trimmedSentence;
             } else {
-                currentChunk += sentence + '。';
+                if (currentChunk) {
+                    chunks.push(currentChunk + '.');
+                }
+                currentChunk = trimmedSentence;
             }
         }
         
-        if (currentChunk.trim()) {
-            chunks.push(currentChunk.trim());
+        if (currentChunk) {
+            chunks.push(currentChunk + (currentChunk.endsWith('.') ? '' : '.'));
         }
         
-        return chunks;
+        // Railway 環境進一步限制片段數量
+        if (isRailwayEnv && chunks.length > 20) {
+            // 每個文件最多 20 個片段
+            const step = Math.ceil(chunks.length / 20);
+            return chunks.filter((_, index) => index % step === 0).slice(0, 20);
+        }
+        
+        return chunks.filter(chunk => chunk.trim().length > 50);
     }
 
     // 預設神學文本（如果沒有找到資料檔案）
