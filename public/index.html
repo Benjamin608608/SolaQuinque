@@ -428,7 +428,7 @@
             background: transparent;
             border: none;
             border-radius: 0;
-            margin-bottom: 1rem;
+            margin-bottom: 120px;
             box-shadow: none;
         }
 
@@ -438,14 +438,13 @@
             border-radius: 15px;
             padding: 1.5rem;
             box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
-            margin-top: 1rem;
-            position: relative;
-            z-index: 10;
-            transition: margin-top 0.3s ease;
-        }
-
-        .chat-input-area.with-messages {
-            margin-top: 2rem;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 800px;
+            z-index: 1000;
         }
 
         .search-form {
@@ -556,32 +555,7 @@
             transform: none;
         }
 
-        .example-questions {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
 
-        .example-item {
-            background: transparent;
-            border: none;
-            border-radius: 0;
-            padding: 0.8rem 1.2rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Crimson Text', serif;
-            color: var(--dark-brown);
-            text-align: center;
-            max-width: 400px;
-            font-size: 1rem;
-            border-bottom: 2px solid var(--border-gold);
-        }
-
-        .example-item:hover {
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(240, 230, 210, 0.1));
-            transform: translateY(-1px);
-            border-bottom-color: var(--gold);
-        }
 
         /* 結果面板 */
         .results-panel {
@@ -1189,9 +1163,6 @@
 
                 <div class="chat-input-area">
                     <form class="chat-input-form" id="searchForm">
-                        <div class="example-questions">
-                            <div class="example-item" data-question="什麼是三位一體？什麼是原罪？">什麼是三位一體？什麼是原罪？</div>
-                        </div>
                         <div class="input-container">
                             <textarea 
                                 id="question" 
@@ -1255,14 +1226,7 @@
                     this.handleSearch();
                 });
 
-                // 範例問題點擊事件
-                document.querySelectorAll('.example-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        const question = item.getAttribute('data-question');
-                        this.questionInput.value = question;
-                        this.handleSearch();
-                    });
-                });
+
             }
 
             initScrollAnimations() {
@@ -1325,11 +1289,7 @@
                 const question = this.questionInput.value.trim();
                 if (!question) return;
 
-                // 隱藏預設問題
-                const exampleQuestions = document.querySelector('.example-questions');
-                if (exampleQuestions) {
-                    exampleQuestions.style.display = 'none';
-                }
+
 
                 // 立即顯示用戶對話泡泡
                 const userMessage = document.createElement('div');
@@ -1497,11 +1457,7 @@
             document.getElementById('homeNav').classList.add('active');
             document.getElementById('catalogNav').classList.remove('active');
             
-            // 重新顯示預設問題
-            const exampleQuestions = document.querySelector('.example-questions');
-            if (exampleQuestions) {
-                exampleQuestions.style.display = 'flex';
-            }
+
             
             // 重置輸入區域位置
             const chatInputArea = document.querySelector('.chat-input-area');
