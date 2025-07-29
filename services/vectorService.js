@@ -146,44 +146,33 @@ class VectorService {
         console.log(`📋 列出 Google Drive 資料夾中的文件: ${folderId}`);
         
         try {
-            // 方法 1: 嘗試使用公開 API 端點
-            console.log('🔗 嘗試方法 1: 公開 API 端點');
-            const publicApiUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size)&pageSize=1000`;
+            // 從環境變數獲取 Google Drive API 密鑰
+            const apiKey = process.env.GOOGLE_DRIVE_API_KEY || 'AIzaSyCdI0rjMKiPW7lJKiMtmbc8B1EuzWqzWdM';
+            console.log(`🔑 使用 API 密鑰: ${apiKey.substring(0, 10)}...`);
             
-            const publicResponse = await fetch(publicApiUrl);
+            // 方法 1: 使用 Google Drive API v3 列出文件
+            console.log('🔗 使用 Google Drive API v3 列出文件');
+            const apiUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size)&pageSize=1000&key=${apiKey}`;
             
-            if (publicResponse.ok) {
-                const data = await publicResponse.json();
+            const response = await fetch(apiUrl);
+            
+            if (response.ok) {
+                const data = await response.json();
                 const files = data.files || [];
+                console.log(`✅ 成功獲取 ${files.length} 個文件`);
                 return this.processFilesList(files);
+            } else {
+                const errorText = await response.text();
+                console.log(`❌ API 請求失敗: ${response.status} - ${errorText}`);
+                
+                // 如果 API 失敗，使用預定義文件列表作為後備
+                console.log('🔄 使用預定義文件列表作為後備');
+                return this.getPreDefinedFilesList(folderId);
             }
-            
-            console.log(`❌ 方法 1 失敗: ${publicResponse.status}, 嘗試方法 2...`);
-            
-            // 方法 2: 嘗試使用 RSS feed 方法
-            console.log('🔗 嘗試方法 2: RSS feed');
-            const rssUrl = `https://drive.google.com/drive/folders/${folderId}?usp=sharing`;
-            
-            const rssResponse = await fetch(rssUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; GoogleBot/2.1; +http://www.google.com/bot.html)'
-                }
-            });
-            
-            if (rssResponse.ok) {
-                const htmlContent = await rssResponse.text();
-                return this.parseFilesFromHTML(htmlContent);
-            }
-            
-            console.log(`❌ 方法 2 失敗: ${rssResponse.status}, 嘗試方法 3...`);
-            
-            // 方法 3: 嘗試預定義的文件列表（作為後備方案）
-            console.log('🔗 嘗試方法 3: 使用預定義文件列表');
-            return this.getPreDefinedFilesList(folderId);
             
         } catch (error) {
-            console.error('❌ 所有列出文件方法都失敗:', error.message);
-            // 作為最後的後備方案，返回一些預定義的文件
+            console.error('❌ 列出文件失敗:', error.message);
+            // 作為最後的後備方案，返回預定義的文件
             return this.getPreDefinedFilesList(folderId);
         }
     }
