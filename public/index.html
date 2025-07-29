@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>神學知識庫</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: white;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+        }
+
+        .user-details {
+            color: white;
+            text-align: left;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .user-email {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .login-container {
+            display: none;
+            text-align: center;
+            background: white;
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 2rem auto;
+        }
+
+        .login-container.show {
+            display: block;
+        }
+
+        .login-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
+        .login-title {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .login-description {
+            color: #666;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .google-login-btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .google-login-btn:hover {
+            background: #3367d6;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(66, 133, 244, 0.3);
+        }
+
+        .google-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-content.hidden {
+            display: none;
+        }
+
+        .search-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            height: fit-content;
+        }
+
+        .search-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 48px;
+        }
+
+        .search-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        .search-btn-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .example-questions {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid #e1e5e9;
+        }
+
+        .example-questions h3 {
+            color: #555;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .example-item {
+            background: white;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .example-item:hover {
+            background: #f0f4ff;
+            border-color: #667eea;
+            transform: translateX(4px);
+        }
+
+        .results-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-container {
+            flex: 1;
+            border: 2px solid #e1e5e9;
+            border-radius: 15px;
+            padding: 1.5rem;
+            background: #fafbfc;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .loading-state {
+            display: none;
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #667eea;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e1e5e9;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #666;
+        }
+
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .result-content {
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .result-header {
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .result-header h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .result-body {
+            flex: 1;
+            padding: 1rem;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e1e5e9;
+            line-height: 1.8;
+        }
+
+        .result-body h4 {
+            color: #667eea;
+            margin: 1.5rem 0 0.5rem 0;
+            font-size: 1.1rem;
+        }
+
+        .result-body p {
+            margin-bottom: 1rem;
+        }
+
+        .citation {
+            background: #e8f2ff;
+            color: #0066cc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .sources-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid #e1e5e9;
+        }
+
+        .sources-section h4 {
+            color: #555;
+            margin-bottom: 1rem;
+        }
+
+        .source-item {
+            background: #f8f9fa;           /* 背景顏色 */
+            border-left: 3px solid #667eea; /* 左邊藍色線條：寬度 顏色 */
+            padding: 8px 12px;             /* 內邊距：上下 左右 */
+            margin-bottom: 8px;            /* 項目間距 */
+            border-radius: 0 6px 6px 0;    /* 圓角：右上 右下 */
+        }
+
+        .source-title {
+            font-weight: 600;
+            font-style: italic;
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 0.75rem;
+        }
+
+        .source-quote {
+            font-style: italic;
+            color: #666;
+            font-size: 0.7rem;
+            line-height: 1.4;
+            padding-left: 8px;
+        }
+
+        .error-message {
+            background: #ffe6e6;
+            color: #cc0000;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #ffcccc;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .user-info {
+                position: static;
+                margin-top: 1rem;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 新增導覽列 -->
+        <nav class="navbar" style="display:flex;gap:2rem;align-items:center;margin-bottom:1.5rem;">
+            <a href="/" style="font-weight:600;font-size:1.1rem;color:#667eea;text-decoration:none;">首頁</a>
+            <a href="#" id="catalogNav" style="font-weight:600;font-size:1.1rem;color:#764ba2;text-decoration:none;">作品目錄</a>
+        </nav>
+        <!-- 作品目錄頁面 -->
+        <div id="catalogPage" style="display:none;">
+            <h2 style="
+                margin-bottom:1.5rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 16px 20px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                text-align: center;
+                font-size: 1.3rem;
+                ">📚 作品目錄</h2>
+            <input id="catalogSearch" type="text" placeholder="搜尋作者或作品..." style="
+                width:100%;
+                padding:12px 16px;
+                border-radius:8px;
+                border:1px solid rgba(102, 126, 234, 0.3);
+                margin-bottom:1.5rem;
+                font-size:1rem;
+                background: rgba(255,255,255,0.9);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                transition: all 0.3s ease;
+                box-sizing: border-box;
+                " onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.2)'" onblur="this.style.borderColor='rgba(102, 126, 234, 0.3)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.05)'">
+            <div id="catalogList"></div>
+        </div>
+        <div class="header">
+            <h1>📚 神學知識庫</h1>
+            <p>探索神學家的智慧，尋找信仰的答案</p>
+            
+            <!-- 用戶資訊區域 -->
+            <div class="user-info" id="userInfo" style="display: none;">
+                <img class="user-avatar" id="userAvatar" src="" alt="用戶頭像">
+                <div class="user-details">
+                    <div class="user-name" id="userName"></div>
+                    <div class="user-email" id="userEmail"></div>
+                </div>
+                <button class="logout-btn" onclick="logout()">登出</button>
+            </div>
+        </div>
+
+        <!-- 登入容器 -->
+        <div class="login-container" id="loginContainer">
+            <div class="login-icon">🔐</div>
+            <h2 class="login-title">歡迎使用神學知識庫</h2>
+            <p class="login-description">
+                為了提供更好的服務體驗，請使用 Google 帳號登入後開始使用。
+                <br><br>
+                您的個人資訊將受到保護，僅用於改善服務品質。
+            </p>
+            <button class="google-login-btn" onclick="login()">
+                <svg class="google-icon" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                使用 Google 登入
+            </button>
+        </div>
+
+        <!-- 主要內容區域 -->
+        <div class="main-content" id="mainContent">
+            <div class="search-panel">
+                <form class="search-form" id="searchForm">
+                    <div class="form-group">
+                        <label for="question">請輸入您的問題：</label>
+                        <textarea 
+                            id="question" 
+                            class="search-input" 
+                            placeholder="例如：什麼是救恩？加爾文的預定論是什麼？路德的因信稱義如何理解？"
+                            required
+                        ></textarea>
+                    </div>
+                    <button type="submit" class="search-btn" id="searchBtn">
+                        <span id="searchBtnIcon">🔍</span>
+                        <span id="searchBtnText">搜尋答案</span>
+                    </button>
+                </form>
+
+                <div class="example-questions">
+                    <h3>💡 範例問題</h3>
+                    <div class="example-item" data-question="什麼是三位一體？">什麼是三位一體？</div>
+                    <div class="example-item" data-question="路德的因信稱義是什麼意思？">路德的因信稱義是什麼意思？</div>
+                    <div class="example-item" data-question="加爾文的預定論如何理解？">加爾文的預定論如何理解？</div>
+                    <div class="example-item" data-question="什麼是原罪？">什麼是原罪？</div>
+                    <div class="example-item" data-question="教會的本質是什麼？">教會的本質是什麼？</div>
+                </div>
+            </div>
+
+            <div class="results-panel">
+                <div class="results-container" id="resultsContainer">
+                    <div class="empty-state" id="emptyState">
+                        <div class="icon">📖</div>
+                        <h3>歡迎使用神學知識庫</h3>
+                        <p>請在左側輸入您的問題，或點擊範例問題開始探索</p>
+                    </div>
+
+                    <div class="loading-state" id="loadingState">
+                        <div class="loading-spinner"></div>
+                        <h3 id="loadingText">🤔 讓我查找相關資料...</h3>
+                    </div>
+
+                    <div class="result-content" id="resultContent">
+                        <div class="result-header">
+                            <h3>📋 查詢結果</h3>
+                            <p id="questionText"></p>
+                        </div>
+                        <div class="result-body" id="resultBody">
+                        </div>
+                    </div>
+
+                    <div class="error-message" id="errorMessage">
+                        <strong>❌ 發生錯誤</strong>
+                        <p id="errorText"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TheologySearchApp {
+            constructor() {
+                this.initElements();
+                this.bindEvents();
+                this.loadingMessages = [
+                    '🤔 讓我查找相關資料...',
+                    '🔍 深度搜索資料庫中...',
+                    '📚 分析文件內容中...',
+                    '✍️ 整理回答中...',
+                    '⏳ 即將完成...'
+                ];
+                this.currentLoadingIndex = 0;
+                this.checkAuthStatus();
+            }
+
+            initElements() {
+                this.form = document.getElementById('searchForm');
+                this.questionInput = document.getElementById('question');
+                this.searchBtn = document.getElementById('searchBtn');
+                this.resultsContainer = document.getElementById('resultsContainer');
+                this.emptyState = document.getElementById('emptyState');
+                this.loadingState = document.getElementById('loadingState');
+                this.resultContent = document.getElementById('resultContent');
+                this.errorMessage = document.getElementById('errorMessage');
+                this.questionText = document.getElementById('questionText');
+                this.resultBody = document.getElementById('resultBody');
+                this.loadingText = document.getElementById('loadingText');
+                this.errorText = document.getElementById('errorText');
+                this.exampleItems = document.querySelectorAll('.example-item');
+                this.loginContainer = document.getElementById('loginContainer');
+                this.mainContent = document.getElementById('mainContent');
+                this.userInfo = document.getElementById('userInfo');
+                this.userAvatar = document.getElementById('userAvatar');
+                this.userName = document.getElementById('userName');
+                this.userEmail = document.getElementById('userEmail');
+            }
+
+            bindEvents() {
+                this.form.addEventListener('submit', (e) => this.handleSearch(e));
+                
+                this.exampleItems.forEach(item => {
+                    item.addEventListener('click', () => {
+                        const question = item.getAttribute('data-question');
+                        this.questionInput.value = question;
+                        this.handleSearch(new Event('submit'));
+                    });
+                });
+            }
+
+            async checkAuthStatus() {
+                try {
+                    const response = await fetch('/api/user');
+                    const data = await response.json();
+                    
+                    if (data.success && data.user) {
+                        this.showAuthenticatedUI(data.user);
+                    } else {
+                        this.showLoginUI();
+                    }
+                } catch (error) {
+                    console.error('檢查認證狀態失敗:', error);
+                    this.showLoginUI();
+                }
+            }
+
+            showAuthenticatedUI(user) {
+                this.loginContainer.classList.remove('show');
+                this.mainContent.classList.remove('hidden');
+                
+                // 顯示用戶資訊
+                this.userInfo.style.display = 'flex';
+                this.userAvatar.src = user.picture;
+                this.userName.textContent = user.name;
+                this.userEmail.textContent = user.email;
+            }
+
+            showLoginUI() {
+                this.loginContainer.classList.add('show');
+                this.mainContent.classList.add('hidden');
+                this.userInfo.style.display = 'none';
+            }
+
+            async handleSearch(e) {
+                e.preventDefault();
+                
+                const question = this.questionInput.value.trim();
+                if (!question) return;
+
+                this.showLoading();
+                this.startLoadingAnimation();
+
+                try {
+                    const response = await this.callSearchAPI(question);
+                    this.showResult(question, response);
+                } catch (error) {
+                    if (error.requiresAuth) {
+                        this.showLoginUI();
+                    } else {
+                        this.showError(error.message);
+                    }
+                } finally {
+                    this.stopLoadingAnimation();
+                }
+            }
+
+            async callSearchAPI(question) {
+                try {
+                    const response = await fetch('/api/search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ question: question })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        
+                        if (response.status === 401 && errorData.requiresAuth) {
+                            const authError = new Error('需要登入才能使用此功能');
+                            authError.requiresAuth = true;
+                            throw authError;
+                        }
+                        
+                        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (!data.success) {
+                        throw new Error(data.error || '查詢失敗');
+                    }
+
+                    return data.data;
+                } catch (error) {
+                    // 處理網路錯誤
+                    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                        throw new Error('無法連接到服務器，請檢查網路連接');
+                    }
+                    throw error;
+                }
+            }
+
+            generateMockAnswer(question) {
+                // 模擬回答生成
+                return `關於「${question}」這個問題，根據神學知識庫的資料：
+
+**主要觀點：**
+這是一個深刻的神學問題，涉及到基督教信仰的核心概念。根據歷代神學家的研究和解釋[1][2]，我們可以從以下幾個角度來理解：
+
+**歷史發展：**
+從早期教父時代開始，這個議題就受到廣泛討論。特別是在宗教改革時期，路德和加爾文等神學家對此有重要的貢獻[3]。
+
+**實際應用：**
+在現代基督徒生活中，這個概念幫助我們更好地理解信仰的本質，並指導我們的日常行為和屬靈成長[1]。
+
+這個回答基於神學知識庫中多位著名神學家的著作和研究。`;
+            }
+
+            generateMockSources() {
+                return [
+                    {
+                        index: 1,
+                        fileName: '系統神學 - 路易斯·貝科夫',
+                        quote: '神學是對神的系統性研究，旨在幫助信徒更深入地理解神的本性和作為...'
+                    },
+                    {
+                        index: 2,
+                        fileName: '基督教教義史 - 約翰·凱利',
+                        quote: '教父時代的神學發展為後世奠定了重要的理論基礎...'
+                    },
+                    {
+                        index: 3,
+                        fileName: '加爾文神學要義',
+                        quote: '真正的智慧主要包含兩部分：認識神和認識自己...'
+                    }
+                ];
+            }
+
+            showLoading() {
+                this.emptyState.style.display = 'none';
+                this.resultContent.style.display = 'none';
+                this.errorMessage.style.display = 'none';
+                this.loadingState.style.display = 'block';
+                
+                // 更新按鈕狀態
+                this.searchBtn.disabled = true;
+                document.getElementById('searchBtnIcon').innerHTML = '<div class="search-btn-spinner"></div>';
+                document.getElementById('searchBtnText').textContent = '搜尋中...';
+                
+                this.currentLoadingIndex = 0;
+                
+                // 滾動到結果區域，讓標題在手機螢幕頂部
+                setTimeout(() => {
+                    const resultHeader = document.querySelector('.result-header');
+                    if (resultHeader) {
+                        resultHeader.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    } else {
+                        // 如果結果標題還沒出現，滾動到結果容器
+                        this.resultsContainer.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    }
+                }, 100);
+            }
+
+            startLoadingAnimation() {
+                this.loadingInterval = setInterval(() => {
+                    this.currentLoadingIndex = (this.currentLoadingIndex + 1) % this.loadingMessages.length;
+                    this.loadingText.textContent = this.loadingMessages[this.currentLoadingIndex];
+                }, 2000);
+            }
+
+            stopLoadingAnimation() {
+                if (this.loadingInterval) {
+                    clearInterval(this.loadingInterval);
+                }
+                
+                // 恢復按鈕狀態
+                this.searchBtn.disabled = false;
+                document.getElementById('searchBtnIcon').innerHTML = '🔍';
+                document.getElementById('searchBtnText').textContent = '搜尋答案';
+            }
+
+            showResult(question, response) {
+                this.loadingState.style.display = 'none';
+                this.questionText.textContent = question;
+                
+                // 處理回答內容
+                let processedAnswer = response.answer;
+                
+                // 處理引用標記
+                if (response.sources && response.sources.length > 0) {
+                    response.sources.forEach(source => {
+                        const regex = new RegExp(`\\[${source.index}\\]`, 'g');
+                        processedAnswer = processedAnswer.replace(regex, 
+                            `<span class="citation">[${source.index}]</span>`
+                        );
+                    });
+                }
+
+                // 處理格式化
+                processedAnswer = this.formatAnswer(processedAnswer);
+                
+                // 添加來源資訊
+                if (response.sources && response.sources.length > 0) {
+                    processedAnswer += this.generateSourcesHTML(response.sources);
+                }
+
+                this.resultBody.innerHTML = processedAnswer;
+                this.resultContent.style.display = 'flex';
+                
+                // 滾動到結果標題位置，確保在手機螢幕頂部
+                setTimeout(() => {
+                    const resultHeader = document.querySelector('.result-header');
+                    if (resultHeader) {
+                        const headerRect = resultHeader.getBoundingClientRect();
+                        const scrollTop = window.pageYOffset + headerRect.top - 10; // 留一點間距
+                        
+                        window.scrollTo({
+                            top: scrollTop,
+                            behavior: 'smooth'
+                        });
+                    }
+                }, 100);
+            }
+
+            formatAnswer(text) {
+                return text
+                    // 處理三個星號的粗體+斜體 ***text*** -> <strong><em>text</em></strong>
+                    .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+                    // 處理兩個星號的粗體 **text** -> <strong>text</strong>
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    // 處理一個星號的斜體 *text* -> <em>text</em>
+                    .replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>')
+                    // 處理標題（數字開頭的段落）
+                    .replace(/^(\d+\.\s+[^：\n]+：?)$/gm, '<h4>$1</h4>')
+                    // 處理段落分隔
+                    .replace(/\n\n+/g, '</p><p>')
+                    // 處理單個換行
+                    .replace(/\n/g, '<br>')
+                    // 包裝成段落
+                    .replace(/^(?!<h4>)/, '<p>')
+                    .replace(/(?<!<\/h4>)$/, '</p>')
+                    // 清理空段落和多餘標記
+                    .replace(/<p><\/p>/g, '')
+                    // 清理剩餘的星號
+                    .replace(/\*+/g, '');
+            }
+
+            generateSourcesHTML(sources) {
+                let sourcesHTML = '<div class="sources-section"><h4>📚 引用來源：</h4>';
+                
+                sources.forEach(source => {
+                    sourcesHTML += `
+                        <div class="source-item">
+                            <div class="source-title">[${source.index}] ${source.fileName}</div>`;
+                    
+                    if (source.quote && source.quote.trim()) {
+                        // 移除引號並確保斜體格式
+                        let cleanQuote = source.quote.replace(/^["'"']|["'"']$/g, '').trim();
+                        if (cleanQuote) {
+                            sourcesHTML += `<div class="source-quote">"${cleanQuote}"</div>`;
+                        }
+                    }
+                    
+                    sourcesHTML += `</div>`;
+                });
+                
+                sourcesHTML += '</div>';
+                return sourcesHTML;
+            }
+
+            showError(message) {
+                this.loadingState.style.display = 'none';
+                this.errorText.textContent = message;
+                this.errorMessage.style.display = 'block';
+                
+                // 滾動到錯誤訊息
+                setTimeout(() => {
+                    this.errorMessage.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                }, 100);
+            }
+        }
+
+        // 全局函數
+        function login() {
+            window.location.href = '/auth/google';
+        }
+
+        function logout() {
+            window.location.href = '/auth/logout';
+        }
+
+        // 初始化應用
+        document.addEventListener('DOMContentLoaded', () => {
+            new TheologySearchApp();
+        });
+
+        // 作品目錄功能
+        const catalogNav = document.getElementById('catalogNav');
+        const catalogPage = document.getElementById('catalogPage');
+        const mainContent = document.getElementById('mainContent');
+        const catalogList = document.getElementById('catalogList');
+        const catalogSearch = document.getElementById('catalogSearch');
+        let catalogData = [];
+
+        catalogNav.addEventListener('click', (e) => {
+            e.preventDefault();
+            mainContent.style.display = 'none';
+            catalogPage.style.display = 'block';
+            if (catalogData.length === 0) loadCatalog();
+        });
+        document.querySelector('a[href="/"]').addEventListener('click', (e) => {
+            e.preventDefault();
+            catalogPage.style.display = 'none';
+            mainContent.style.display = '';
+        });
+
+        async function loadCatalog() {
+            catalogList.innerHTML = '<div style="text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">載入中...</div>';
+            try {
+                const res = await fetch('/api/catalog');
+                catalogData = await res.json();
+                renderCatalog(catalogData);
+            } catch {
+                catalogList.innerHTML = '<div style="color:red; text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">無法載入作品目錄</div>';
+            }
+        }
+
+        function renderCatalog(data) {
+            if (!data.length) {
+                catalogList.innerHTML = '<div style="color:#888; text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">查無資料</div>';
+                return;
+            }
+            let html = '';
+            data.forEach((author, idx) => {
+                html += `<div class="catalog-author" style="margin-bottom:1.2rem;">
+                    <div class="catalog-author-name" style="
+                        font-weight:600;
+                        font-size:1.1rem;
+                        cursor:pointer;
+                        color:#333;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 12px 16px;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                        transition: all 0.3s ease;
+                        border: none;
+                        " onclick="toggleWorks(${idx})" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'">
+                        <span id="arrow${idx}" style="margin-right: 8px;">▶</span> ${author.author}
+                    </div>
+                    <ul id="works${idx}" style="
+                        display:none;
+                        margin-left:0;
+                        margin-top:8px;
+                        padding:0;
+                        background: rgba(255,255,255,0.9);
+                        border-radius: 8px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                        border: 1px solid rgba(102, 126, 234, 0.2);
+                        ">
+                        ${author.works.map(w => `<li style='
+                            margin-bottom:0;
+                            color:#555;
+                            padding: 8px 16px;
+                            border-bottom: 1px solid rgba(0,0,0,0.05);
+                            background: rgba(255,255,255,0.7);
+                            transition: background-color 0.2s ease;
+                            list-style: none;
+                            ' onmouseover="this.style.backgroundColor='rgba(102, 126, 234, 0.1)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.7)'">${w}</li>`).join('')}
+                    </ul>
+                </div>`;
+            });
+            catalogList.innerHTML = html;
+        }
+
+        window.toggleWorks = function(idx) {
+            const ul = document.getElementById('works'+idx);
+            const arrow = document.getElementById('arrow'+idx);
+            if (ul.style.display === 'none') {
+                ul.style.display = 'block';
+                arrow.textContent = '▼';
+            } else {
+                ul.style.display = 'none';
+                arrow.textContent = '▶';
+            }
+        }
+
+        catalogSearch.addEventListener('input', function() {
+            const q = this.value.trim().toLowerCase();
+            if (!q) {
+                renderCatalog(catalogData);
+                return;
+            }
+            const filtered = catalogData.filter(a =>
+                a.author.toLowerCase().includes(q) ||
+                a.works.some(w => w.toLowerCase().includes(q))
+            );
+            renderCatalog(filtered);
+        });
+    </script>
+</body>
+</html>
