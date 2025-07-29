@@ -233,16 +233,30 @@ class VectorService {
     getPreDefinedFilesList(folderId) {
         console.log('📋 使用預定義文件列表作為後備方案');
         
-        // 這裡我們可以手動定義一些已知的文件 ID
-        // 您可以提供一些具體的文件 ID，我們可以直接嘗試下載
+        // 用戶提供的具體文件 ID
         const knownFiles = [
-            // 如果您知道一些具體的文件 ID，可以在這裡添加
-            // { id: 'file_id_1', name: 'file1.txt', mimeType: 'text/plain' },
-            // { id: 'file_id_2', name: 'file2.txt', mimeType: 'text/plain' },
+            { 
+                id: '1H4LWStz5JHyrXVMAS2DMNAR3leKpvK2a', 
+                name: 'theology_text_1.txt', 
+                mimeType: 'text/plain' 
+            },
+            { 
+                id: '1LwwgHyR6SSMXWrWEWhX9AUJZeAkuQQXM', 
+                name: 'theology_text_2.txt', 
+                mimeType: 'text/plain' 
+            },
+            { 
+                id: '1uypSnanSZca4dw6oIb5wCjU9KjimHexR', 
+                name: 'theology_text_3.txt', 
+                mimeType: 'text/plain' 
+            }
         ];
         
         if (knownFiles.length > 0) {
             console.log(`📄 使用 ${knownFiles.length} 個預定義文件`);
+            knownFiles.forEach(file => {
+                console.log(`  - ${file.name} (ID: ${file.id})`);
+            });
             return knownFiles;
         }
         
