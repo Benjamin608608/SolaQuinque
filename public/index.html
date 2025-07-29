@@ -498,7 +498,7 @@
             border-radius: 50%;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             width: 50px;
             height: 50px;
             display: flex;
@@ -511,6 +511,11 @@
             background: linear-gradient(135deg, #6B0000, var(--deep-red));
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(139, 0, 0, 0.4);
+        }
+
+        .send-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(139, 0, 0, 0.3);
         }
 
         .search-btn {
@@ -545,37 +550,28 @@
 
         .example-questions {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             margin-bottom: 1.5rem;
-            gap: 1rem;
         }
 
         .example-item {
             background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
             border: 1px solid var(--border-gold);
             border-radius: 8px;
-            padding: 0.8rem 1rem;
+            padding: 1rem 1.5rem;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: 'Crimson Text', serif;
             color: var(--dark-brown);
-            flex: 1;
-            max-width: 200px;
             text-align: center;
+            max-width: 400px;
+            font-size: 1rem;
         }
 
         .example-item:hover {
             background: linear-gradient(135deg, #F0E6D2, var(--light-gold));
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
-        }
-
-        .example-item.left {
-            text-align: left;
-        }
-
-        .example-item.right {
-            text-align: right;
         }
 
         /* 結果面板 */
@@ -1210,8 +1206,7 @@
 
                 <div class="chat-input-area">
                     <div class="example-questions">
-                        <div class="example-item left" data-question="什麼是三位一體？">什麼是三位一體？</div>
-                        <div class="example-item right" data-question="什麼是原罪？">什麼是原罪？</div>
+                        <div class="example-item" data-question="什麼是三位一體？什麼是原罪？">什麼是三位一體？什麼是原罪？</div>
                     </div>
                     <form class="chat-input-form" id="searchForm">
                         <div class="input-container">
@@ -1222,7 +1217,7 @@
                                 required
                             ></textarea>
                             <button type="submit" class="send-btn" id="searchBtn">
-                                <span id="searchBtnIcon">📤</span>
+                                <span id="searchBtnIcon">➤</span>
                             </button>
                         </div>
                     </form>
