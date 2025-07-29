@@ -23,17 +23,32 @@ GOOGLE_CALLBACK_URL=https://your-app.up.railway.app/auth/google/callback
 
 ### 2. 上傳資料檔案
 
-您需要將神學資料檔案上傳到 Railway。支援的檔案格式：
+您有兩種方式提供神學資料檔案：
 
+#### 方法一：Google Drive（推薦）
+
+1. **上傳檔案到 Google Drive**
+   - 將您的資料檔案上傳到 Google Drive
+   - 右鍵點擊檔案，選擇「取得連結」
+   - 複製連結中的檔案 ID
+
+2. **設定檔案 ID**
+   - 修改 `config/google-drive.json` 檔案
+   - 將 `fileId` 欄位改為您的實際檔案 ID
+
+3. **自動下載**
+   - Railway 部署時會自動從 Google Drive 下載檔案
+   - 下載的檔案會暫存在 Railway 的檔案系統中
+
+#### 方法二：本地檔案
+
+支援的檔案格式：
 - `data/theology_texts.txt` - 純文本檔案
 - `data/theology_data.json` - JSON 格式資料
 - `data/ccel_catalog.json` - CCEL 目錄資料
 - `data/ccel_books.zip` - 壓縮的書籍檔案
 
-**上傳方法：**
-1. 將檔案放在專案的 `data/` 目錄中
-2. 提交到 Git 並推送到 Railway
-3. Railway 會自動部署並建立 FAISS 索引
+**注意**：大型檔案（>100MB）無法提交到 GitHub，建議使用 Google Drive 方法。
 
 ### 3. 自動部署流程
 

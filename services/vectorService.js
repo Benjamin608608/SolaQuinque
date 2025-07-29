@@ -1,6 +1,7 @@
 const OpenAI = require('openai');
 const fs = require('fs').promises;
 const path = require('path');
+const fetch = require('node-fetch');
 
 class VectorService {
     constructor() {
@@ -12,6 +13,40 @@ class VectorService {
         this.texts = [];
         this.faissIndex = null;
         this.isInitialized = false;
+    }
+
+    // 從 Google Drive 下載檔案
+    async downloadFromGoogleDrive(fileId, outputPath) {
+        console.log(`📥 正在從 Google Drive 下載檔案: ${fileId}`);
+        
+        try {
+            // 使用 Google Drive 的直接下載連結
+            const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+            
+            const response = await fetch(downloadUrl);
+            if (!response.ok) {
+                throw new Error(`下載失敗: ${response.status} ${response.statusText}`);
+            }
+            
+            // 確保輸出目錄存在
+            const outputDir = path.dirname(outputPath);
+            try {
+                await fs.mkdir(outputDir, { recursive: true });
+            } catch (error) {
+                // 目錄可能已存在
+            }
+            
+            // 將檔案寫入本地
+            const buffer = await response.buffer();
+            await fs.writeFile(outputPath, buffer);
+            
+            console.log(`✅ 檔案下載完成: ${outputPath} (${(buffer.length / 1024 / 1024).toFixed(2)} MB)`);
+            return outputPath;
+            
+        } catch (error) {
+            console.error('❌ Google Drive 下載失敗:', error.message);
+            throw error;
+        }
     }
 
     // 初始化 FAISS 索引
@@ -122,6 +157,7 @@ class VectorService {
     async loadTextData() {
         console.log('📁 正在載入神學資料...');
         
+        // 首先檢查本地檔案
         const possibleFiles = [
             path.join(__dirname, '../data/theology_texts.txt'),
             path.join(__dirname, '../data/theology_data.json'),
@@ -133,7 +169,7 @@ class VectorService {
         for (const filePath of possibleFiles) {
             try {
                 const stats = await fs.stat(filePath);
-                console.log(`✅ 找到檔案: ${filePath} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+                console.log(`✅ 找到本地檔案: ${filePath} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
                 
                 if (filePath.endsWith('.zip')) {
                     return await this.loadFromZip(filePath);
@@ -143,7 +179,50 @@ class VectorService {
                     return await this.loadFromText(filePath);
                 }
             } catch (error) {
-                console.log(`❌ 檔案不存在: ${filePath}`);
+                console.log(`❌ 本地檔案不存在: ${filePath}`);
+            }
+        }
+        
+        // 如果本地沒有檔案，嘗試從 Google Drive 下載
+        console.log('🔄 嘗試從 Google Drive 下載資料...');
+        
+        // 載入 Google Drive 設定
+        let googleDriveFiles = [];
+        try {
+            const configPath = path.join(__dirname, '../config/google-drive.json');
+            const configData = await fs.readFile(configPath, 'utf8');
+            const config = JSON.parse(configData);
+            googleDriveFiles = config.files.map(file => ({
+                ...file,
+                localPath: path.join(__dirname, '..', file.localPath)
+            }));
+            console.log(`📋 載入 Google Drive 設定，找到 ${googleDriveFiles.length} 個檔案`);
+        } catch (error) {
+            console.log('⚠️  無法載入 Google Drive 設定，使用預設設定');
+            googleDriveFiles = [
+                {
+                    name: 'ccel_books.zip',
+                    fileId: '1e9Gup33c5nPaM6zRi8bQxI0kqWfUcc2K',
+                    localPath: path.join(__dirname, '../data/ccel_books.zip')
+                }
+            ];
+        }
+        
+        for (const file of googleDriveFiles) {
+            try {
+                console.log(`📥 嘗試下載: ${file.name}`);
+                await this.downloadFromGoogleDrive(file.fileId, file.localPath);
+                
+                // 下載成功後處理檔案
+                if (file.localPath.endsWith('.zip')) {
+                    return await this.loadFromZip(file.localPath);
+                } else if (file.localPath.endsWith('.json')) {
+                    return await this.loadFromJSON(file.localPath);
+                } else {
+                    return await this.loadFromText(file.localPath);
+                }
+            } catch (error) {
+                console.log(`❌ Google Drive 下載失敗: ${file.name} - ${error.message}`);
             }
         }
         
