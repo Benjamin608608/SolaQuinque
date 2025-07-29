@@ -38,7 +38,7 @@ async function buildRailwayIndex() {
         const status = vectorService.getStatus();
         console.log('📊 向量服務狀態:', status);
         
-        if (status.initialized) {
+        if (status.isInitialized) {
             console.log('✅ FAISS 向量索引建立成功！');
             console.log(`📈 已處理 ${status.textCount} 個文本片段`);
             console.log('🚀 現在可以使用快速向量搜索了！');
