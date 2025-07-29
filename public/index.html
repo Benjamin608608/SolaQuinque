@@ -834,6 +834,23 @@
             margin-top: -2px;
         }
 
+        /* 當工具提示在下方時的尖端 */
+        .citation-tooltip.tooltip-below::before {
+            top: auto;
+            bottom: 100%;
+            border-top: none;
+            border-bottom: 8px solid var(--deep-red);
+        }
+
+        .citation-tooltip.tooltip-below::after {
+            top: auto;
+            bottom: 100%;
+            border-top: none;
+            border-bottom: 8px solid var(--gold);
+            margin-top: 0;
+            margin-bottom: -2px;
+        }
+
         .citation-tooltip.show {
             opacity: 1;
             visibility: visible;
@@ -1536,33 +1553,37 @@
                     // 獲取引用標註的位置
                     const citationRect = e.target.getBoundingClientRect();
                     
-                    // 計算工具提示的位置，讓尖端指向引用標註
-                    const tooltipWidth = 300; // 預設寬度
-                    const tooltipHeight = 80; // 預設高度
-                    
-                    // 計算工具提示的左上角位置
-                    let tooltipLeft = citationRect.left - (tooltipWidth / 2) + (citationRect.width / 2);
-                    let tooltipTop = citationRect.top - tooltipHeight - 15; // 在引用標註上方
-                    
-                    // 確保工具提示不會超出視窗邊界
-                    if (tooltipLeft < 10) tooltipLeft = 10;
-                    if (tooltipLeft + tooltipWidth > window.innerWidth - 10) {
-                        tooltipLeft = window.innerWidth - tooltipWidth - 10;
-                    }
-                    if (tooltipTop < 10) {
-                        tooltipTop = citationRect.bottom + 15; // 改為在下方顯示
-                    }
-                    
-                    // 設置工具提示位置
-                    tooltip.style.left = tooltipLeft + 'px';
-                    tooltip.style.top = tooltipTop + 'px';
-                    
-                    // 計算尖端位置，讓它精確指向引用標註的中心
-                    const arrowLeft = citationRect.left - tooltipLeft + (citationRect.width / 2);
-                    tooltip.style.setProperty('--arrow-left', arrowLeft + 'px');
-                    
-                    // 顯示工具提示
-                    setTimeout(() => tooltip.classList.add('show'), 10);
+                    // 等待工具提示渲染完成後再計算位置
+                    setTimeout(() => {
+                        const tooltipRect = tooltip.getBoundingClientRect();
+                        const tooltipWidth = tooltipRect.width;
+                        const tooltipHeight = tooltipRect.height;
+                        
+                        // 計算工具提示的位置，讓尖端指向引用標註
+                        let tooltipLeft = citationRect.left - (tooltipWidth / 2) + (citationRect.width / 2);
+                        let tooltipTop = citationRect.top - tooltipHeight - 10; // 在引用標註上方
+                        
+                        // 確保工具提示不會超出視窗邊界
+                        if (tooltipLeft < 10) tooltipLeft = 10;
+                        if (tooltipLeft + tooltipWidth > window.innerWidth - 10) {
+                            tooltipLeft = window.innerWidth - tooltipWidth - 10;
+                        }
+                        if (tooltipTop < 10) {
+                            tooltipTop = citationRect.bottom + 10; // 改為在下方顯示
+                            tooltip.classList.add('tooltip-below');
+                        }
+                        
+                        // 設置工具提示位置
+                        tooltip.style.left = tooltipLeft + 'px';
+                        tooltip.style.top = tooltipTop + 'px';
+                        
+                        // 計算尖端位置，讓它精確指向引用標註的中心
+                        const arrowLeft = citationRect.left - tooltipLeft + (citationRect.width / 2);
+                        tooltip.style.setProperty('--arrow-left', arrowLeft + 'px');
+                        
+                        // 顯示工具提示
+                        tooltip.classList.add('show');
+                    }, 10);
                     
                     // 點擊其他地方時隱藏
                     const hideTooltip = (event) => {
