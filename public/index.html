@@ -1613,15 +1613,19 @@
                 const question = this.questionInput.value.trim();
                 if (!question) return;
 
-                // 在手機版隱藏標題區域，但保留導航按鈕
+                // 在手機版隱藏標題區域和裝飾符號，但保留導航按鈕
                 if (window.innerWidth <= 768) {
                     const header = document.querySelector('.header');
                     if (header) {
-                        // 只隱藏標題文字，保留導航按鈕
+                        // 隱藏標題文字和裝飾符號
                         const headerTitle = header.querySelector('h1');
                         const headerDesc = header.querySelector('p');
+                        const decorativePillars = header.querySelectorAll('.decorative-pillar');
                         if (headerTitle) headerTitle.style.display = 'none';
                         if (headerDesc) headerDesc.style.display = 'none';
+                        decorativePillars.forEach(pillar => {
+                            pillar.style.display = 'none';
+                        });
                     }
                 }
 
@@ -1791,14 +1795,18 @@
             document.getElementById('homeNav').classList.add('active');
             document.getElementById('catalogNav').classList.remove('active');
             
-            // 在手機版重新顯示標題區域
+            // 在手機版重新顯示標題區域和裝飾符號
             if (window.innerWidth <= 768) {
                 const header = document.querySelector('.header');
                 if (header) {
                     const headerTitle = header.querySelector('h1');
                     const headerDesc = header.querySelector('p');
+                    const decorativePillars = header.querySelectorAll('.decorative-pillar');
                     if (headerTitle) headerTitle.style.display = 'block';
                     if (headerDesc) headerDesc.style.display = 'block';
+                    decorativePillars.forEach(pillar => {
+                        pillar.style.display = 'block';
+                    });
                 }
             }
             
@@ -1885,6 +1893,15 @@
                         // 計算尖端位置，讓它精確指向引用標註的中心
                         const arrowLeft = citationRect.left - tooltipLeft + (citationRect.width / 2);
                         tooltip.style.setProperty('--arrow-left', arrowLeft + 'px');
+                        
+                        // 在手機版進一步優化尖端指向
+                        if (window.innerWidth <= 768) {
+                            // 重新計算尖端位置，確保在手機版更精確
+                            const citationCenter = citationRect.left + (citationRect.width / 2);
+                            const tooltipLeftPos = tooltipLeft;
+                            const preciseArrowLeft = citationCenter - tooltipLeftPos;
+                            tooltip.style.setProperty('--arrow-left', preciseArrowLeft + 'px');
+                        }
                         
                         // 顯示工具提示
                         tooltip.classList.add('show');
