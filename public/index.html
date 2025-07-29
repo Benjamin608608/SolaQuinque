@@ -1685,7 +1685,7 @@
                     <div class="catalog-letter" onclick="toggleLetter('${letter}')">
                         <span id="arrow${letter}" class="arrow">▶</span>
                         <span class="letter-text">${letter}</span>
-                        <span class="author-count">(${groupedData[letter].length} 位作者)</span>
+                        <span class="author-count" data-zh="(${groupedData[letter].length} 位作者)" data-en="(${groupedData[letter].length} authors)">(${groupedData[letter].length} 位作者)</span>
                     </div>
                     <div id="authors${letter}" class="catalog-authors" style="display:none;">
                         ${groupedData[letter].map((author, idx) => {
@@ -1694,7 +1694,7 @@
                                 <div class="catalog-author-name" onclick="toggleAuthor('${authorId}')">
                                     <span id="arrow${authorId}" class="arrow">▶</span>
                                     <span class="author-name">${author.author}</span>
-                                    <span class="works-count">(${author.works.length} 部作品)</span>
+                                    <span class="works-count" data-zh="(${author.works.length} 部作品)" data-en="(${author.works.length} works)">(${author.works.length} 部作品)</span>
                                 </div>
                                 <ul id="works${authorId}" class="catalog-works" style="display:none;">
                                     ${author.works.map(work => `<li class="catalog-work">${work}</li>`).join('')}
@@ -1800,6 +1800,11 @@
                     '✍️ Organizing the answer...',
                     '⏳ Almost done...'
                 ];
+            }
+            
+            // 重新渲染目錄以更新動態內容的語言
+            if (catalogData && catalogData.length > 0) {
+                renderCatalog(catalogData);
             }
         }
 
