@@ -88,6 +88,42 @@
             box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
         }
 
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .language-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .lang-btn {
+            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
+            color: var(--deep-red);
+            border: 2px solid var(--border-gold);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-family: 'Crimson Text', serif;
+        }
+
+        .lang-btn:hover {
+            background: linear-gradient(135deg, #F0E6D2, var(--light-gold));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
+        }
+
+        .lang-btn.active {
+            background: linear-gradient(135deg, var(--deep-red), #6B0000);
+            color: var(--parchment);
+            border-color: var(--gold);
+            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
+        }
+
         .top-navigation .nav-btn {
             background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
             border: 2px solid var(--border-gold);
@@ -1123,36 +1159,46 @@
         <!-- 頁首 -->
         <div class="header">
             <div class="top-navigation">
-                <button class="nav-btn active" id="homeNav" onclick="showHome()">
-                    <span class="nav-icon">🏠</span>
-                    <span class="nav-text">首頁</span>
-                </button>
-                <button class="nav-btn" id="catalogNav" onclick="showCatalog()">
-                    <span class="nav-icon">📚</span>
-                    <span class="nav-text">參考書目</span>
-                </button>
+                <div class="nav-buttons">
+                    <button class="nav-btn active" id="homeNav" onclick="showHome()">
+                        <span class="nav-icon">🏠</span>
+                        <span class="nav-text" data-zh="首頁" data-en="Home">首頁</span>
+                    </button>
+                    <button class="nav-btn" id="catalogNav" onclick="showCatalog()">
+                        <span class="nav-icon">📚</span>
+                        <span class="nav-text" data-zh="參考書目" data-en="Bibliography">參考書目</span>
+                    </button>
+                </div>
+                <div class="language-buttons">
+                    <button class="lang-btn active" id="zhBtn" onclick="switchLanguage('zh')">
+                        <span class="lang-text">中文</span>
+                    </button>
+                    <button class="lang-btn" id="enBtn" onclick="switchLanguage('en')">
+                        <span class="lang-text">English</span>
+                    </button>
+                </div>
                 <div class="user-info" id="userInfo" style="display: none;">
                     <div class="user-avatar">
                         <img id="userAvatar" src="" alt="用戶頭像">
                     </div>
                     <div class="user-details">
-                        <span id="userName">用戶名</span>
-                        <button class="logout-btn" onclick="logout()">登出</button>
+                        <span id="userName" data-zh="用戶名" data-en="Username">用戶名</span>
+                        <button class="logout-btn" onclick="logout()" data-zh="登出" data-en="Logout">登出</button>
                     </div>
                 </div>
             </div>
             <div class="medieval-logo">
                 <div class="decorative-pillar left"></div>
-                <h1>神學知識庫</h1>
+                <h1 data-zh="神學知識庫" data-en="Theology Knowledge Base">神學知識庫</h1>
                 <div class="decorative-pillar right"></div>
             </div>
-            <p>探索神學家的智慧，尋找信仰的答案</p>
+            <p data-zh="探索神學家的智慧，尋找信仰的答案" data-en="Explore the wisdom of theologians, find answers to faith">探索神學家的智慧，尋找信仰的答案</p>
         </div>
 
         <!-- 登入容器 -->
         <div class="login-container" id="loginContainer">
-            <div class="login-title">歡迎使用神學知識庫</div>
-            <p class="login-description">
+            <div class="login-title" data-zh="歡迎使用神學知識庫" data-en="Welcome to Theology Knowledge Base">歡迎使用神學知識庫</div>
+            <p class="login-description" data-zh="為了提供更好的服務體驗，請使用 Google 帳號登入後開始使用。您的個人資訊將受到保護，僅用於改善服務品質。" data-en="For a better service experience, please sign in with your Google account to start using. Your personal information will be protected and only used to improve service quality.">
                 為了提供更好的服務體驗，請使用 Google 帳號登入後開始使用。
                 <br><br>
                 您的個人資訊將受到保護，僅用於改善服務品質。
@@ -1164,7 +1210,7 @@
                     <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
-                使用 Google 登入
+                <span data-zh="使用 Google 登入" data-en="Sign in with Google">使用 Google 登入</span>
             </button>
         </div>
 
@@ -1186,6 +1232,8 @@
                         id="question" 
                         class="chat-input" 
                         placeholder="詢問任何問題..."
+                        data-zh-placeholder="詢問任何問題..."
+                        data-en-placeholder="Ask any question..."
                         required
                     ></textarea>
                     <button type="submit" class="send-btn" id="searchBtn">
@@ -1198,13 +1246,13 @@
         <!-- 參考書目頁面 -->
         <div class="catalog-page" id="catalogPage">
             <div class="catalog-header">
-                <h2>📚 參考書目</h2>
-                <p>探索豐富的神學文獻資料庫</p>
+                <h2 data-zh="📚 參考書目" data-en="📚 Bibliography">📚 參考書目</h2>
+                <p data-zh="探索豐富的神學文獻資料庫" data-en="Explore a rich theological literature database">探索豐富的神學文獻資料庫</p>
             </div>
             <div class="catalog-search">
                 <div class="search-row">
-                    <input type="text" id="authorSearch" placeholder="搜尋作者..." class="search-input">
-                    <input type="text" id="workSearch" placeholder="搜尋著作名稱..." class="search-input">
+                    <input type="text" id="authorSearch" placeholder="搜尋作者..." class="search-input" data-zh-placeholder="搜尋作者..." data-en-placeholder="Search authors...">
+                    <input type="text" id="workSearch" placeholder="搜尋著作名稱..." class="search-input" data-zh-placeholder="搜尋著作名稱..." data-en-placeholder="Search work titles...">
                 </div>
             </div>
             <div class="catalog-list" id="catalogList">
@@ -1532,7 +1580,7 @@
 
         // 初始化應用
         document.addEventListener('DOMContentLoaded', () => {
-            new TheologySearchApp();
+            window.theologyApp = new TheologySearchApp();
             
             // 添加引用標註的點擊事件
             document.addEventListener('click', (e) => {
@@ -1716,6 +1764,49 @@
         // 添加事件監聽器
         authorSearch.addEventListener('input', performSearch);
         workSearch.addEventListener('input', performSearch);
+
+        // 語言切換功能
+        let currentLanguage = 'zh';
+
+        function switchLanguage(lang) {
+            currentLanguage = lang;
+            
+            // 更新語言按鈕狀態
+            document.getElementById('zhBtn').classList.toggle('active', lang === 'zh');
+            document.getElementById('enBtn').classList.toggle('active', lang === 'en');
+            
+            // 更新所有帶有 data-zh 和 data-en 屬性的元素
+            document.querySelectorAll('[data-zh][data-en]').forEach(element => {
+                element.textContent = element.getAttribute(`data-${lang}`);
+            });
+            
+            // 更新 placeholder
+            document.querySelectorAll('[data-zh-placeholder][data-en-placeholder]').forEach(element => {
+                element.placeholder = element.getAttribute(`data-${lang}-placeholder`);
+            });
+            
+            // 更新載入訊息
+            if (window.theologyApp) {
+                window.theologyApp.loadingMessages = lang === 'zh' ? [
+                    '🤔 讓我查找相關資料...',
+                    '🔍 深度搜索資料庫中...',
+                    '📚 分析文件內容中...',
+                    '✍️ 整理回答中...',
+                    '⏳ 即將完成...'
+                ] : [
+                    '🤔 Let me search for relevant information...',
+                    '🔍 Deep searching the database...',
+                    '📚 Analyzing document content...',
+                    '✍️ Organizing the answer...',
+                    '⏳ Almost done...'
+                ];
+            }
+        }
+
+        // 初始化語言
+        document.addEventListener('DOMContentLoaded', () => {
+            switchLanguage('zh');
+        });
     </script>
 </body>
 </html>
