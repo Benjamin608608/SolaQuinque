@@ -67,20 +67,9 @@ class VectorService {
             const indexPath = path.join(__dirname, '../data/faiss_index.bin');
             const textsPath = path.join(__dirname, '../data/texts.json');
             
-            try {
-                // 嘗試載入現有的索引
-                const indexData = await fs.readFile(indexPath);
-                const textsData = await fs.readFile(textsPath, 'utf8');
-                
-                this.faissIndex = new (require('faiss-node').Index)(indexData);
-                this.texts = JSON.parse(textsData);
-                
-                console.log(`✅ 成功載入現有索引，包含 ${this.texts.length} 個文本片段`);
-                this.isInitialized = true;
-                return;
-            } catch (error) {
-                console.log('📝 未找到現有索引，開始建立新的向量索引...');
-            }
+            // 暫時禁用索引持久化以避免序列化問題
+            // 每次都重新建立內存中的 FAISS 索引
+            console.log('🔄 每次重新建立 FAISS 向量索引（避免序列化問題）...');
 
             // 建立新的向量索引
             await this.buildIndex();
@@ -146,8 +135,9 @@ class VectorService {
             throw new Error('沒有可用的嵌入向量來建立索引');
         }
         
-        // 保存索引和文本
-        await this.saveIndex();
+        // 暫時禁用索引保存以避免序列化問題
+        // await this.saveIndex();
+        console.log('💾 FAISS 索引建立在內存中（未持久化）');
         
         // 設置初始化完成標誌
         this.isInitialized = true;
