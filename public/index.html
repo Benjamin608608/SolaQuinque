@@ -1045,7 +1045,15 @@
                 if (sources && sources.length > 0) {
                     formattedAnswer += '<h4>📚 參考來源</h4><ul>';
                     sources.forEach(source => {
-                        const sourceText = source.fileName || source;
+                        // 處理可能的數據結構問題
+                        let sourceText = '';
+                        if (typeof source === 'string') {
+                            sourceText = source;
+                        } else if (source && source.fileName) {
+                            sourceText = source.fileName;
+                        } else {
+                            sourceText = '未知來源';
+                        }
                         formattedAnswer += `<li>${sourceText}</li>`;
                     });
                     formattedAnswer += '</ul>';
@@ -1085,17 +1093,24 @@
         const catalogSearch = document.getElementById('catalogSearch');
         let catalogData = [];
 
-        catalogNav.addEventListener('click', (e) => {
-            e.preventDefault();
-            mainContent.style.display = 'none';
-            catalogPage.style.display = 'block';
-            if (catalogData.length === 0) loadCatalog();
-        });
-        document.querySelector('a[href="/"]').addEventListener('click', (e) => {
-            e.preventDefault();
-            catalogPage.style.display = 'none';
-            mainContent.style.display = '';
-        });
+        // 檢查元素是否存在再添加事件監聽器
+        if (catalogNav) {
+            catalogNav.addEventListener('click', (e) => {
+                e.preventDefault();
+                mainContent.style.display = 'none';
+                catalogPage.style.display = 'block';
+                if (catalogData.length === 0) loadCatalog();
+            });
+        }
+        
+        const homeLink = document.querySelector('a[href="/"]');
+        if (homeLink) {
+            homeLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                catalogPage.style.display = 'none';
+                mainContent.style.display = '';
+            });
+        }
 
         async function loadCatalog() {
             catalogList.innerHTML = '<div style="text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">載入中...</div>';
