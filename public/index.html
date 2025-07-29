@@ -846,15 +846,35 @@
             margin-bottom: 2rem;
         }
 
-        .catalog-search input {
-            width: 100%;
-            padding: 1rem;
+        .search-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 1rem 1.5rem;
             border: 2px solid var(--border-gold);
-            border-radius: 10px;
+            border-radius: 25px;
             font-size: 1rem;
             font-family: 'Crimson Text', serif;
-            background: var(--parchment);
+            background: linear-gradient(135deg, var(--parchment), #F8F4E8);
             color: var(--dark-brown);
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .search-row {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
         }
 
         .catalog-list {
@@ -1159,7 +1179,7 @@
         </div>
 
         <!-- 固定輸入區域 -->
-        <div class="chat-input-area">
+        <div class="chat-input-area" id="chatInputArea">
             <form class="chat-input-form" id="searchForm">
                 <div class="input-container">
                     <textarea 
@@ -1182,7 +1202,10 @@
                 <p>探索豐富的神學文獻資料庫</p>
             </div>
             <div class="catalog-search">
-                <input type="text" id="catalogSearch" placeholder="搜尋作者或作品...">
+                <div class="search-row">
+                    <input type="text" id="authorSearch" placeholder="搜尋作者..." class="search-input">
+                    <input type="text" id="workSearch" placeholder="搜尋著作名稱..." class="search-input">
+                </div>
             </div>
             <div class="catalog-list" id="catalogList">
                 <!-- 目錄內容將在這裡動態載入 -->
@@ -1453,10 +1476,13 @@
             document.getElementById('homeNav').classList.add('active');
             document.getElementById('catalogNav').classList.remove('active');
             
-
+            // 顯示輸入區域
+            const chatInputArea = document.getElementById('chatInputArea');
+            if (chatInputArea) {
+                chatInputArea.style.display = 'block';
+            }
             
             // 重置輸入區域位置
-            const chatInputArea = document.querySelector('.chat-input-area');
             if (chatInputArea) {
                 chatInputArea.classList.remove('with-messages');
             }
@@ -1473,6 +1499,12 @@
             document.getElementById('catalogPage').style.display = 'block';
             document.getElementById('catalogNav').classList.add('active');
             document.getElementById('homeNav').classList.remove('active');
+            
+            // 隱藏輸入區域
+            const chatInputArea = document.getElementById('chatInputArea');
+            if (chatInputArea) {
+                chatInputArea.style.display = 'none';
+            }
             
             // 如果還沒有載入目錄，則載入
             if (typeof loadCatalog === 'function' && !catalogData || catalogData.length === 0) {
@@ -1550,7 +1582,8 @@
 
         // 作品目錄功能
         const catalogList = document.getElementById('catalogList');
-        const catalogSearch = document.getElementById('catalogSearch');
+        const authorSearch = document.getElementById('authorSearch');
+        const workSearch = document.getElementById('workSearch');
         let catalogData = [];
 
         async function loadCatalog() {
@@ -1633,14 +1666,38 @@
         };
 
         // 搜尋功能
-        catalogSearch.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredData = catalogData.filter(author => 
-                author.author.toLowerCase().includes(searchTerm) ||
-                author.works.some(work => work.toLowerCase().includes(searchTerm))
-            );
+        function performSearch() {
+            const authorTerm = authorSearch.value.toLowerCase();
+            const workTerm = workSearch.value.toLowerCase();
+            
+            const filteredData = catalogData.filter(author => {
+                const authorMatch = author.author.toLowerCase().includes(authorTerm);
+                const workMatch = author.works.some(work => work.toLowerCase().includes(workTerm));
+                
+                // 如果兩個搜尋欄位都有輸入，需要同時匹配
+                if (authorTerm && workTerm) {
+                    return authorMatch && workMatch;
+                }
+                // 如果只有作者搜尋有輸入
+                else if (authorTerm) {
+                    return authorMatch;
+                }
+                // 如果只有著作搜尋有輸入
+                else if (workTerm) {
+                    return workMatch;
+                }
+                // 如果都沒有輸入，顯示全部
+                else {
+                    return true;
+                }
+            });
+            
             renderCatalog(filteredData);
-        });
+        }
+
+        // 添加事件監聽器
+        authorSearch.addEventListener('input', performSearch);
+        workSearch.addEventListener('input', performSearch);
     </script>
 </body>
 </html>
