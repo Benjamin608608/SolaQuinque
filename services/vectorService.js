@@ -20,39 +20,56 @@ class VectorService {
         console.log(`📥 正在從 Google Drive 下載檔案: ${fileId}`);
         
         try {
-            // 首先檢查文件是否存在和可以下載
-            const checkUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,size,mimeType`;
-            const checkResponse = await fetch(checkUrl);
+            console.log('📁 嘗試多種下載方式...');
             
-            if (!checkResponse.ok) {
-                throw new Error(`文件檢查失敗: ${checkResponse.status} ${checkResponse.statusText}`);
-            }
+            // 方式 1: 嘗試公開分享連結
+            const publicUrl = `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`;
+            console.log(`🔗 嘗試公開下載連結: ${publicUrl}`);
             
-            const fileMetadata = await checkResponse.json();
-            console.log(`📄 檔案資訊: ${fileMetadata.name} (${(fileMetadata.size / 1024 / 1024).toFixed(2)} MB)`);
-            
-            // 使用 Google Drive API 的正確下載 URL
-            const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
-            
-            const response = await fetch(downloadUrl);
-            if (!response.ok) {
-                // 如果是 403 錯誤，嘗試使用公開分享連結
-                if (response.status === 403) {
-                    console.log('📁 嘗試使用公開分享連結下載...');
-                    const publicUrl = `https://drive.usercontent.google.com/download?id=${fileId}&export=download`;
-                    const publicResponse = await fetch(publicUrl);
-                    
-                    if (!publicResponse.ok) {
-                        throw new Error(`公開下載失敗: ${publicResponse.status} ${publicResponse.statusText}`);
-                    }
-                    
-                    return this.processDownloadResponse(publicResponse, outputPath);
-                } else {
-                    throw new Error(`下載失敗: ${response.status} ${response.statusText}`);
+            const publicResponse = await fetch(publicUrl, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (compatible; GoogleBot/2.1; +http://www.google.com/bot.html)'
                 }
+            });
+            
+            if (publicResponse.ok) {
+                console.log('✅ 公開下載連結成功');
+                return this.processDownloadResponse(publicResponse, outputPath);
             }
             
-            return this.processDownloadResponse(response, outputPath);
+            console.log(`❌ 公開下載失敗: ${publicResponse.status}, 嘗試其他方式...`);
+            
+            // 方式 2: 嘗試舊式下載連結
+            const legacyUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
+            console.log(`🔗 嘗試舊式下載連結: ${legacyUrl}`);
+            
+            const legacyResponse = await fetch(legacyUrl, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (compatible; GoogleBot/2.1; +http://www.google.com/bot.html)'
+                }
+            });
+            
+            if (legacyResponse.ok) {
+                console.log('✅ 舊式下載連結成功');
+                return this.processDownloadResponse(legacyResponse, outputPath);
+            }
+            
+            console.log(`❌ 舊式下載失敗: ${legacyResponse.status}`);
+            
+            // 方式 3: 嘗試 API 下載（需要認證）
+            const apiUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+            console.log(`🔗 嘗試 API 下載: ${apiUrl}`);
+            
+            const apiResponse = await fetch(apiUrl);
+            
+            if (apiResponse.ok) {
+                console.log('✅ API 下載成功');
+                return this.processDownloadResponse(apiResponse, outputPath);
+            }
+            
+            throw new Error(`所有下載方式都失敗了。API 狀態: ${apiResponse.status}, 公開狀態: ${publicResponse.status}, 舊式狀態: ${legacyResponse.status}`)
             
         } catch (error) {
             console.error('❌ Google Drive 下載失敗:', error.message);
@@ -483,13 +500,17 @@ class VectorService {
 
         console.log(`🔍 執行向量搜索: "${query}"`);
         
+        // 確保 topK 不超過現有文本數量
+        const actualTopK = Math.min(topK, this.texts.length);
+        console.log(`📊 搜索參數: topK=${topK}, 實際使用=${actualTopK}, 總文本數=${this.texts.length}`);
+        
         // 生成查詢的嵌入向量
         const queryEmbedding = await this.generateEmbedding(query);
         
         // 執行 FAISS 搜索
         try {
             const queryVector = Array.from(queryEmbedding);
-            const searchResults = this.faissIndex.search(queryVector, topK);
+            const searchResults = this.faissIndex.search(queryVector, actualTopK);
             
             console.log(`📊 找到 ${searchResults.labels.length} 個相關文本片段`);
             
