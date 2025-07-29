@@ -269,31 +269,35 @@ class VectorService {
         
         console.log(`📦 開始下載，預計大小: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
         
-        // 使用 streams 處理大文件
+        // 使用 Node.js 流處理（兼容 node-fetch v2）
         const fileStream = require('fs').createWriteStream(outputPath);
         let downloadedSize = 0;
         
-        // 監聽下載進度
-        const reader = response.body.getReader();
-        
         try {
-            while (true) {
-                const { done, value } = await reader.read();
-                
-                if (done) break;
-                
-                fileStream.write(value);
-                downloadedSize += value.length;
+            // 使用 node-fetch v2 的 body 流
+            response.body.on('data', (chunk) => {
+                downloadedSize += chunk.length;
                 
                 if (totalSize > 0) {
                     const progress = ((downloadedSize / totalSize) * 100).toFixed(1);
-                    if (downloadedSize % (1024 * 1024 * 5) === 0) { // 每 5MB 顯示一次進度
+                    // 每 1MB 顯示一次進度，避免日誌過多
+                    if (downloadedSize % (1024 * 1024) < chunk.length) {
                         console.log(`📊 下載進度: ${progress}% (${(downloadedSize / 1024 / 1024).toFixed(2)} MB)`);
                     }
                 }
-            }
+            });
             
-            fileStream.end();
+            response.body.on('error', (error) => {
+                fileStream.destroy();
+                throw error;
+            });
+            
+            response.body.on('end', () => {
+                fileStream.end();
+            });
+            
+            // 將響應流導向文件流
+            response.body.pipe(fileStream);
             
             // 等待文件寫入完成
             await new Promise((resolve, reject) => {
