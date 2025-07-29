@@ -99,33 +99,30 @@ class VectorService {
             let processedTextCount = 0;
             let skippedCount = 0;
             
-            // Railway 環境限制總文本片段數
-            const MAX_TEXT_CHUNKS = isRailwayEnv ? 5000 : 50000;  // Railway 限制 5000 個片段
-            
-            // 確保輸出目錄存在
-            try {
-                await fs.mkdir(outputDir, { recursive: true });
-            } catch (error) {
-                // 目錄可能已存在
-            }
-            
             // 分階段載入策略
             const INITIAL_BATCH_SIZE = 20;  // 每批 20 個文件（更小批次）
             const INITIAL_MAX_FILES = 100;  // 初始階段只載入 100 個文件（確保成功）
             const PROGRESS_INTERVAL = 10;   // 每 10 個文件顯示進度
             
-            // Railway 快速啟動模式 - 進一步減少文件數量
-            const RAILWAY_QUICK_START = 30;  // Railway 環境快速啟動只用 30 個文件（避免文本片段過多）
+            // Railway 快速下載模式 - 只下載不處理文本
+            const RAILWAY_DOWNLOAD_ONLY = 200;  // Railway 環境快速下載 200 個文件但不處理
             
             // 檢測是否為初始建立索引階段
             const isInitialBuild = process.env.NODE_ENV === 'production' && !process.env.SKIP_INITIAL_LIMIT;
             const isRailwayEnv = process.env.RAILWAY_ENVIRONMENT_NAME || process.env.RAILWAY_PROJECT_NAME;
             
             let filesToProcess;
-            if (isInitialBuild) {
-                const maxFiles = isRailwayEnv ? RAILWAY_QUICK_START : INITIAL_MAX_FILES;
-                filesToProcess = filesList.slice(0, maxFiles);
-                console.log(`🚀 ${isRailwayEnv ? 'Railway 快速啟動' : '初始建立'}階段：處理前 ${filesToProcess.length} 個文件`);
+            let downloadOnlyMode = false;
+            
+            if (isInitialBuild && isRailwayEnv) {
+                filesToProcess = filesList.slice(0, RAILWAY_DOWNLOAD_ONLY);
+                downloadOnlyMode = true;
+                console.log(`⚡ Railway 快速下載模式：下載前 ${filesToProcess.length} 個文件（不處理文本）`);
+                console.log(`📝 文本處理將在系統啟動後進行，確保高品質回答`);
+                console.log(`📁 剩餘 ${filesList.length - filesToProcess.length} 個文件將在背景下載`);
+            } else if (isInitialBuild) {
+                filesToProcess = filesList.slice(0, INITIAL_MAX_FILES);
+                console.log(`🚀 初始建立階段：處理前 ${filesToProcess.length} 個文件`);
                 console.log(`📝 剩餘 ${filesList.length - filesToProcess.length} 個文件將在系統啟動後背景載入`);
             } else {
                 filesToProcess = filesList;
@@ -134,6 +131,16 @@ class VectorService {
             
             console.log(`📦 批次大小: ${INITIAL_BATCH_SIZE} 個文件/批`);
             console.log(`📊 預計批次數: ${Math.ceil(filesToProcess.length / INITIAL_BATCH_SIZE)}`);
+            
+            // Railway 環境限制總文本片段數（僅在處理模式下使用）
+            const MAX_TEXT_CHUNKS = downloadOnlyMode ? Infinity : (isRailwayEnv ? 10000 : 50000);
+            
+            // 確保輸出目錄存在
+            try {
+                await fs.mkdir(outputDir, { recursive: true });
+            } catch (error) {
+                // 目錄可能已存在
+            }
             
             // 分批處理文件
             for (let i = 0; i < filesToProcess.length; i += INITIAL_BATCH_SIZE) {
@@ -163,32 +170,38 @@ class VectorService {
                         
                         await this.downloadFromGoogleDrive(file.id, filePath);
                         
-                        // 如果是文本文件，讀取內容
+                        // 如果是文本文件，根據模式決定是否處理
                         if (file.name.toLowerCase().endsWith('.txt')) {
-                            // 檢查是否已達到文本片段限制
-                            if (texts.length >= MAX_TEXT_CHUNKS) {
-                                console.log(`⚠️  已達到文本片段限制 (${MAX_TEXT_CHUNKS})，跳過剩餘文件`);
-                                break;
-                            }
-                            
-                            const content = await fs.readFile(filePath, 'utf8');
-                            const chunks = this.splitTextIntoChunks(content);
-                            
-                            // 只添加不超過限制的片段
-                            const remainingSlots = MAX_TEXT_CHUNKS - texts.length;
-                            const chunksToAdd = chunks.slice(0, remainingSlots);
-                            
-                            chunksToAdd.forEach(chunk => {
-                                texts.push({
-                                    text: chunk,
-                                    fileName: file.name
+                            if (downloadOnlyMode) {
+                                // 下載模式：只下載不處理，節省時間
+                                console.log(`📁 已下載: ${file.name}（文本處理將延後進行）`);
+                            } else {
+                                // 處理模式：讀取並分割文本
+                                // 檢查是否已達到文本片段限制
+                                if (texts.length >= MAX_TEXT_CHUNKS) {
+                                    console.log(`⚠️  已達到文本片段限制 (${MAX_TEXT_CHUNKS})，跳過剩餘文件`);
+                                    break;
+                                }
+                                
+                                const content = await fs.readFile(filePath, 'utf8');
+                                const chunks = this.splitTextIntoChunks(content);
+                                
+                                // 只添加不超過限制的片段
+                                const remainingSlots = MAX_TEXT_CHUNKS - texts.length;
+                                const chunksToAdd = chunks.slice(0, remainingSlots);
+                                
+                                chunksToAdd.forEach(chunk => {
+                                    texts.push({
+                                        text: chunk,
+                                        fileName: file.name
+                                    });
                                 });
-                            });
-                            
-                            processedTextCount += chunksToAdd.length;
-                            
-                            if (chunksToAdd.length < chunks.length) {
-                                console.log(`⚠️  文件 ${file.name} 只使用了 ${chunksToAdd.length}/${chunks.length} 個片段（達到限制）`);
+                                
+                                processedTextCount += chunksToAdd.length;
+                                
+                                if (chunksToAdd.length < chunks.length) {
+                                    console.log(`⚠️  文件 ${file.name} 只使用了 ${chunksToAdd.length}/${chunks.length} 個片段（達到限制）`);
+                                }
                             }
                         }
                         
@@ -213,22 +226,43 @@ class VectorService {
                 }
             }
             
-            console.log(`\n🎉 ${isInitialBuild ? '初始階段' : '完整'}處理完成！`);
+            console.log(`\n🎉 ${downloadOnlyMode ? 'Railway 快速下載' : (isInitialBuild ? '初始階段' : '完整')}處理完成！`);
             console.log(`✅ 成功下載: ${downloadedCount} 個文件`);
             console.log(`⏭️  跳過已存在: ${skippedCount} 個文件`);
             console.log(`📚 提取文本片段: ${texts.length} 個`);
-            console.log(`📈 平均每文件片段數: ${(texts.length / Math.max(downloadedCount, 1)).toFixed(1)}`);
             
-            if (isInitialBuild && filesList.length > INITIAL_MAX_FILES) {
-                console.log(`\n🔄 背景載入計劃:`);
-                console.log(`   - 已載入: ${filesToProcess.length} 個文件`);
-                console.log(`   - 待載入: ${filesList.length - filesToProcess.length} 個文件`);
-                console.log(`   - 系統啟動後將自動背景載入剩餘文件`);
+            if (downloadedCount > 0) {
+                console.log(`📈 平均每文件片段數: ${(texts.length / Math.max(downloadedCount, 1)).toFixed(1)}`);
+            }
+            
+            // 在下載模式下，使用預設文本確保系統能啟動
+            if (downloadOnlyMode && texts.length === 0) {
+                console.log(`\n🔄 下載模式完成，使用預設文本建立初始索引`);
+                console.log(`📝 高品質文本索引將在系統啟動後建立`);
+                const defaultTexts = this.getDefaultTheologyTexts();
+                texts.push(...defaultTexts);
+                console.log(`📚 添加了 ${defaultTexts.length} 個預設文本片段`);
+            }
+            
+            if (isInitialBuild && filesList.length > filesToProcess.length) {
+                console.log(`\n🔄 ${downloadOnlyMode ? '後續處理' : '背景載入'}計劃:`);
+                console.log(`   - 已${downloadOnlyMode ? '下載' : '載入'}: ${filesToProcess.length} 個文件`);
+                console.log(`   - 待處理: ${filesList.length - filesToProcess.length} 個文件`);
+                console.log(`   - 系統啟動後將自動${downloadOnlyMode ? '處理已下載文件並' : ''}背景載入剩餘文件`);
                 
-                // 保存剩餘文件列表供背景載入使用
-                const remainingFiles = filesList.slice(INITIAL_MAX_FILES);
+                // 保存剩餘文件列表和已下載文件信息
+                const remainingFiles = filesList.slice(filesToProcess.length);
                 const remainingFilesPath = path.join(outputDir, 'remaining_files.json');
                 await fs.writeFile(remainingFilesPath, JSON.stringify(remainingFiles, null, 2));
+                
+                if (downloadOnlyMode) {
+                    // 保存已下載文件列表供後續處理
+                    const downloadedFiles = filesToProcess.slice(0, downloadedCount);
+                    const downloadedFilesPath = path.join(outputDir, 'downloaded_files.json');
+                    await fs.writeFile(downloadedFilesPath, JSON.stringify(downloadedFiles, null, 2));
+                    console.log(`💾 已下載文件列表已保存到: ${downloadedFilesPath}`);
+                }
+                
                 console.log(`💾 剩餘文件列表已保存到: ${remainingFilesPath}`);
             }
             
@@ -717,14 +751,8 @@ class VectorService {
     }
 
     // 將文本分割成較小的片段
-    splitTextIntoChunks(text, chunkSize = 2000, overlap = 200) {
-        // Railway 環境使用更大的塊以減少總片段數
-        const isRailwayEnv = process.env.RAILWAY_ENVIRONMENT_NAME || process.env.RAILWAY_PROJECT_NAME;
-        if (isRailwayEnv) {
-            chunkSize = 4000;  // Railway 環境使用 4000 字符的大塊
-            overlap = 400;     // 相應增加重疊
-        }
-        
+    splitTextIntoChunks(text, chunkSize = 1500, overlap = 200) {
+        // 恢復高品質文本分割設置
         const chunks = [];
         const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
         
@@ -739,7 +767,15 @@ class VectorService {
                 if (currentChunk) {
                     chunks.push(currentChunk + '.');
                 }
-                currentChunk = trimmedSentence;
+                
+                // 處理重疊
+                if (chunks.length > 0 && overlap > 0) {
+                    const lastChunk = chunks[chunks.length - 1];
+                    const overlapText = lastChunk.slice(-overlap);
+                    currentChunk = overlapText + '. ' + trimmedSentence;
+                } else {
+                    currentChunk = trimmedSentence;
+                }
             }
         }
         
@@ -747,14 +783,7 @@ class VectorService {
             chunks.push(currentChunk + (currentChunk.endsWith('.') ? '' : '.'));
         }
         
-        // Railway 環境進一步限制片段數量
-        if (isRailwayEnv && chunks.length > 20) {
-            // 每個文件最多 20 個片段
-            const step = Math.ceil(chunks.length / 20);
-            return chunks.filter((_, index) => index % step === 0).slice(0, 20);
-        }
-        
-        return chunks.filter(chunk => chunk.trim().length > 50);
+        return chunks.filter(chunk => chunk.trim().length > 100);
     }
 
     // 預設神學文本（如果沒有找到資料檔案）
