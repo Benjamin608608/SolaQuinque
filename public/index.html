@@ -990,7 +990,7 @@
                     const data = await response.json();
 
                     if (data.success) {
-                        this.showResult(question, data.answer, data.sources);
+                        this.showResult(question, data.data.answer, data.data.sources);
                     } else {
                         this.showError(data.error || '搜尋失敗，請稍後再試');
                     }
