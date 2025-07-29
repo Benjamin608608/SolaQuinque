@@ -1036,7 +1036,12 @@
                 
                 this.loadingState.style.display = 'none';
                 this.resultContent.style.display = 'block';
+                this.resultContent.style.opacity = '1';
+                this.resultContent.style.visibility = 'visible';
                 this.resultContent.classList.add('fade-in');
+                
+                console.log('結果內容元素:', this.resultContent);
+                console.log('結果內容顯示狀態:', this.resultContent.style.display);
             }
 
             formatAnswer(answer, sources) {
