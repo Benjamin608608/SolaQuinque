@@ -148,16 +148,15 @@ class VectorService {
     async loadTextData() {
         console.log('📁 正在載入神學資料...');
         
-        // 首先檢查本地檔案
-        const possibleFiles = [
+        // 優先嘗試大文件，避免載入小的目錄文件
+        const priorityFiles = [
+            path.join(__dirname, '../data/ccel_books.zip'),
             path.join(__dirname, '../data/theology_texts.txt'),
-            path.join(__dirname, '../data/theology_data.json'),
-            path.join(__dirname, '../data/ccel_catalog.json'),
-            path.join(__dirname, '../public/ccel_catalog.json'),
-            path.join(__dirname, '../data/ccel_books.zip')
+            path.join(__dirname, '../data/theology_data.json')
         ];
         
-        for (const filePath of possibleFiles) {
+        // 檢查優先的大文件
+        for (const filePath of priorityFiles) {
             try {
                 const stats = await fs.stat(filePath);
                 console.log(`✅ 找到本地檔案: ${filePath} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
@@ -174,8 +173,8 @@ class VectorService {
             }
         }
         
-        // 如果本地沒有檔案，嘗試從 Google Drive 下載
-        console.log('🔄 嘗試從 Google Drive 下載資料...');
+        // 如果本地沒有大文件，嘗試從 Google Drive 下載
+        console.log('🔄 本地無大文件，嘗試從 Google Drive 下載 ccel_books.zip...');
         
         // 載入 Google Drive 設定
         let googleDriveFiles = [];
