@@ -6,17 +6,28 @@ async function buildRailwayIndex() {
     console.log('🚀 Railway 環境 - 建立 FAISS 向量索引');
     console.log('📍 環境變數檢查...');
     
+    // 檢查是否在 Railway 環境
+    const isRailway = process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production';
+    console.log(`🌐 環境: ${isRailway ? 'Railway 生產環境' : '本地開發環境'}`);
+    
     // 檢查必要的環境變數
-    const requiredEnvVars = ['OPENAI_API_KEY', 'VECTOR_STORE_ID'];
+    const requiredEnvVars = ['OPENAI_API_KEY'];
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
     
     if (missingVars.length > 0) {
         console.log(`❌ 缺少必要的環境變數: ${missingVars.join(', ')}`);
-        console.log('💡 請在 Railway 環境變數中設定這些值');
+        if (isRailway) {
+            console.log('💡 請在 Railway 環境變數中設定這些值');
+            console.log('   前往 Railway Dashboard > Variables 標籤');
+        } else {
+            console.log('💡 請在本地建立 .env 檔案或設定環境變數');
+        }
         return;
     }
     
     console.log('✅ 環境變數檢查通過');
+    console.log(`🔑 OpenAI API Key: ${process.env.OPENAI_API_KEY ? '已設定' : '未設定'}`);
+    console.log(`📊 Vector Store ID: ${process.env.VECTOR_STORE_ID || '未設定 (可選)'}`);
     
     try {
         const vectorService = new VectorService();
@@ -55,6 +66,7 @@ async function buildRailwayIndex() {
             console.log('   - /app/data/theology_data.json');
             console.log('   - /app/data/ccel_catalog.json');
             console.log('   - /app/public/ccel_catalog.json');
+            console.log('   - /app/data/ccel_books.zip');
         }
     }
 }
