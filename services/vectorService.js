@@ -317,31 +317,98 @@ class VectorService {
         }
     }
 
-    // 向量搜索
+    // 搜索相關文本
     async search(query, topK = 5) {
-        if (!this.isInitialized) {
-            throw new Error('向量服務尚未初始化');
+        if (!this.faissIndex) {
+            throw new Error('FAISS 索引未初始化');
         }
+
+        console.log(`🔍 執行向量搜索: "${query}"`);
+        
+        // 生成查詢的嵌入向量
+        const queryEmbedding = await this.generateEmbedding(query);
+        
+        // 執行 FAISS 搜索
+        const { IndexFlatL2 } = require('faiss-node');
+        const results = this.faissIndex.search(queryEmbedding, topK);
+        
+        console.log(`📊 找到 ${results.length} 個相關文本片段`);
+        
+        // 返回相關文本片段
+        const relevantTexts = results.map((result, index) => {
+            const textIndex = result.id;
+            const similarity = result.score;
+            const text = this.texts[textIndex];
+            
+            return {
+                text: text.text,
+                fileName: text.fileName,
+                similarity: similarity,
+                index: textIndex
+            };
+        });
+        
+        return relevantTexts;
+    }
+
+    // 混合搜索策略：結合 FAISS 和 Assistant API
+    async hybridSearch(query, topK = 10) {
+        console.log(`🔍 執行混合搜索: "${query}"`);
         
         try {
-            // 生成查詢的嵌入向量
-            const queryEmbedding = await this.generateEmbedding(query);
+            // 1. 使用 FAISS 進行快速向量搜索
+            const vectorResults = await this.search(query, topK);
+            console.log(`📊 FAISS 找到 ${vectorResults.length} 個相關片段`);
             
-            // 執行向量搜索
-            const queryArray = new Float32Array(queryEmbedding);
-            const { distances, indices } = this.faissIndex.search(queryArray, topK);
+            // 2. 構建上下文
+            const context = vectorResults.map(result => 
+                `[來源: ${result.fileName}]\n${result.text}\n`
+            ).join('\n---\n');
             
-            // 返回相關文本
-            const results = indices.map((index, i) => ({
-                text: this.texts[index],
-                score: 1 - distances[i], // 轉換距離為相似度分數
-                index: index
+            // 3. 使用 OpenAI Chat Completions API 生成高品質回答
+            const completion = await this.openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    {
+                        role: "system",
+                        content: `您是一位專業的神學知識庫助手。請根據提供的上下文資料，為用戶提供準確、詳細且學術性的回答。
+
+回答要求：
+1. 基於提供的上下文資料進行回答
+2. 保持學術性和專業性
+3. 如果上下文資料不足，請明確說明
+4. 引用相關的來源和作者
+5. 使用中文回答，保持傳統中文的表達方式
+
+請確保回答的準確性和完整性。`
+                    },
+                    {
+                        role: "user",
+                        content: `問題：${query}\n\n相關資料：\n${context}`
+                    }
+                ],
+                temperature: 0.3,
+                max_tokens: 2000
+            });
+            
+            const answer = completion.choices[0].message.content;
+            
+            // 4. 格式化來源
+            const sources = vectorResults.map(result => ({
+                fileName: result.fileName,
+                similarity: result.similarity,
+                text: result.text.substring(0, 200) + "..."
             }));
             
-            return results;
+            return {
+                answer: answer,
+                sources: sources,
+                method: "Hybrid (FAISS + GPT-4o-mini)",
+                vectorResults: vectorResults.length
+            };
             
         } catch (error) {
-            console.error('向量搜索失敗:', error);
+            console.error('❌ 混合搜索失敗:', error.message);
             throw error;
         }
     }

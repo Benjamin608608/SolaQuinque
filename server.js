@@ -358,178 +358,156 @@ function createSourceList(sourceMap) {
   }));
 }
 
-// 使用 FAISS 向量搜索的快速搜索函數
-async function processSearchRequestWithFAISS(question, user = null) {
-  console.log(`🚀 使用 FAISS 向量搜索處理請求: ${question}${user ? ` (用戶: ${user.email})` : ''}`);
-  
-  try {
-    // 使用 FAISS 進行向量搜索
-    const searchResults = await vectorService.search(question, 5);
-    console.log(`✅ 找到 ${searchResults.length} 個相關文本片段`);
+// FAISS 向量搜索處理
+async function processSearchRequestWithFAISS(question, user) {
+    console.log('🔄 使用 FAISS 混合搜索方法...');
     
-    // 構建上下文
-    const context = searchResults.map((result, index) => 
-      `[${index + 1}] ${result.text}`
-    ).join('\n\n');
-    
-    // 使用 GPT 生成回答
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
-
-重要規則：
-1. 只使用檢索到的資料來回答問題
-2. 如果資料庫中沒有相關資訊，請明確說明「很抱歉，我在資料庫中找不到相關資訊來回答這個問題」
-3. 回答要準確、簡潔且有幫助
-4. 使用繁體中文回答
-5. 專注於提供基於資料庫內容的準確資訊
-6. 在回答中引用相關的資料片段，格式為 [1], [2], [3] 等
-
-格式要求：
-- 直接回答問題內容
-- 引用相關的資料片段（使用 [1], [2], [3] 格式）
-- 如果沒有相關資料，請明確說明`
-        },
-        {
-          role: 'user',
-          content: `問題：${question}\n\n相關資料：\n${context}`
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000
-    });
-    
-    const botAnswer = completion.choices[0].message.content;
-    
-    // 構建來源列表
-    const sources = searchResults.map((result, index) => ({
-      fileName: `神學知識庫片段 ${index + 1}`,
-      content: result.text.substring(0, 200) + '...',
-      score: result.score
-    }));
-    
-    return {
-      question: question,
-      answer: botAnswer,
-      sources: sources,
-      timestamp: new Date().toISOString(),
-      user: user ? { email: user.email, name: user.name } : null,
-      method: 'FAISS'
-    };
-    
-  } catch (error) {
-    console.error('FAISS 搜索失敗:', error);
-    throw error;
-  }
+    try {
+        // 使用混合搜索策略
+        const result = await vectorService.hybridSearch(question, 15);
+        
+        console.log('✅ 混合搜索完成');
+        console.log(`📊 使用了 ${result.vectorResults} 個向量搜索結果`);
+        
+        return {
+            question: question,
+            answer: result.answer,
+            sources: result.sources.map((source, index) => ({
+                index: index + 1,
+                fileName: source.fileName,
+                quote: source.text,
+                similarity: source.similarity
+            })),
+            timestamp: new Date().toISOString(),
+            user: user,
+            method: result.method
+        };
+        
+    } catch (error) {
+        console.error('❌ FAISS 混合搜索失敗:', error.message);
+        console.log('🔄 回退到傳統 Assistant API 方法...');
+        
+        // 回退到傳統方法
+        return await processSearchRequest(question, user);
+    }
 }
 
-// 傳統的 OpenAI Assistant 搜索函數（作為備用）
-async function processSearchRequest(question, user = null) {
-  console.log(`處理搜索請求: ${question}${user ? ` (用戶: ${user.email})` : ''}`);
-  console.log('創建 OpenAI Assistant...');
-  
-  const assistant = await openai.beta.assistants.create({
-    model: 'gpt-4o-mini',
-    name: 'Theology RAG Assistant',
-    instructions: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
+// 傳統 OpenAI Assistant API 處理
+async function processSearchRequest(question, user) {
+    console.log('🔄 使用傳統 OpenAI Assistant API 方法...');
+    
+    try {
+        // 創建或獲取 Assistant
+        let assistant;
+        try {
+            assistant = await openai.beta.assistants.retrieve(process.env.VECTOR_STORE_ID);
+            console.log('✅ 成功獲取現有 Assistant');
+        } catch (error) {
+            console.log('🔄 創建新的 Assistant...');
+            assistant = await openai.beta.assistants.create({
+                name: "神學知識庫助手",
+                instructions: `你是一位專業的神學知識庫助手，專門回答關於基督教神學的問題。
 
-重要規則：
-1. 只使用檢索到的資料來回答問題
-2. 如果資料庫中沒有相關資訊，請明確說明「很抱歉，我在資料庫中找不到相關資訊來回答這個問題，因為資料庫都為英文，建議將專有名詞替換成英文或許會有幫助」
-3. 回答要準確、簡潔且有幫助
-4. 使用繁體中文回答
-5. 專注於提供基於資料庫內容的準確資訊
-6. 盡可能引用具體的資料片段
+你的任務：
+1. 基於提供的知識庫資料回答問題
+2. 提供準確、詳細且學術性的回答
+3. 使用繁體中文回答
+4. 保持傳統中文的表達方式
+5. 引用相關的來源和作者
+6. 如果資料不足，請明確說明
 
-格式要求：
-- 直接回答問題內容
-- 引用相關的資料片段（如果有的話）
-- 不需要在回答中手動添加資料來源，系統會自動處理`,
-    tools: [{ type: 'file_search' }],
-    tool_resources: {
-      file_search: {
-        vector_store_ids: [VECTOR_STORE_ID]
-      }
+回答要求：
+- 準確性：確保回答基於可靠的資料
+- 完整性：提供全面的解釋
+- 學術性：保持專業的學術水準
+- 可讀性：使用清晰的語言表達
+
+請確保每個回答都符合這些標準。`,
+                model: "gpt-4o-mini",
+                tools: [{"type": "retrieval"}],
+                tool_resources: {
+                    vector_store_ids: [process.env.VECTOR_STORE_ID]
+                }
+            });
+            console.log('✅ 新 Assistant 創建成功');
+        }
+
+        // 創建 Thread
+        const thread = await openai.beta.threads.create();
+        console.log('✅ Thread 創建成功');
+
+        // 添加用戶問題到 Thread
+        await openai.beta.threads.messages.create(thread.id, {
+            role: "user",
+            content: question
+        });
+
+        // 創建 Run
+        const run = await openai.beta.assistants.runs.create(thread.id, {
+            assistant_id: assistant.id
+        });
+        console.log('✅ Run 創建成功，等待處理...');
+
+        // 等待 Run 完成
+        let runStatus = await openai.beta.assistants.runs.retrieve(thread.id, run.id);
+        let attempts = 0;
+        const maxAttempts = 30; // 最多等待 30 次
+
+        while (runStatus.status === 'queued' || runStatus.status === 'in_progress') {
+            if (attempts >= maxAttempts) {
+                throw new Error('處理超時，請稍後再試');
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 等待 2 秒
+            runStatus = await openai.beta.assistants.runs.retrieve(thread.id, run.id);
+            attempts++;
+            
+            console.log(`⏳ 處理中... 嘗試次數: ${attempts}, 狀態: ${runStatus.status}`);
+        }
+
+        if (runStatus.status === 'failed') {
+            throw new Error('Assistant 處理失敗');
+        }
+
+        // 獲取回答
+        const messages = await openai.beta.threads.messages.list(thread.id);
+        const lastMessage = messages.data[0]; // 最新的消息是 Assistant 的回答
+        
+        if (!lastMessage || lastMessage.role !== 'assistant') {
+            throw new Error('無法獲取 Assistant 回答');
+        }
+
+        const answer = lastMessage.content[0].text.value;
+        console.log('✅ 成功獲取 Assistant 回答');
+
+        // 獲取來源資訊
+        const sources = [];
+        if (lastMessage.content[0].text.annotations) {
+            lastMessage.content[0].text.annotations.forEach((annotation, index) => {
+                if (annotation.type === 'file_citation') {
+                    sources.push({
+                        index: index + 1,
+                        fileName: annotation.text,
+                        quote: annotation.text,
+                        fileId: annotation.file_citation.file_id
+                    });
+                }
+            });
+        }
+
+        return {
+            question: question,
+            answer: answer,
+            sources: sources,
+            timestamp: new Date().toISOString(),
+            user: user,
+            method: 'Assistant API'
+        };
+
+    } catch (error) {
+        console.error('❌ Assistant API 處理失敗:', error.message);
+        throw error;
     }
-  });
-
-  const thread = await openai.beta.threads.create();
-
-  await openai.beta.threads.messages.create(thread.id, {
-    role: 'user',
-    content: question
-  });
-
-  const run = await openai.beta.threads.runs.create(thread.id, {
-    assistant_id: assistant.id
-  });
-  console.log('Assistant run 已創建，等待完成...');
-
-  // 等待完成
-  let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-  console.log('初始 run 狀態:', runStatus.status);
-  let attempts = 0;
-  const maxAttempts = 60;
-
-  while (runStatus.status !== 'completed' && runStatus.status !== 'failed' && attempts < maxAttempts) {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-    attempts++;
-    if (attempts % 10 === 0) {
-      console.log(`等待中... 嘗試次數: ${attempts}, 狀態: ${runStatus.status}`);
-    }
-  }
-
-  if (runStatus.status === 'failed') {
-    throw new Error(`Assistant run failed: ${runStatus.last_error?.message || 'Unknown error'}`);
-  }
-
-  if (attempts >= maxAttempts) {
-    throw new Error('查詢時間過長，請嘗試簡化您的問題或稍後再試');
-  }
-
-  // 獲取回答
-  const threadMessages = await openai.beta.threads.messages.list(thread.id);
-  const responseMessage = threadMessages.data[0];
-  
-  let botAnswer = '';
-  let sources = [];
-  
-  if (responseMessage.content && responseMessage.content.length > 0) {
-    const textContent = responseMessage.content.find(content => content.type === 'text');
-    if (textContent) {
-      const { processedText, sourceMap } = await processAnnotationsInText(
-        textContent.text.value, 
-        textContent.text.annotations
-      );
-      
-      botAnswer = processedText;
-      sources = createSourceList(sourceMap);
-    }
-  }
-
-  if (!botAnswer) {
-    botAnswer = '很抱歉，我在資料庫中找不到相關資訊來回答這個問題。\n\n📚 **資料來源：** 神學知識庫';
-  }
-
-  // 清理資源
-  try {
-    await openai.beta.assistants.del(assistant.id);
-  } catch (cleanupError) {
-    console.warn('Failed to cleanup assistant:', cleanupError.message);
-  }
-
-  return {
-    question: question,
-    answer: botAnswer,
-    sources: sources,
-    timestamp: new Date().toISOString(),
-    user: user ? { email: user.email, name: user.name } : null,
-    method: 'Assistant'
-  };
 }
 
 // 主要搜索 API 端點 - 需要認證
