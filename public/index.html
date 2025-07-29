@@ -1038,7 +1038,8 @@
                 if (sources && sources.length > 0) {
                     formattedAnswer += '<h4>📚 參考來源</h4><ul>';
                     sources.forEach(source => {
-                        formattedAnswer += `<li>${source}</li>`;
+                        const sourceText = source.fileName || source;
+                        formattedAnswer += `<li>${sourceText}</li>`;
                     });
                     formattedAnswer += '</ul>';
                 }
