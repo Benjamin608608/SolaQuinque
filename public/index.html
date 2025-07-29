@@ -438,6 +438,9 @@
             border-radius: 15px;
             padding: 1.5rem;
             box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
+            margin-top: 2rem;
+            position: relative;
+            z-index: 10;
         }
 
         .search-form {
@@ -1323,6 +1326,20 @@
                     exampleQuestions.style.display = 'none';
                 }
 
+                // 立即顯示用戶對話泡泡
+                const userMessage = document.createElement('div');
+                userMessage.className = 'message user';
+                userMessage.innerHTML = `
+                    <div class="message-content">
+                        ${question}
+                    </div>
+                `;
+                this.chatMessages.appendChild(userMessage);
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+
+                // 清空輸入欄位
+                this.questionInput.value = '';
+
                 this.showLoading();
                 this.startLoadingAnimation();
 
@@ -1386,16 +1403,6 @@
                     loadingMessages[loadingMessages.length - 1].remove();
                 }
                 
-                // 添加用戶問題
-                const userMessage = document.createElement('div');
-                userMessage.className = 'message user';
-                userMessage.innerHTML = `
-                    <div class="message-content">
-                        ${question}
-                    </div>
-                `;
-                this.chatMessages.appendChild(userMessage);
-                
                 // 添加助手回答
                 const assistantMessage = document.createElement('div');
                 assistantMessage.className = 'message assistant';
@@ -1410,7 +1417,7 @@
                 // 滾動到底部
                 this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
                 
-                console.log('對話消息已添加');
+                console.log('助手回答已添加');
             }
 
             formatAnswer(answer, sources) {
