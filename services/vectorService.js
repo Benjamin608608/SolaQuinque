@@ -105,7 +105,7 @@ class VectorService {
             const PROGRESS_INTERVAL = 10;   // 每 10 個文件顯示進度
             
             // Railway 快速下載模式 - 只下載不處理文本
-            const RAILWAY_DOWNLOAD_ONLY = 200;  // Railway 環境快速下載 200 個文件但不處理
+            const RAILWAY_DOWNLOAD_ONLY = 50;   // Railway 環境快速下載 50 個文件但不處理（避免超時）
             
             // 檢測是否為初始建立索引階段
             const isInitialBuild = process.env.NODE_ENV === 'production' && !process.env.SKIP_INITIAL_LIMIT;
