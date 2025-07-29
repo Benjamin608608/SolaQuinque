@@ -136,14 +136,10 @@ class VectorService {
         this.faissIndex = new IndexFlatL2(this.embeddings[0].length);
         
         if (this.embeddings.length > 0) {
-            // 將嵌入向量展平成一個大的 Float32Array
-            const dim = this.embeddings[0].length;
-            const embeddingsArray = new Float32Array(this.embeddings.length * dim);
+            // 逐個添加向量到 FAISS 索引
             for (let i = 0; i < this.embeddings.length; i++) {
-                embeddingsArray.set(this.embeddings[i], i * dim);
+                this.faissIndex.add(this.embeddings[i]);
             }
-            // 批量加入所有向量
-            this.faissIndex.add(embeddingsArray);
             console.log('FAISS 索引建立完成');
         } else {
             throw new Error('沒有可用的嵌入向量來建立索引');

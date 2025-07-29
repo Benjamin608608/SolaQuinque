@@ -426,7 +426,9 @@ async function processSearchRequest(question, user) {
                 model: "gpt-4o-mini",
                 tools: [{"type": "file_search"}],
                 tool_resources: {
-                    vector_store_ids: [process.env.VECTOR_STORE_ID]
+                    file_search: {
+                        vector_store_ids: [process.env.VECTOR_STORE_ID]
+                    }
                 }
             });
             console.log('✅ 新 Assistant 創建成功');
