@@ -20,31 +20,99 @@ class VectorService {
         console.log(`📥 正在從 Google Drive 下載檔案: ${fileId}`);
         
         try {
-            // 使用 Google Drive 的直接下載連結
-            const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+            // 首先檢查文件是否存在和可以下載
+            const checkUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,size,mimeType`;
+            const checkResponse = await fetch(checkUrl);
+            
+            if (!checkResponse.ok) {
+                throw new Error(`文件檢查失敗: ${checkResponse.status} ${checkResponse.statusText}`);
+            }
+            
+            const fileMetadata = await checkResponse.json();
+            console.log(`📄 檔案資訊: ${fileMetadata.name} (${(fileMetadata.size / 1024 / 1024).toFixed(2)} MB)`);
+            
+            // 使用 Google Drive API 的正確下載 URL
+            const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
             
             const response = await fetch(downloadUrl);
             if (!response.ok) {
-                throw new Error(`下載失敗: ${response.status} ${response.statusText}`);
+                // 如果是 403 錯誤，嘗試使用公開分享連結
+                if (response.status === 403) {
+                    console.log('📁 嘗試使用公開分享連結下載...');
+                    const publicUrl = `https://drive.usercontent.google.com/download?id=${fileId}&export=download`;
+                    const publicResponse = await fetch(publicUrl);
+                    
+                    if (!publicResponse.ok) {
+                        throw new Error(`公開下載失敗: ${publicResponse.status} ${publicResponse.statusText}`);
+                    }
+                    
+                    return this.processDownloadResponse(publicResponse, outputPath);
+                } else {
+                    throw new Error(`下載失敗: ${response.status} ${response.statusText}`);
+                }
             }
             
-            // 確保輸出目錄存在
-            const outputDir = path.dirname(outputPath);
-            try {
-                await fs.mkdir(outputDir, { recursive: true });
-            } catch (error) {
-                // 目錄可能已存在
-            }
-            
-            // 將檔案寫入本地
-            const buffer = await response.buffer();
-            await fs.writeFile(outputPath, buffer);
-            
-            console.log(`✅ 檔案下載完成: ${outputPath} (${(buffer.length / 1024 / 1024).toFixed(2)} MB)`);
-            return outputPath;
+            return this.processDownloadResponse(response, outputPath);
             
         } catch (error) {
             console.error('❌ Google Drive 下載失敗:', error.message);
+            throw error;
+        }
+    }
+    
+    // 處理下載響應
+    async processDownloadResponse(response, outputPath) {
+        // 確保輸出目錄存在
+        const outputDir = path.dirname(outputPath);
+        try {
+            await fs.mkdir(outputDir, { recursive: true });
+        } catch (error) {
+            // 目錄可能已存在
+        }
+        
+        // 獲取文件大小
+        const contentLength = response.headers.get('content-length');
+        const totalSize = contentLength ? parseInt(contentLength) : 0;
+        
+        console.log(`📦 開始下載，預計大小: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+        
+        // 使用 streams 處理大文件
+        const fileStream = require('fs').createWriteStream(outputPath);
+        let downloadedSize = 0;
+        
+        // 監聽下載進度
+        const reader = response.body.getReader();
+        
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) break;
+                
+                fileStream.write(value);
+                downloadedSize += value.length;
+                
+                if (totalSize > 0) {
+                    const progress = ((downloadedSize / totalSize) * 100).toFixed(1);
+                    if (downloadedSize % (1024 * 1024 * 5) === 0) { // 每 5MB 顯示一次進度
+                        console.log(`📊 下載進度: ${progress}% (${(downloadedSize / 1024 / 1024).toFixed(2)} MB)`);
+                    }
+                }
+            }
+            
+            fileStream.end();
+            
+            // 等待文件寫入完成
+            await new Promise((resolve, reject) => {
+                fileStream.on('finish', resolve);
+                fileStream.on('error', reject);
+            });
+            
+            console.log(`✅ 檔案下載完成: ${outputPath} (${(downloadedSize / 1024 / 1024).toFixed(2)} MB)`);
+            return outputPath;
+            
+        } catch (error) {
+            fileStream.destroy();
             throw error;
         }
     }

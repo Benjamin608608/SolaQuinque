@@ -445,13 +445,13 @@ async function processSearchRequest(question, user) {
         });
 
         // 創建 Run
-        const run = await openai.beta.assistants.runs.create(thread.id, {
+        const run = await openai.beta.threads.runs.create(thread.id, {
             assistant_id: assistant.id
         });
         console.log('✅ Run 創建成功，等待處理...');
 
         // 等待 Run 完成
-        let runStatus = await openai.beta.assistants.runs.retrieve(thread.id, run.id);
+        let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
         let attempts = 0;
         const maxAttempts = 30; // 最多等待 30 次
 
@@ -461,7 +461,7 @@ async function processSearchRequest(question, user) {
             }
             
             await new Promise(resolve => setTimeout(resolve, 2000)); // 等待 2 秒
-            runStatus = await openai.beta.assistants.runs.retrieve(thread.id, run.id);
+            runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
             attempts++;
             
             console.log(`⏳ 處理中... 嘗試次數: ${attempts}, 狀態: ${runStatus.status}`);
