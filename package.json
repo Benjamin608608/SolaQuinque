@@ -13,6 +13,7 @@
     "debug-redirect": "node scripts/debug-redirect-uri.js",
     "process-data": "node scripts/process-theology-data.js",
     "build-index": "node scripts/process-theology-data.js",
+    "railway-build-index": "node scripts/railway-build-index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

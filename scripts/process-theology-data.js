@@ -1,84 +1,93 @@
-const fs = require('fs').promises;
+const fs = require('fs');
 const path = require('path');
 const VectorService = require('../services/vectorService');
 
 async function processTheologyData() {
     console.log('🚀 開始處理神學資料並建立向量索引...');
     
-    const vectorService = new VectorService();
-    
     try {
-        // 檢查是否有本地資料檔案
-        const possibleDataFiles = [
-            path.join(__dirname, '../data/theology_texts.txt'),
-            path.join(__dirname, '../data/theology_data.json'),
-            path.join(__dirname, '../data/ccel_catalog.json'),
-            path.join(__dirname, '../public/ccel_catalog.json')
-        ];
+        // 檢查是否在 Railway 環境
+        const isRailway = process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production';
+        console.log(`📍 環境: ${isRailway ? 'Railway 生產環境' : '本地開發環境'}`);
         
-        let dataFound = false;
-        for (const filePath of possibleDataFiles) {
-            try {
-                const stats = await fs.stat(filePath);
-                console.log(`📁 找到資料檔案: ${filePath} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
-                dataFound = true;
-            } catch (error) {
-                console.log(`❌ 檔案不存在: ${filePath}`);
-            }
-        }
-        
-        if (!dataFound) {
-            console.log('⚠️  未找到本地資料檔案');
-            console.log('💡 請將您的神學資料檔案放在以下位置之一：');
-            console.log('   - data/theology_texts.txt (純文本格式)');
-            console.log('   - data/theology_data.json (JSON 格式)');
-            console.log('   - data/ccel_catalog.json (CCEL 目錄格式)');
-            console.log('');
-            console.log('📝 或者您可以直接提供資料檔案路徑：');
-            console.log('   node scripts/process-theology-data.js <資料檔案路徑>');
+        // 檢查 OpenAI API Key
+        if (!process.env.OPENAI_API_KEY) {
+            console.log('❌ 錯誤: 缺少 OPENAI_API_KEY 環境變數');
+            console.log('💡 請確保在 Railway 環境變數中設定了 OPENAI_API_KEY');
             return;
         }
         
-        // 初始化向量服務
-        console.log('🔧 初始化向量服務...');
+        const vectorService = new VectorService();
+        
+        // 嘗試初始化向量服務
+        console.log('🔄 正在初始化向量服務...');
         await vectorService.initialize();
         
-        console.log('✅ 向量索引建立完成！');
-        console.log('');
-        console.log('📊 索引統計：');
+        // 檢查初始化狀態
         const status = vectorService.getStatus();
-        console.log(`   - 文本片段數量: ${status.textCount}`);
-        console.log(`   - 索引狀態: ${status.hasIndex ? '已建立' : '未建立'}`);
-        console.log(`   - 服務狀態: ${status.isInitialized ? '已初始化' : '未初始化'}`);
-        console.log('');
-        console.log('🎉 您的神學知識庫現在可以使用快速的 FAISS 向量搜索了！');
+        console.log('📊 向量服務狀態:', status);
+        
+        if (status.initialized) {
+            console.log('✅ FAISS 向量索引已成功建立！');
+            console.log(`📈 已處理 ${status.textCount} 個文本片段`);
+            console.log('🚀 現在可以使用快速向量搜索了！');
+        } else {
+            console.log('❌ 向量服務初始化失敗');
+        }
         
     } catch (error) {
-        console.error('❌ 處理資料時發生錯誤:', error);
-        console.log('');
-        console.log('💡 如果您有 2GB 的神學資料，請：');
-        console.log('   1. 將資料檔案放在 data/ 目錄下');
-        console.log('   2. 支援的格式：.txt, .json');
-        console.log('   3. 重新運行此腳本');
+        console.error('❌ 處理過程中發生錯誤:', error.message);
+        
+        if (error.message.includes('ENOENT')) {
+            console.log('\n💡 解決方案:');
+            console.log('1. 將您的神學資料檔案上傳到 Railway');
+            console.log('2. 或者使用以下命令在本地處理資料:');
+            console.log('   npm run process-data -- --file=your_data_file.txt');
+        }
     }
 }
 
-// 如果提供了檔案路徑參數
-if (process.argv.length > 2) {
-    const customFilePath = process.argv[2];
-    console.log(`📁 使用自定義資料檔案: ${customFilePath}`);
+// 處理命令列參數
+const args = process.argv.slice(2);
+if (args.includes('--help') || args.includes('-h')) {
+    console.log(`
+📚 神學資料處理工具
+
+用法:
+  npm run process-data                    # 處理預設資料檔案
+  npm run process-data -- --file=path    # 處理指定檔案
+
+支援的檔案格式:
+  - .txt 文字檔案
+  - .json JSON 檔案
+  - ccel_catalog.json (CCEL 目錄)
+
+檔案位置:
+  - data/theology_texts.txt
+  - data/theology_data.json
+  - data/ccel_catalog.json
+  - public/ccel_catalog.json
+
+注意: 在 Railway 環境中，請確保已上傳資料檔案到正確位置。
+    `);
+    process.exit(0);
+}
+
+// 檢查是否有自訂檔案路徑
+const fileArg = args.find(arg => arg.startsWith('--file='));
+if (fileArg) {
+    const filePath = fileArg.split('=')[1];
+    console.log(`📁 使用自訂檔案: ${filePath}`);
     
     // 複製檔案到 data 目錄
-    const targetPath = path.join(__dirname, '../data/theology_texts.txt');
+    const dataDir = path.join(__dirname, '../data');
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
     
-    fs.copyFile(customFilePath, targetPath)
-        .then(() => {
-            console.log(`✅ 檔案已複製到: ${targetPath}`);
-            processTheologyData();
-        })
-        .catch(error => {
-            console.error('❌ 複製檔案失敗:', error);
-        });
-} else {
-    processTheologyData();
-} 
+    const targetPath = path.join(dataDir, 'theology_texts.txt');
+    fs.copyFileSync(filePath, targetPath);
+    console.log(`✅ 已複製檔案到: ${targetPath}`);
+}
+
+processTheologyData(); 
