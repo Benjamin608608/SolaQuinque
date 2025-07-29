@@ -19,6 +19,15 @@ class VectorService {
         try {
             console.log('正在初始化向量服務...');
             
+            // 確保 data 目錄存在
+            const dataDir = path.join(__dirname, '../data');
+            try {
+                await fs.mkdir(dataDir, { recursive: true });
+                console.log('✅ data 目錄已確保存在');
+            } catch (error) {
+                console.log('data 目錄已存在或無法建立');
+            }
+            
             // 檢查是否有預先建立的向量索引
             const indexPath = path.join(__dirname, '../data/faiss_index.bin');
             const textsPath = path.join(__dirname, '../data/texts.json');
@@ -31,18 +40,18 @@ class VectorService {
                 this.faissIndex = new (require('faiss-node').Index)(indexData);
                 this.texts = JSON.parse(textsData);
                 
-                console.log(`成功載入現有索引，包含 ${this.texts.length} 個文本片段`);
+                console.log(`✅ 成功載入現有索引，包含 ${this.texts.length} 個文本片段`);
                 this.isInitialized = true;
                 return;
             } catch (error) {
-                console.log('未找到現有索引，開始建立新的向量索引...');
+                console.log('📝 未找到現有索引，開始建立新的向量索引...');
             }
 
             // 建立新的向量索引
             await this.buildIndex();
             
         } catch (error) {
-            console.error('初始化向量服務失敗:', error);
+            console.error('❌ 初始化向量服務失敗:', error);
             throw error;
         }
     }
@@ -91,11 +100,19 @@ class VectorService {
         const { IndexFlatL2 } = require('faiss-node');
         this.faissIndex = new IndexFlatL2(this.embeddings[0].length);
         
-        // 將嵌入向量添加到索引
-        const embeddingsArray = new Float32Array(this.embeddings.flat());
-        this.faissIndex.add(embeddingsArray);
-        
-        console.log('FAISS 索引建立完成');
+        if (this.embeddings.length > 0) {
+            // 將嵌入向量展平成一個大的 Float32Array
+            const dim = this.embeddings[0].length;
+            const embeddingsArray = new Float32Array(this.embeddings.length * dim);
+            for (let i = 0; i < this.embeddings.length; i++) {
+                embeddingsArray.set(this.embeddings[i], i * dim);
+            }
+            // 批量加入所有向量
+            this.faissIndex.add(embeddingsArray, this.embeddings.length);
+            console.log('FAISS 索引建立完成');
+        } else {
+            throw new Error('沒有可用的嵌入向量來建立索引');
+        }
         
         // 保存索引和文本
         await this.saveIndex();
@@ -115,7 +132,7 @@ class VectorService {
         
         for (const filePath of possibleFiles) {
             try {
-                const stats = fs.statSync(filePath);
+                const stats = await fs.stat(filePath);
                 console.log(`✅ 找到檔案: ${filePath} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
                 
                 if (filePath.endsWith('.zip')) {
@@ -143,21 +160,23 @@ class VectorService {
             const extractPath = path.join(__dirname, '../data/extracted');
             
             // 確保解壓縮目錄存在
-            if (!fs.existsSync(extractPath)) {
-                fs.mkdirSync(extractPath, { recursive: true });
+            try {
+                await fs.mkdir(extractPath, { recursive: true });
+            } catch (error) {
+                // 目錄可能已存在
             }
             
             await extract(zipPath, { dir: extractPath });
             console.log('✅ 壓縮檔案解壓縮完成');
             
             // 讀取所有 .txt 檔案
-            const txtFiles = this.findTxtFiles(extractPath);
+            const txtFiles = await this.findTxtFiles(extractPath);
             console.log(`📚 找到 ${txtFiles.length} 個文本檔案`);
             
             let allTexts = [];
             for (const txtFile of txtFiles) {
                 try {
-                    const content = fs.readFileSync(txtFile, 'utf8');
+                    const content = await fs.readFile(txtFile, 'utf8');
                     const fileName = path.basename(txtFile, '.txt');
                     allTexts.push({
                         text: content,
@@ -178,30 +197,30 @@ class VectorService {
 
     async loadFromJSON(jsonPath) {
         console.log('📄 正在載入 JSON 資料...');
-        const data = fs.readFileSync(jsonPath, 'utf8');
+        const data = await fs.readFile(jsonPath, 'utf8');
         const jsonData = JSON.parse(data);
         return this.extractTextsFromJSON(jsonData);
     }
 
     async loadFromText(textPath) {
         console.log('📄 正在載入文本資料...');
-        const data = fs.readFileSync(textPath, 'utf8');
+        const data = await fs.readFile(textPath, 'utf8');
         return this.splitTextIntoChunks(data);
     }
 
-    findTxtFiles(dir) {
+    async findTxtFiles(dir) {
         const txtFiles = [];
         
-        function scanDirectory(currentDir) {
+        async function scanDirectory(currentDir) {
             try {
-                const items = fs.readdirSync(currentDir);
+                const items = await fs.readdir(currentDir);
                 
                 for (const item of items) {
                     const fullPath = path.join(currentDir, item);
-                    const stat = fs.statSync(fullPath);
+                    const stat = await fs.stat(fullPath);
                     
                     if (stat.isDirectory()) {
-                        scanDirectory(fullPath);
+                        await scanDirectory(fullPath);
                     } else if (item.toLowerCase().endsWith('.txt')) {
                         txtFiles.push(fullPath);
                     }
@@ -211,7 +230,7 @@ class VectorService {
             }
         }
         
-        scanDirectory(dir);
+        await scanDirectory(dir);
         return txtFiles;
     }
 

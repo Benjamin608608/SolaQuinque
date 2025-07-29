@@ -46,7 +46,7 @@ jspm_packages/
 # dotenv environment variables file
 .env
 
-# Large data files
-data/*.zip
-data/extracted/
-*.zip
+# Large data files (ignored for local development, but needed for Railway)
+# data/*.zip
+# data/extracted/
+# *.zip

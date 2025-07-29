@@ -668,11 +668,17 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.log(`   請設置 GOOGLE_CLIENT_ID 和 GOOGLE_CLIENT_SECRET 環境變數`);
   }
   
-  // 初始化向量服務
-  try {
-    await initializeVectorService();
-  } catch (error) {
-    console.error('❌ 向量服務初始化失敗:', error);
-    console.log('💡 系統將使用傳統的 OpenAI Assistant 模式');
+  // 在 Railway 環境中自動初始化向量服務
+  if (process.env.NODE_ENV === 'production') {
+    console.log('🔄 Railway 生產環境 - 正在初始化 FAISS 向量服務...');
+    try {
+      await initializeVectorService();
+      console.log('✅ FAISS 向量服務初始化完成，系統已準備就緒！');
+    } catch (error) {
+      console.error('❌ FAISS 向量服務初始化失敗:', error);
+      console.log('💡 系統將使用傳統的 OpenAI Assistant 模式');
+    }
+  } else {
+    console.log('💡 開發環境 - 向量服務將在需要時初始化');
   }
 });
