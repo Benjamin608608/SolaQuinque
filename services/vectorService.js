@@ -1,3 +1,7 @@
+// 神學知識庫向量服務 - Google Drive API 集成版本
+// 更新時間: 2025-07-29 14:00 UTC
+// 支持使用 GOOGLE_DRIVE_API_KEY 環境變數訪問 1300+ 文件
+
 const OpenAI = require('openai');
 const fs = require('fs').promises;
 const path = require('path');
