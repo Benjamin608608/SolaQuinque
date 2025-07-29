@@ -7,12 +7,30 @@ const passport = require('passport');
 require('dotenv').config();
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
+const VectorService = require('./services/vectorService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 讓 express-session 支援 proxy (如 Railway/Heroku/Render)
 app.set('trust proxy', 1);
+
+// 初始化向量服務
+const vectorService = new VectorService();
+let vectorServiceInitialized = false;
+
+// 初始化向量服務
+async function initializeVectorService() {
+  try {
+    console.log('🚀 正在初始化 FAISS 向量服務...');
+    await vectorService.initialize();
+    vectorServiceInitialized = true;
+    console.log('✅ FAISS 向量服務初始化完成');
+  } catch (error) {
+    console.error('❌ FAISS 向量服務初始化失敗:', error);
+    console.log('💡 將使用傳統的 OpenAI Assistant 模式');
+  }
+}
 
 // 初始化 OpenAI 客戶端
 const openai = new OpenAI({
@@ -340,7 +358,75 @@ function createSourceList(sourceMap) {
   }));
 }
 
-// 處理搜索請求的核心函數
+// 使用 FAISS 向量搜索的快速搜索函數
+async function processSearchRequestWithFAISS(question, user = null) {
+  console.log(`🚀 使用 FAISS 向量搜索處理請求: ${question}${user ? ` (用戶: ${user.email})` : ''}`);
+  
+  try {
+    // 使用 FAISS 進行向量搜索
+    const searchResults = await vectorService.search(question, 5);
+    console.log(`✅ 找到 ${searchResults.length} 個相關文本片段`);
+    
+    // 構建上下文
+    const context = searchResults.map((result, index) => 
+      `[${index + 1}] ${result.text}`
+    ).join('\n\n');
+    
+    // 使用 GPT 生成回答
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
+
+重要規則：
+1. 只使用檢索到的資料來回答問題
+2. 如果資料庫中沒有相關資訊，請明確說明「很抱歉，我在資料庫中找不到相關資訊來回答這個問題」
+3. 回答要準確、簡潔且有幫助
+4. 使用繁體中文回答
+5. 專注於提供基於資料庫內容的準確資訊
+6. 在回答中引用相關的資料片段，格式為 [1], [2], [3] 等
+
+格式要求：
+- 直接回答問題內容
+- 引用相關的資料片段（使用 [1], [2], [3] 格式）
+- 如果沒有相關資料，請明確說明`
+        },
+        {
+          role: 'user',
+          content: `問題：${question}\n\n相關資料：\n${context}`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000
+    });
+    
+    const botAnswer = completion.choices[0].message.content;
+    
+    // 構建來源列表
+    const sources = searchResults.map((result, index) => ({
+      fileName: `神學知識庫片段 ${index + 1}`,
+      content: result.text.substring(0, 200) + '...',
+      score: result.score
+    }));
+    
+    return {
+      question: question,
+      answer: botAnswer,
+      sources: sources,
+      timestamp: new Date().toISOString(),
+      user: user ? { email: user.email, name: user.name } : null,
+      method: 'FAISS'
+    };
+    
+  } catch (error) {
+    console.error('FAISS 搜索失敗:', error);
+    throw error;
+  }
+}
+
+// 傳統的 OpenAI Assistant 搜索函數（作為備用）
 async function processSearchRequest(question, user = null) {
   console.log(`處理搜索請求: ${question}${user ? ` (用戶: ${user.email})` : ''}`);
   console.log('創建 OpenAI Assistant...');
@@ -441,7 +527,8 @@ async function processSearchRequest(question, user = null) {
     answer: botAnswer,
     sources: sources,
     timestamp: new Date().toISOString(),
-    user: user ? { email: user.email, name: user.name } : null
+    user: user ? { email: user.email, name: user.name } : null,
+    method: 'Assistant'
   };
 }
 
@@ -460,9 +547,23 @@ app.post('/api/search', ensureAuthenticated, async (req, res) => {
     const trimmedQuestion = question.trim();
     console.log(`收到搜索請求: ${trimmedQuestion} (用戶: ${req.user.email})`);
 
-    // 處理搜索請求
-    console.log('開始處理搜索請求...');
-    const result = await processSearchRequest(trimmedQuestion, req.user);
+    // 優先使用 FAISS 向量搜索，如果失敗則回退到傳統方法
+    let result;
+    if (vectorServiceInitialized) {
+      try {
+        console.log('🚀 使用 FAISS 向量搜索...');
+        result = await processSearchRequestWithFAISS(trimmedQuestion, req.user);
+        console.log('✅ FAISS 搜索完成');
+      } catch (faissError) {
+        console.error('FAISS 搜索失敗，回退到傳統方法:', faissError);
+        console.log('🔄 使用傳統 OpenAI Assistant 方法...');
+        result = await processSearchRequest(trimmedQuestion, req.user);
+      }
+    } else {
+      console.log('🔄 FAISS 未初始化，使用傳統 OpenAI Assistant 方法...');
+      result = await processSearchRequest(trimmedQuestion, req.user);
+    }
+
     console.log('搜索處理完成，返回結果:', JSON.stringify(result, null, 2));
 
     res.json({
@@ -576,7 +677,7 @@ process.on('uncaughtException', (error) => {
 });
 
 // 啟動服務器
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 神學知識庫服務器已啟動`);
   console.log(`📍 端口: ${PORT}`);
   console.log(`🔍 API 健康檢查: /api/health`);
@@ -587,5 +688,13 @@ app.listen(PORT, '0.0.0.0', () => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     console.log(`⚠️  注意: Google OAuth 未配置，登入功能將不可用`);
     console.log(`   請設置 GOOGLE_CLIENT_ID 和 GOOGLE_CLIENT_SECRET 環境變數`);
+  }
+  
+  // 初始化向量服務
+  try {
+    await initializeVectorService();
+  } catch (error) {
+    console.error('❌ 向量服務初始化失敗:', error);
+    console.log('💡 系統將使用傳統的 OpenAI Assistant 模式');
   }
 });
