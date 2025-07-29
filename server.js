@@ -343,6 +343,7 @@ function createSourceList(sourceMap) {
 // 處理搜索請求的核心函數
 async function processSearchRequest(question, user = null) {
   console.log(`處理搜索請求: ${question}${user ? ` (用戶: ${user.email})` : ''}`);
+  console.log('創建 OpenAI Assistant...');
   
   const assistant = await openai.beta.assistants.create({
     model: 'gpt-4o-mini',
@@ -379,9 +380,11 @@ async function processSearchRequest(question, user = null) {
   const run = await openai.beta.threads.runs.create(thread.id, {
     assistant_id: assistant.id
   });
+  console.log('Assistant run 已創建，等待完成...');
 
   // 等待完成
   let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+  console.log('初始 run 狀態:', runStatus.status);
   let attempts = 0;
   const maxAttempts = 60;
 
@@ -389,6 +392,9 @@ async function processSearchRequest(question, user = null) {
     await new Promise(resolve => setTimeout(resolve, 1000));
     runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
     attempts++;
+    if (attempts % 10 === 0) {
+      console.log(`等待中... 嘗試次數: ${attempts}, 狀態: ${runStatus.status}`);
+    }
   }
 
   if (runStatus.status === 'failed') {
@@ -455,7 +461,9 @@ app.post('/api/search', ensureAuthenticated, async (req, res) => {
     console.log(`收到搜索請求: ${trimmedQuestion} (用戶: ${req.user.email})`);
 
     // 處理搜索請求
+    console.log('開始處理搜索請求...');
     const result = await processSearchRequest(trimmedQuestion, req.user);
+    console.log('搜索處理完成，返回結果:', JSON.stringify(result, null, 2));
 
     res.json({
       success: true,
