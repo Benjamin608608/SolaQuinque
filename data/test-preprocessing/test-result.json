@@ -1,0 +1,56 @@
+{
+  "processedFiles": 4,
+  "totalChunks": 4,
+  "avgChunksPerFile": "1.0",
+  "chunks": [
+    {
+      "text": "_Incendium Amoris,_ translated as _The Fire of Love,_ was written by Richard Rolle. Rolle was an author, a hermit, and an English mystic who lived from 1300 to 1349. This work chronicles Rolle's experiences as a mystic. Here, he describes three specific kinds of experiences. The first is a physical feeling of warmth throughout his body. Secondly, his senses are bathed with sweetness. The last mystic experience is audibly hearing music that only heaven could produce while he recites various Psalms. Getting closer to God is a goal of mysticism, and these experiences are directly associated with the stages of that process.\n\nSource: Wikipedia | **Born:** January 1, 1290   \n---|---  \n**Died:** January 1, 1349   \n**Related topics:** …",
+      "source": "[Richard Rolle of Hampole (c. 1290-c. 1349)] Incendium Amoris.txt",
+      "chunkIndex": 0,
+      "metadata": {
+        "length": 738,
+        "wordCount": 117
+      }
+    },
+    {
+      "text": "_A Collection of Hymns for the Use of the People Called Methodists_ was edited by Rev. John Wesley. Over a thousand hymns are included in this hymnal. The original 1780 Preface and the 1876 Preface are included for information. Hymns are also designated to be sung in light of a particular topic. Hymn 67 is sung as a reflection on Heaven, while Hymn 80 is a warning of Hell. Fighting, Praying, working, suffering, and even backsliding are just some topics with an associated hymn. This book includes supplemental hymns added to the original version.\n\nSource: Wikipedia | **Born:** May 17, 1703   \n---|---  \n**Died:** March 2, 1791   \n**Related topics:** Early works, Biography, Methodism, England, History, …",
+      "source": "[John Wesley (1703-1791)] Collection of Hymns, for the Use of the People Called Methodists.txt",
+      "chunkIndex": 0,
+      "metadata": {
+        "length": 709,
+        "wordCount": 115
+      }
+    },
+    {
+      "text": "English translations of selected fathers of the church that are out of copyright but not found in the 39 volume collection of Ante-Nicene, Nicene and Post-Nicene Fathers",
+      "source": "[Roger Pearse] Selected Fathers of the Church.txt",
+      "chunkIndex": 0,
+      "metadata": {
+        "length": 169,
+        "wordCount": 27
+      }
+    },
+    {
+      "text": "Of Justification by Faith & Works is a dialogue between two opposing viewpoints on the doctrine of Justification. On one side, William Law develops the Wesleyan teaching of justification through faith alone. This character is referred to as a Methodist. The other character, reflecting Law's belief more closely, argues that Justification requires faith and work. This character is named Churchman. This book was published in 1760. Law was a teacher and an author.\n\n| **Born:** AD 1686   \n---|---  \n**Died:** April 9, 1761   \n**Related topics:** Early works, Christian life, Bohme, Jakob,--1575-1624, Christianity, Clergy, …",
+      "source": "[William Law (1686-1761)] Of Justification by Faith and Works.txt",
+      "chunkIndex": 0,
+      "metadata": {
+        "length": 624,
+        "wordCount": 93
+      }
+    }
+  ],
+  "summary": {
+    "totalChunks": 4,
+    "avgLength": 560,
+    "avgWordCount": 88,
+    "minLength": 169,
+    "maxLength": 738,
+    "fileStats": {
+      "[Richard Rolle of Hampole (c. 1290-c. 1349)] Incendium Amoris.txt": 1,
+      "[John Wesley (1703-1791)] Collection of Hymns, for the Use of the People Called Methodists.txt": 1,
+      "[Roger Pearse] Selected Fathers of the Church.txt": 1,
+      "[William Law (1686-1761)] Of Justification by Faith and Works.txt": 1
+    }
+  }
+}
