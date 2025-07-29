@@ -1047,6 +1047,21 @@
             formatAnswer(answer, sources) {
                 let formattedAnswer = answer;
                 
+                // 處理 Markdown 格式
+                formattedAnswer = formattedAnswer
+                    // 處理粗體 **text** -> <strong>text</strong>
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    // 處理斜體 *text* -> <em>text</em>
+                    .replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>')
+                    // 處理換行
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n/g, '<br>');
+                
+                // 包裝成段落
+                if (!formattedAnswer.startsWith('<p>')) {
+                    formattedAnswer = '<p>' + formattedAnswer + '</p>';
+                }
+                
                 if (sources && sources.length > 0) {
                     formattedAnswer += '<h4>📚 參考來源</h4><ul>';
                     sources.forEach(source => {
