@@ -413,28 +413,31 @@
             animation: fadeInUp 1s ease-out forwards;
         }
 
-        .search-panel {
-            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
-            border: 3px solid var(--border-gold);
-            border-radius: 15px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 
-                0 8px 25px rgba(139, 0, 0, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
-            position: relative;
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 300px);
+            max-width: 1000px;
+            margin: 0 auto;
         }
 
-        .search-panel::before {
-            content: '📖';
-            position: absolute;
-            top: -15px;
-            left: 20px;
-            background: var(--parchment);
-            padding: 0.5rem 1rem;
-            border: 2px solid var(--gold);
-            border-radius: 20px;
-            font-size: 1.2rem;
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
+            border: 2px solid var(--border-gold);
+            border-radius: 15px;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
+        }
+
+        .chat-input-area {
+            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
+            border: 2px solid var(--border-gold);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
         }
 
         .search-form {
@@ -454,25 +457,31 @@
             font-size: 1.1rem;
         }
 
-        .search-input {
-            width: 100%;
-            padding: 1.5rem;
+        .input-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 1rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 1rem 1.5rem;
             border: 2px solid var(--border-gold);
-            border-radius: 20px;
-            font-size: 1.1rem;
+            border-radius: 25px;
+            font-size: 1rem;
             font-family: 'Crimson Text', serif;
             background: linear-gradient(135deg, var(--parchment), #F8F4E8);
             color: var(--dark-brown);
             transition: all 0.3s ease;
-            resize: vertical;
-            min-height: 120px;
-            position: relative;
+            resize: none;
+            min-height: 50px;
+            max-height: 150px;
             box-shadow: 
                 0 4px 15px rgba(139, 0, 0, 0.1),
                 inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
-        .search-input:focus {
+        .chat-input:focus {
             outline: none;
             border-color: var(--gold);
             box-shadow: 
@@ -481,17 +490,27 @@
             background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
         }
 
-        /* 對話氣泡效果 */
-        .search-input::before {
-            content: '';
-            position: absolute;
-            top: -10px;
-            left: 30px;
-            width: 0;
-            height: 0;
-            border-left: 10px solid transparent;
-            border-right: 10px solid transparent;
-            border-bottom: 10px solid var(--border-gold);
+        .send-btn {
+            background: linear-gradient(135deg, var(--deep-red), #6B0000);
+            color: var(--parchment);
+            border: 2px solid var(--gold);
+            padding: 1rem;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
+        }
+
+        .send-btn:hover {
+            background: linear-gradient(135deg, #6B0000, var(--deep-red));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.4);
         }
 
         .search-btn {
@@ -726,6 +745,78 @@
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
+        }
+
+        .citation-tooltip.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 對話消息樣式 */
+        .message {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 80%;
+            padding: 1rem 1.5rem;
+            border-radius: 20px;
+            position: relative;
+            font-family: 'Crimson Text', serif;
+            line-height: 1.6;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, var(--deep-red), #6B0000);
+            color: var(--parchment);
+            border: 2px solid var(--gold);
+            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
+        }
+
+        .message.assistant .message-content {
+            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
+            color: var(--dark-brown);
+            border: 2px solid var(--border-gold);
+            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
+        }
+
+        /* 引用標註工具提示改進 */
+        .citation-tooltip {
+            position: absolute;
+            background: linear-gradient(135deg, var(--deep-red), #6B0000);
+            color: var(--parchment);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 2px solid var(--gold);
+            box-shadow: 0 8px 25px rgba(139, 0, 0, 0.3);
+            font-size: 0.9rem;
+            max-width: 300px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .citation-tooltip::before {
+            content: '';
+            position: absolute;
+            left: var(--arrow-left, 20px);
+            top: 100%;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid var(--deep-red);
         }
 
         .citation-tooltip.show {
@@ -1076,54 +1167,33 @@
 
         <!-- 主要內容區域 -->
         <div class="main-content" id="mainContent">
-            
-            <div class="search-panel">
-                <div class="example-questions">
-                    <div class="example-item left" data-question="什麼是三位一體？">什麼是三位一體？</div>
-                    <div class="example-item right" data-question="什麼是原罪？">什麼是原罪？</div>
-                </div>
-                <form class="search-form" id="searchForm">
-                    <div class="form-group">
-                        <textarea 
-                            id="question" 
-                            class="search-input" 
-                            placeholder="請輸入您的問題..."
-                            required
-                        ></textarea>
-                    </div>
-                    <button type="submit" class="search-btn" id="searchBtn">
-                        <span id="searchBtnIcon">🔍</span>
-                        <span id="searchBtnText">搜尋答案</span>
-                    </button>
-                </form>
-            </div>
-
-            <div class="results-panel">
-                <div class="results-container" id="resultsContainer">
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
                     <div class="empty-state" id="emptyState">
                         <div class="icon">📖</div>
                         <h3>歡迎使用神學知識庫</h3>
-                        <p>請在左側輸入您的問題，或點擊範例問題開始探索</p>
+                        <p>請在下方輸入您的問題，或點擊範例問題開始探索</p>
                     </div>
+                </div>
 
-                    <div class="loading-state" id="loadingState">
-                        <div class="loading-spinner"></div>
-                        <h3 id="loadingText">🤔 讓我查找相關資料...</h3>
+                <div class="chat-input-area">
+                    <div class="example-questions">
+                        <div class="example-item left" data-question="什麼是三位一體？">什麼是三位一體？</div>
+                        <div class="example-item right" data-question="什麼是原罪？">什麼是原罪？</div>
                     </div>
-
-                    <div class="result-content" id="resultContent">
-                        <div class="result-header">
-                            <h3>📋 查詢結果</h3>
-                            <p id="questionText"></p>
+                    <form class="chat-input-form" id="searchForm">
+                        <div class="input-container">
+                            <textarea 
+                                id="question" 
+                                class="chat-input" 
+                                placeholder="詢問任何問題..."
+                                required
+                            ></textarea>
+                            <button type="submit" class="send-btn" id="searchBtn">
+                                <span id="searchBtnIcon">📤</span>
+                            </button>
                         </div>
-                        <div class="result-body" id="resultBody">
-                        </div>
-                    </div>
-
-                    <div class="error-message" id="errorMessage">
-                        <strong>❌ 發生錯誤</strong>
-                        <p id="errorText"></p>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -1164,17 +1234,9 @@
                 this.form = document.getElementById('searchForm');
                 this.questionInput = document.getElementById('question');
                 this.searchBtn = document.getElementById('searchBtn');
-                this.resultsContainer = document.getElementById('resultsContainer');
                 this.emptyState = document.getElementById('emptyState');
-                this.loadingState = document.getElementById('loadingState');
-                this.resultContent = document.getElementById('resultContent');
-                this.errorMessage = document.getElementById('errorMessage');
-                this.questionText = document.getElementById('questionText');
-                this.resultBody = document.getElementById('resultBody');
-                this.errorText = document.getElementById('errorText');
+                this.chatMessages = document.getElementById('chatMessages');
                 this.searchBtnIcon = document.getElementById('searchBtnIcon');
-                this.searchBtnText = document.getElementById('searchBtnText');
-                this.loadingText = document.getElementById('loadingText');
             }
 
             bindEvents() {
@@ -1288,9 +1350,18 @@
 
             showLoading() {
                 this.emptyState.style.display = 'none';
-                this.loadingState.style.display = 'block';
-                this.resultContent.style.display = 'none';
-                this.errorMessage.style.display = 'none';
+                
+                // 添加載入消息
+                const loadingMessage = document.createElement('div');
+                loadingMessage.className = 'message assistant';
+                loadingMessage.innerHTML = `
+                    <div class="message-content">
+                        <div class="loading-spinner"></div>
+                        <p>🤔 讓我查找相關資料...</p>
+                    </div>
+                `;
+                this.chatMessages.appendChild(loadingMessage);
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
             }
 
             startLoadingAnimation() {
@@ -1312,20 +1383,34 @@
                 
                 console.log('顯示結果:', { question, answer, sources });
                 
-                this.questionText.textContent = question;
+                // 隱藏空狀態
+                this.emptyState.style.display = 'none';
+                
+                // 添加用戶問題
+                const userMessage = document.createElement('div');
+                userMessage.className = 'message user';
+                userMessage.innerHTML = `
+                    <div class="message-content">
+                        ${question}
+                    </div>
+                `;
+                this.chatMessages.appendChild(userMessage);
+                
+                // 添加助手回答
+                const assistantMessage = document.createElement('div');
+                assistantMessage.className = 'message assistant';
                 const formattedAnswer = this.formatAnswer(answer, sources);
-                console.log('格式化後的答案:', formattedAnswer);
+                assistantMessage.innerHTML = `
+                    <div class="message-content">
+                        ${formattedAnswer}
+                    </div>
+                `;
+                this.chatMessages.appendChild(assistantMessage);
                 
-                this.resultBody.innerHTML = formattedAnswer;
+                // 滾動到底部
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
                 
-                this.loadingState.style.display = 'none';
-                this.resultContent.style.display = 'block';
-                this.resultContent.style.opacity = '1';
-                this.resultContent.style.visibility = 'visible';
-                this.resultContent.classList.add('fade-in');
-                
-                console.log('結果內容元素:', this.resultContent);
-                console.log('結果內容顯示狀態:', this.resultContent.style.display);
+                console.log('對話消息已添加');
             }
 
             formatAnswer(answer, sources) {
@@ -1430,19 +1515,32 @@
                     // 添加新的工具提示
                     document.body.appendChild(tooltip);
                     
-                    // 定位工具提示
+                    // 定位工具提示並添加對話框尖端
                     const rect = e.target.getBoundingClientRect();
-                    tooltip.style.left = rect.left + 'px';
-                    tooltip.style.top = (rect.bottom + 10) + 'px';
+                    const tooltipRect = tooltip.getBoundingClientRect();
+                    
+                    // 計算位置，讓工具提示靠近引用標註
+                    tooltip.style.left = (rect.left - 150) + 'px';
+                    tooltip.style.top = (rect.top - 60) + 'px';
+                    
+                    // 添加對話框尖端
+                    tooltip.style.setProperty('--arrow-left', (rect.left - tooltip.offsetLeft + 20) + 'px');
                     
                     // 顯示工具提示
                     setTimeout(() => tooltip.classList.add('show'), 10);
                     
-                    // 3秒後自動隱藏
+                    // 點擊其他地方時隱藏
+                    const hideTooltip = (event) => {
+                        if (!tooltip.contains(event.target) && !e.target.contains(event.target)) {
+                            tooltip.classList.remove('show');
+                            setTimeout(() => tooltip.remove(), 300);
+                            document.removeEventListener('click', hideTooltip);
+                        }
+                    };
+                    
                     setTimeout(() => {
-                        tooltip.classList.remove('show');
-                        setTimeout(() => tooltip.remove(), 300);
-                    }, 3000);
+                        document.addEventListener('click', hideTooltip);
+                    }, 100);
                 }
             });
         });
