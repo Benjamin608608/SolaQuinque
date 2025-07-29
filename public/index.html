@@ -1665,7 +1665,8 @@
 
         function renderCatalog(data) {
             if (!data.length) {
-                catalogList.innerHTML = '<div class="catalog-empty">查無資料</div>';
+                const emptyText = currentLanguage === 'zh' ? '查無資料' : 'No data found';
+                catalogList.innerHTML = `<div class="catalog-empty">${emptyText}</div>`;
                 return;
             }
             
@@ -1681,20 +1682,28 @@
             
             let html = '';
             Object.keys(groupedData).sort().forEach(letter => {
+                const authorCountText = currentLanguage === 'zh' 
+                    ? `(${groupedData[letter].length} 位作者)` 
+                    : `(${groupedData[letter].length} authors)`;
+                
                 html += `<div class="catalog-letter-group">
                     <div class="catalog-letter" onclick="toggleLetter('${letter}')">
                         <span id="arrow${letter}" class="arrow">▶</span>
                         <span class="letter-text">${letter}</span>
-                        <span class="author-count" data-zh="(${groupedData[letter].length} 位作者)" data-en="(${groupedData[letter].length} authors)">(${groupedData[letter].length} 位作者)</span>
+                        <span class="author-count" data-zh="(${groupedData[letter].length} 位作者)" data-en="(${groupedData[letter].length} authors)">${authorCountText}</span>
                     </div>
                     <div id="authors${letter}" class="catalog-authors" style="display:none;">
                         ${groupedData[letter].map((author, idx) => {
                             const authorId = `${letter}_${idx}`;
+                            const worksCountText = currentLanguage === 'zh' 
+                                ? `(${author.works.length} 部作品)` 
+                                : `(${author.works.length} works)`;
+                            
                             return `<div class="catalog-author">
                                 <div class="catalog-author-name" onclick="toggleAuthor('${authorId}')">
                                     <span id="arrow${authorId}" class="arrow">▶</span>
                                     <span class="author-name">${author.author}</span>
-                                    <span class="works-count" data-zh="(${author.works.length} 部作品)" data-en="(${author.works.length} works)">(${author.works.length} 部作品)</span>
+                                    <span class="works-count" data-zh="(${author.works.length} 部作品)" data-en="(${author.works.length} works)">${worksCountText}</span>
                                 </div>
                                 <ul id="works${authorId}" class="catalog-works" style="display:none;">
                                     ${author.works.map(work => `<li class="catalog-work">${work}</li>`).join('')}
