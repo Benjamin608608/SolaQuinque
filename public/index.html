@@ -418,23 +418,42 @@
 
         .search-input {
             width: 100%;
-            padding: 1rem;
+            padding: 1.5rem;
             border: 2px solid var(--border-gold);
-            border-radius: 10px;
-            font-size: 1rem;
+            border-radius: 20px;
+            font-size: 1.1rem;
             font-family: 'Crimson Text', serif;
-            background: var(--parchment);
+            background: linear-gradient(135deg, var(--parchment), #F8F4E8);
             color: var(--dark-brown);
             transition: all 0.3s ease;
             resize: vertical;
             min-height: 120px;
+            position: relative;
+            box-shadow: 
+                0 4px 15px rgba(139, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
         .search-input:focus {
             outline: none;
             border-color: var(--gold);
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
-            background: var(--light-gold);
+            box-shadow: 
+                0 0 0 3px rgba(212, 175, 55, 0.2),
+                0 6px 20px rgba(139, 0, 0, 0.15);
+            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
+        }
+
+        /* 對話氣泡效果 */
+        .search-input::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 30px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid var(--border-gold);
         }
 
         .search-btn {
@@ -627,6 +646,50 @@
             margin-bottom: 0.5rem;
         }
 
+        /* 引用標註樣式 */
+        .citation {
+            background: linear-gradient(135deg, var(--gold), var(--ochre));
+            color: var(--deep-red);
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border-gold);
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin: 0 2px;
+            box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2);
+        }
+
+        .citation:hover {
+            background: linear-gradient(135deg, var(--ochre), var(--gold));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(139, 0, 0, 0.3);
+        }
+
+        /* 引用工具提示 */
+        .citation-tooltip {
+            position: absolute;
+            background: linear-gradient(135deg, var(--deep-red), #6B0000);
+            color: var(--parchment);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 2px solid var(--gold);
+            box-shadow: 0 8px 25px rgba(139, 0, 0, 0.3);
+            font-size: 0.9rem;
+            max-width: 300px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .citation-tooltip.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
         .error-message {
             text-align: center;
             padding: 2rem;
@@ -718,6 +781,119 @@
         .catalog-author li:hover {
             background: rgba(212, 175, 55, 0.1);
             padding-left: 0.5rem;
+        }
+
+        /* 新的參考書目樣式 */
+        .catalog-empty {
+            color: var(--ochre);
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
+            border: 2px solid var(--border-gold);
+            border-radius: 10px;
+            font-style: italic;
+        }
+
+        .catalog-letter-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .catalog-letter {
+            background: linear-gradient(135deg, var(--deep-red), #6B0000);
+            color: var(--parchment);
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid var(--gold);
+            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .catalog-letter:hover {
+            background: linear-gradient(135deg, #6B0000, var(--deep-red));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.3);
+        }
+
+        .catalog-authors {
+            margin-top: 1rem;
+            padding-left: 1rem;
+        }
+
+        .catalog-author {
+            margin-bottom: 1rem;
+        }
+
+        .catalog-author-name {
+            background: linear-gradient(135deg, var(--ochre), #C17A3A);
+            color: var(--parchment);
+            padding: 0.8rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid var(--gold);
+            box-shadow: 0 2px 8px rgba(139, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-family: 'Crimson Text', serif;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .catalog-author-name:hover {
+            background: linear-gradient(135deg, #C17A3A, var(--ochre));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.25);
+        }
+
+        .catalog-works {
+            margin-top: 0.8rem;
+            padding-left: 1rem;
+            list-style: none;
+        }
+
+        .catalog-work {
+            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
+            color: var(--dark-brown);
+            padding: 0.6rem 1rem;
+            margin-bottom: 0.3rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-gold);
+            transition: all 0.3s ease;
+            font-family: 'Crimson Text', serif;
+            font-size: 0.95rem;
+        }
+
+        .catalog-work:hover {
+            background: linear-gradient(135deg, #F0E6D2, var(--light-gold));
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(139, 0, 0, 0.15);
+        }
+
+        .arrow {
+            transition: transform 0.3s ease;
+        }
+
+        .arrow.expanded {
+            transform: rotate(90deg);
+        }
+
+        .letter-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .author-count, .works-count {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            font-style: italic;
         }
 
         /* 響應式設計 */
@@ -1117,10 +1293,12 @@
                     formattedAnswer = '<p>' + formattedAnswer + '</p>';
                 }
                 
+                // 處理引用標註 [1], [2] 等
                 if (sources && sources.length > 0) {
-                    formattedAnswer += '<h4>📚 參考來源</h4><ul>';
-                    sources.forEach(source => {
-                        // 處理可能的數據結構問題
+                    sources.forEach((source, index) => {
+                        const citationNumber = index + 1;
+                        const citationRegex = new RegExp(`\\[${citationNumber}\\]`, 'g');
+                        
                         let sourceText = '';
                         if (typeof source === 'string') {
                             sourceText = source;
@@ -1129,9 +1307,10 @@
                         } else {
                             sourceText = '未知來源';
                         }
-                        formattedAnswer += `<li>${sourceText}</li>`;
+                        
+                        const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${sourceText}">[${citationNumber}]</span>`;
+                        formattedAnswer = formattedAnswer.replace(citationRegex, citationHtml);
                     });
-                    formattedAnswer += '</ul>';
                 }
                 
                 return formattedAnswer;
@@ -1178,6 +1357,35 @@
         // 初始化應用
         document.addEventListener('DOMContentLoaded', () => {
             new TheologySearchApp();
+            
+            // 添加引用標註的點擊事件
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('citation')) {
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'citation-tooltip';
+                    tooltip.textContent = e.target.title;
+                    
+                    // 移除現有的工具提示
+                    document.querySelectorAll('.citation-tooltip').forEach(t => t.remove());
+                    
+                    // 添加新的工具提示
+                    document.body.appendChild(tooltip);
+                    
+                    // 定位工具提示
+                    const rect = e.target.getBoundingClientRect();
+                    tooltip.style.left = rect.left + 'px';
+                    tooltip.style.top = (rect.bottom + 10) + 'px';
+                    
+                    // 顯示工具提示
+                    setTimeout(() => tooltip.classList.add('show'), 10);
+                    
+                    // 3秒後自動隱藏
+                    setTimeout(() => {
+                        tooltip.classList.remove('show');
+                        setTimeout(() => tooltip.remove(), 300);
+                    }, 3000);
+                }
+            });
         });
 
         // 作品目錄功能
@@ -1198,61 +1406,69 @@
 
         function renderCatalog(data) {
             if (!data.length) {
-                catalogList.innerHTML = '<div style="color:#888; text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">查無資料</div>';
+                catalogList.innerHTML = '<div class="catalog-empty">查無資料</div>';
                 return;
             }
+            
+            // 按字母分組
+            const groupedData = {};
+            data.forEach(author => {
+                const firstLetter = author.author.charAt(0).toUpperCase();
+                if (!groupedData[firstLetter]) {
+                    groupedData[firstLetter] = [];
+                }
+                groupedData[firstLetter].push(author);
+            });
+            
             let html = '';
-            data.forEach((author, idx) => {
-                html += `<div class="catalog-author" style="margin-bottom:1.2rem;">
-                    <div class="catalog-author-name" style="
-                        font-weight:600;
-                        font-size:1.1rem;
-                        cursor:pointer;
-                        color:#333;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
-                        padding: 12px 16px;
-                        border-radius: 8px;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                        transition: all 0.3s ease;
-                        border: none;
-                        " onclick="toggleWorks(${idx})" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'">
-                        <span id="arrow${idx}" style="margin-right: 8px;">▶</span> ${author.author}
+            Object.keys(groupedData).sort().forEach(letter => {
+                html += `<div class="catalog-letter-group">
+                    <div class="catalog-letter" onclick="toggleLetter('${letter}')">
+                        <span id="arrow${letter}" class="arrow">▶</span>
+                        <span class="letter-text">${letter}</span>
+                        <span class="author-count">(${groupedData[letter].length} 位作者)</span>
                     </div>
-                    <ul id="works${idx}" style="
-                        display:none;
-                        margin-left:0;
-                        margin-top:8px;
-                        padding:0;
-                        background: rgba(255,255,255,0.9);
-                        border-radius: 8px;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-                        border: 1px solid rgba(102, 126, 234, 0.2);
-                        ">
-                        ${author.works.map(w => `<li style='
-                            margin-bottom:0;
-                            color:#555;
-                            padding: 8px 16px;
-                            border-bottom: 1px solid rgba(0,0,0,0.05);
-                            background: rgba(255,255,255,0.7);
-                            transition: background-color 0.2s ease;
-                            list-style: none;
-                            ' onmouseover="this.style.backgroundColor='rgba(102, 126, 234, 0.1)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.7)'">${w}</li>`).join('')}
-                    </ul>
+                    <div id="authors${letter}" class="catalog-authors" style="display:none;">
+                        ${groupedData[letter].map((author, idx) => {
+                            const authorId = `${letter}_${idx}`;
+                            return `<div class="catalog-author">
+                                <div class="catalog-author-name" onclick="toggleAuthor('${authorId}')">
+                                    <span id="arrow${authorId}" class="arrow">▶</span>
+                                    <span class="author-name">${author.author}</span>
+                                    <span class="works-count">(${author.works.length} 部作品)</span>
+                                </div>
+                                <ul id="works${authorId}" class="catalog-works" style="display:none;">
+                                    ${author.works.map(work => `<li class="catalog-work">${work}</li>`).join('')}
+                                </ul>
+                            </div>`;
+                        }).join('')}
+                    </div>
                 </div>`;
             });
             catalogList.innerHTML = html;
         }
 
-        window.toggleWorks = function(idx) {
-            const ul = document.getElementById('works'+idx);
-            const arrow = document.getElementById('arrow'+idx);
-            if (ul.style.display === 'none') {
-                ul.style.display = 'block';
-                arrow.textContent = '▼';
+        window.toggleLetter = function(letter) {
+            const authorsDiv = document.getElementById('authors'+letter);
+            const arrow = document.getElementById('arrow'+letter);
+            if (authorsDiv.style.display === 'none') {
+                authorsDiv.style.display = 'block';
+                arrow.classList.add('expanded');
             } else {
-                ul.style.display = 'none';
-                arrow.textContent = '▶';
+                authorsDiv.style.display = 'none';
+                arrow.classList.remove('expanded');
+            }
+        };
+
+        window.toggleAuthor = function(authorId) {
+            const worksUl = document.getElementById('works'+authorId);
+            const arrow = document.getElementById('arrow'+authorId);
+            if (worksUl.style.display === 'none') {
+                worksUl.style.display = 'block';
+                arrow.classList.add('expanded');
+            } else {
+                worksUl.style.display = 'none';
+                arrow.classList.remove('expanded');
             }
         };
 
