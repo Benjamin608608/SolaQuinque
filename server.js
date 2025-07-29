@@ -424,7 +424,7 @@ async function processSearchRequest(question, user) {
 
 請確保每個回答都符合這些標準。`,
                 model: "gpt-4o-mini",
-                tools: [{"type": "retrieval"}],
+                tools: [{"type": "file_search"}],
                 tool_resources: {
                     vector_store_ids: [process.env.VECTOR_STORE_ID]
                 }

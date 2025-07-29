@@ -143,7 +143,7 @@ class VectorService {
                 embeddingsArray.set(this.embeddings[i], i * dim);
             }
             // 批量加入所有向量
-            this.faissIndex.add(embeddingsArray, this.embeddings.length);
+            this.faissIndex.add(embeddingsArray);
             console.log('FAISS 索引建立完成');
         } else {
             throw new Error('沒有可用的嵌入向量來建立索引');
