@@ -6,6 +6,11 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "check-env": "node scripts/check-env.js",
+    "railway-debug": "node scripts/railway-debug.js",
+    "check-google": "node scripts/check-google-oauth.js",
+    "verify-google": "node scripts/verify-google-setup.js",
+    "debug-redirect": "node scripts/debug-redirect-uri.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

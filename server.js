@@ -24,17 +24,31 @@ const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID || 'vs_6886f711eda0819189b6c
 
 // MongoDB Atlas 連線
 let mongoClient, loginLogsCollection;
-(async () => {
+
+async function connectToMongoDB() {
+  if (!process.env.MONGO_URI) {
+    console.warn('⚠️  MONGO_URI 環境變數未設置，MongoDB 功能將不可用');
+    return;
+  }
+  
   try {
-    mongoClient = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
+    mongoClient = new MongoClient(process.env.MONGO_URI, { 
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000
+    });
     await mongoClient.connect();
     const db = mongoClient.db('theologian');
     loginLogsCollection = db.collection('loginLogs');
     console.log('✅ 已連線 MongoDB Atlas (theologian.loginLogs)');
   } catch (err) {
     console.error('❌ 連線 MongoDB Atlas 失敗:', err.message);
+    console.log('💡 應用程式將繼續運行，但登入記錄功能將不可用');
   }
-})();
+}
+
+// 初始化 MongoDB 連線
+connectToMongoDB();
 
 // Session 配置（secure: true，適用於 https 雲端平台）
 app.use(session({
@@ -130,12 +144,81 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     }
   );
 } else {
-  // 如果 Google OAuth 未配置，提供錯誤頁面
+  // 如果 Google OAuth 未配置，提供友好的錯誤頁面
   app.get('/auth/google', (req, res) => {
-    res.status(500).json({
-      success: false,
-      error: 'Google OAuth 未配置，請聯繫管理員'
-    });
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Google 登入暫時不可用</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+          }
+          .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+          }
+          h1 {
+            color: #333;
+            margin-bottom: 20px;
+          }
+          p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+          }
+          .btn {
+            background: #4285f4;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+            transition: background 0.3s;
+          }
+          .btn:hover {
+            background: #3367d6;
+          }
+          .btn-secondary {
+            background: #6c757d;
+          }
+          .btn-secondary:hover {
+            background: #5a6268;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="icon">🔧</div>
+          <h1>Google 登入暫時不可用</h1>
+          <p>Google OAuth 功能尚未配置。管理員正在設置中，請稍後再試。</p>
+          <p>如果您是管理員，請參考 <code>scripts/setup-google-oauth.md</code> 文件進行設置。</p>
+          <a href="/" class="btn">返回首頁</a>
+          <a href="/api/health" class="btn btn-secondary">檢查系統狀態</a>
+        </div>
+      </body>
+      </html>
+    `);
   });
 }
 
@@ -413,12 +496,31 @@ app.get('/api/catalog', (req, res) => {
 
 // 健康檢查端點
 app.get('/api/health', (req, res) => {
-  res.json({
+  const healthStatus = {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    googleOAuth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
-  });
+    environment: process.env.NODE_ENV || 'development',
+    port: process.env.PORT || 3000,
+    services: {
+      openai: !!process.env.OPENAI_API_KEY,
+      vectorStore: !!process.env.VECTOR_STORE_ID,
+      googleOAuth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+      mongodb: !!process.env.MONGO_URI,
+      session: !!process.env.SESSION_SECRET
+    }
+  };
+  
+  // 檢查關鍵服務是否可用
+  const criticalServices = ['openai', 'vectorStore', 'session'];
+  const missingServices = criticalServices.filter(service => !healthStatus.services[service]);
+  
+  if (missingServices.length > 0) {
+    healthStatus.status = 'warning';
+    healthStatus.warnings = `缺少關鍵服務: ${missingServices.join(', ')}`;
+  }
+  
+  res.json(healthStatus);
 });
 
 // 獲取系統資訊端點
