@@ -31,7 +31,6 @@
                 radial-gradient(circle at 80% 20%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
                 linear-gradient(135deg, var(--parchment) 0%, #F8F4E8 100%);
             min-height: 100vh;
-            position: relative;
             overflow-x: hidden;
         }
 
@@ -56,7 +55,6 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            position: relative;
         }
 
         /* 中世紀邊框裝飾 */
@@ -438,13 +436,13 @@
             border-radius: 15px;
             padding: 1.5rem;
             box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            position: fixed !important;
+            bottom: 20px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
             width: calc(100% - 40px);
             max-width: 800px;
-            z-index: 1000;
+            z-index: 9999 !important;
         }
 
         .search-form {
