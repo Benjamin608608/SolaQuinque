@@ -753,7 +753,7 @@
                     'title': '神學知識庫',
                     'subtitle': '探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。',
                     'placeholder': '詢問任何問題...',
-                    'catalog-title': '📚 參考書目',
+                    'catalog-title': '參考書目',
                     'catalog-subtitle': '探索豐富的神學文獻資料庫',
                     'author-search': '搜尋作者...',
                     'work-search': '搜尋著作名稱...',
@@ -773,7 +773,7 @@
                     'title': 'Theology Knowledge Base',
                     'subtitle': 'Explore the wisdom of theologians throughout history, find solid foundations for your faith.',
                     'placeholder': 'Ask any question...',
-                    'catalog-title': '📚 Bibliography',
+                    'catalog-title': 'Bibliography',
                     'catalog-subtitle': 'Explore a rich theological literature database',
                     'author-search': 'Search authors...',
                     'work-search': 'Search work titles...',
@@ -822,6 +822,36 @@
             const input = document.getElementById('searchInput');
             if (input) {
                 input.placeholder = currentLang.placeholder;
+            }
+            
+            // 更新參考書目頁面標題
+            const catalogHeader = document.querySelector('.catalog-header h2');
+            if (catalogHeader) {
+                catalogHeader.textContent = currentLang['catalog-title'];
+            }
+            
+            const catalogSubtitle = document.querySelector('.catalog-header p');
+            if (catalogSubtitle) {
+                catalogSubtitle.textContent = currentLang['catalog-subtitle'];
+            }
+            
+            // 更新搜尋框佔位符
+            const authorSearchInput = document.getElementById('authorSearchInput');
+            const workSearchInput = document.getElementById('workSearchInput');
+            if (authorSearchInput) {
+                authorSearchInput.placeholder = currentLang['author-search'];
+            }
+            if (workSearchInput) {
+                workSearchInput.placeholder = currentLang['work-search'];
+            }
+            
+            // 更新登出按鈕文字（如果存在）
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                const logoutText = logoutBtn.querySelector('span:not(.material-icons-outlined)');
+                if (logoutText) {
+                    logoutText.textContent = currentLang.logout;
+                }
             }
             
             // 更新搜索相關文字
@@ -885,7 +915,7 @@
         function showCatalogPage() {
             const main = document.getElementById('mainContent');
             if (main) {
-                const catalogTitle = window.translations ? window.translations['catalog-title'] : '📚 參考書目';
+                const catalogTitle = window.translations ? window.translations['catalog-title'] : '參考書目';
                 const catalogSubtitle = window.translations ? window.translations['catalog-subtitle'] : '探索豐富的神學文獻資料庫';
                 const authorSearch = window.translations ? window.translations['author-search'] : '搜尋作者...';
                 const workSearch = window.translations ? window.translations['work-search'] : '搜尋著作名稱...';
@@ -893,9 +923,9 @@
                 
                 main.innerHTML = `
                     <div class="catalog-page w-full max-w-4xl mx-auto px-2 sm:px-4 md:px-0" style="display: block;">
-                        <div class="catalog-header">
-                            <h2 class="text-lg sm:text-xl md:text-2xl lg:text-3xl">${catalogTitle}</h2>
-                            <p class="text-xs sm:text-sm md:text-base lg:text-lg">${catalogSubtitle}</p>
+                        <div class="catalog-header text-center">
+                            <h2 class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-serif font-bold text-[var(--text-primary)]">${catalogTitle}</h2>
+                            <p class="text-xs sm:text-sm md:text-base lg:text-lg text-[var(--text-secondary)] mt-2">${catalogSubtitle}</p>
                         </div>
                         <div class="catalog-search">
                             <div class="search-row">
@@ -967,7 +997,7 @@
             const authorFilter = authorSearchInput ? authorSearchInput.value.toLowerCase() : '';
             const workFilter = workSearchInput ? workSearchInput.value.toLowerCase() : '';
             
-            let filteredData = window.catalogData;
+            let filteredData = [...window.catalogData]; // 創建副本避免修改原始數據
             
             // 過濾作者
             if (authorFilter) {
@@ -978,11 +1008,12 @@
             
             // 過濾作品
             if (workFilter) {
-                filteredData = filteredData.filter(author => 
-                    author.works.some(work => 
+                filteredData = filteredData.filter(author => {
+                    // 檢查作者的作品是否包含搜尋關鍵字
+                    return author.works.some(work => 
                         work.toLowerCase().includes(workFilter)
-                    )
-                );
+                    );
+                });
             }
             
             renderCatalog(filteredData);
