@@ -189,6 +189,10 @@
             border-radius: 0;
             margin-bottom: 20px;
             box-shadow: none;
+            height: calc(100vh - 250px);
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
         }
         
         /* 引用標註樣式 */
@@ -730,12 +734,10 @@
                 let formattedAnswer = formatAnswer(answer, sources);
                 
                 main.innerHTML = `
-                    <div class="chat-container">
-                        <div class="chat-messages" id="chatMessages">
-                            <div class="message assistant">
-                                <div class="message-content">
-                                    ${formattedAnswer}
-                                </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message assistant">
+                            <div class="message-content">
+                                ${formattedAnswer}
                             </div>
                         </div>
                     </div>
