@@ -240,6 +240,7 @@
         .catalog-header {
             text-align: center;
             margin-bottom: 2rem;
+            margin-top: 2rem;
             color: var(--primary);
         }
         
@@ -258,6 +259,55 @@
             flex-direction: column;
             gap: 1rem;
             margin-bottom: 1rem;
+        }
+        
+        .catalog-author {
+            margin-bottom: 1rem;
+        }
+        
+        .catalog-author-name {
+            background: linear-gradient(135deg, var(--secondary), #E8E8E8);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--accent);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Noto Serif TC', serif;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        
+        .catalog-author-name:hover {
+            background: linear-gradient(135deg, #E8E8E8, var(--secondary));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .catalog-works {
+            list-style: none;
+            padding-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .catalog-work {
+            background: var(--background);
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.25rem;
+            border: 1px solid var(--accent);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+        
+        .catalog-work:hover {
+            background: var(--secondary);
+            color: var(--text-primary);
         }
         
         .catalog-list {
@@ -712,7 +762,9 @@
                     'load-error': '無法載入參考書目',
                     'searching': '正在搜索相關資料...',
                     'search-error': '搜索失敗，請稍後再試',
-                    'network-error': '網路錯誤，請檢查連線後再試'
+                    'network-error': '網路錯誤，請檢查連線後再試',
+                    'authors-count': '位作者',
+                    'works-count': '部作品'
                 },
                 en: {
                     'home': 'Home',
@@ -730,7 +782,9 @@
                     'load-error': 'Unable to load bibliography',
                     'searching': 'Searching for relevant information...',
                     'search-error': 'Search failed, please try again later',
-                    'network-error': 'Network error, please check your connection'
+                    'network-error': 'Network error, please check your connection',
+                    'authors-count': ' authors',
+                    'works-count': ' works'
                 }
             };
             
@@ -773,6 +827,12 @@
             // 更新搜索相關文字
             window.currentLanguage = lang;
             window.translations = currentLang;
+            
+            // 如果當前在參考書目頁面，重新載入以更新翻譯
+            const catalogList = document.getElementById('catalogList');
+            if (catalogList && catalogList.innerHTML.includes('catalog-letter')) {
+                loadCatalog();
+            }
         }
 
         // 添加導航處理器
@@ -839,8 +899,8 @@
                         </div>
                         <div class="catalog-search">
                             <div class="search-row">
-                                <input type="text" placeholder="${authorSearch}" class="search-input">
-                                <input type="text" placeholder="${workSearch}" class="search-input">
+                                <input type="text" placeholder="${authorSearch}" class="search-input" id="authorSearchInput">
+                                <input type="text" placeholder="${workSearch}" class="search-input" id="workSearchInput">
                             </div>
                         </div>
                         <div class="catalog-list" id="catalogList">
@@ -854,6 +914,19 @@
                 
                 // 載入參考書目
                 loadCatalog();
+                
+                // 添加搜尋功能
+                setTimeout(() => {
+                    const authorSearchInput = document.getElementById('authorSearchInput');
+                    const workSearchInput = document.getElementById('workSearchInput');
+                    
+                    if (authorSearchInput) {
+                        authorSearchInput.addEventListener('input', filterCatalog);
+                    }
+                    if (workSearchInput) {
+                        workSearchInput.addEventListener('input', filterCatalog);
+                    }
+                }, 100);
             }
             
             // 隱藏輸入區域
@@ -868,6 +941,7 @@
             try {
                 const response = await fetch('/api/catalog');
                 const catalogData = await response.json();
+                window.catalogData = catalogData; // 保存原始數據
                 renderCatalog(catalogData);
             } catch (error) {
                 console.error('載入參考書目失敗:', error);
@@ -881,6 +955,37 @@
                     `;
                 }
             }
+        }
+        
+        // 過濾參考書目
+        function filterCatalog() {
+            const authorSearchInput = document.getElementById('authorSearchInput');
+            const workSearchInput = document.getElementById('workSearchInput');
+            
+            if (!window.catalogData) return;
+            
+            const authorFilter = authorSearchInput ? authorSearchInput.value.toLowerCase() : '';
+            const workFilter = workSearchInput ? workSearchInput.value.toLowerCase() : '';
+            
+            let filteredData = window.catalogData;
+            
+            // 過濾作者
+            if (authorFilter) {
+                filteredData = filteredData.filter(author => 
+                    author.author.toLowerCase().includes(authorFilter)
+                );
+            }
+            
+            // 過濾作品
+            if (workFilter) {
+                filteredData = filteredData.filter(author => 
+                    author.works.some(work => 
+                        work.toLowerCase().includes(workFilter)
+                    )
+                );
+            }
+            
+            renderCatalog(filteredData);
         }
 
         // 渲染參考書目
@@ -908,13 +1013,16 @@
                 groupedData[firstLetter].push(author);
             });
             
+            const authorsCountText = window.translations ? window.translations['authors-count'] : '位作者';
+            const worksCountText = window.translations ? window.translations['works-count'] : '部作品';
+            
             let html = '';
             Object.keys(groupedData).sort().forEach(letter => {
                 html += `
                     <div class="catalog-letter" onclick="toggleLetter('${letter}')">
                         <span class="arrow">▶</span>
                         <span class="letter-text">${letter}</span>
-                        <span class="author-count">(${groupedData[letter].length} 位作者)</span>
+                        <span class="author-count">(${groupedData[letter].length} ${authorsCountText})</span>
                     </div>
                     <div id="authors${letter}" class="catalog-authors" style="display:none;">
                         ${groupedData[letter].map((author, idx) => {
@@ -924,7 +1032,7 @@
                                     <div class="catalog-author-name" onclick="toggleAuthor('${authorId}')">
                                         <span class="arrow">▶</span>
                                         <span class="author-name">${author.author}</span>
-                                        <span class="works-count">(${author.works.length} 部作品)</span>
+                                        <span class="works-count">(${author.works.length} ${worksCountText})</span>
                                     </div>
                                     <ul id="works${authorId}" class="catalog-works" style="display:none;">
                                         ${author.works.map(work => `<li class="catalog-work">${work}</li>`).join('')}
