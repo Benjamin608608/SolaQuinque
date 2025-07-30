@@ -7,30 +7,12 @@ const passport = require('passport');
 require('dotenv').config();
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
-const VectorService = require('./services/vectorService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 讓 express-session 支援 proxy (如 Railway/Heroku/Render)
 app.set('trust proxy', 1);
-
-// 初始化向量服務
-const vectorService = new VectorService();
-let vectorServiceInitialized = false;
-
-// 初始化向量服務
-async function initializeVectorService() {
-  try {
-    console.log('🚀 正在初始化 FAISS 向量服務...');
-    await vectorService.initialize();
-    vectorServiceInitialized = true;
-    console.log('✅ FAISS 向量服務初始化完成');
-  } catch (error) {
-    console.error('❌ FAISS 向量服務初始化失敗:', error);
-    console.log('💡 將使用傳統的 OpenAI Assistant 模式');
-  }
-}
 
 // 初始化 OpenAI 客戶端
 const openai = new OpenAI({
@@ -358,43 +340,9 @@ function createSourceList(sourceMap) {
   }));
 }
 
-// FAISS 向量搜索處理
-async function processSearchRequestWithFAISS(question, user) {
-    console.log('🔄 使用 FAISS 基於資料庫的對話搜索方法...');
-    
-    try {
-        // 使用基於資料庫的對話搜索策略，AI 可以對話但內容嚴格基於資料庫
-        const result = await vectorService.databaseBasedConversation(question, 8);
-        
-        console.log('✅ 基於資料庫的對話搜索完成');
-        console.log(`📊 使用了 ${result.vectorResults} 個向量搜索結果`);
-        
-        return {
-            question: question,
-            answer: result.answer,
-            sources: result.sources.map((source, index) => ({
-                index: index + 1,
-                fileName: source.fileName,
-                quote: source.text,
-                similarity: source.similarity
-            })),
-            timestamp: new Date().toISOString(),
-            user: user,
-            method: result.method
-        };
-        
-    } catch (error) {
-        console.error('❌ FAISS 基於資料庫的對話搜索失敗:', error.message);
-        console.log('🔄 回退到傳統 Assistant API 方法...');
-        
-        // 回退到傳統方法
-        return await processSearchRequest(question, user);
-    }
-}
-
-// 傳統 OpenAI Assistant API 處理
+// OpenAI Assistant API 處理
 async function processSearchRequest(question, user) {
-    console.log('🔄 使用傳統 OpenAI Assistant API 方法...');
+    console.log('🔄 使用 OpenAI Assistant API 方法...');
     
     try {
         // 創建或獲取 Assistant
@@ -524,22 +472,8 @@ app.post('/api/search', ensureAuthenticated, async (req, res) => {
     const trimmedQuestion = question.trim();
     console.log(`收到搜索請求: ${trimmedQuestion} (用戶: ${req.user.email})`);
 
-    // 優先使用 FAISS 向量搜索，如果失敗則回退到傳統方法
-    let result;
-    if (vectorServiceInitialized) {
-      try {
-        console.log('🚀 使用 FAISS 向量搜索...');
-        result = await processSearchRequestWithFAISS(trimmedQuestion, req.user);
-        console.log('✅ FAISS 搜索完成');
-      } catch (faissError) {
-        console.error('FAISS 搜索失敗，回退到傳統方法:', faissError);
-        console.log('🔄 使用傳統 OpenAI Assistant 方法...');
-        result = await processSearchRequest(trimmedQuestion, req.user);
-      }
-    } else {
-      console.log('🔄 FAISS 未初始化，使用傳統 OpenAI Assistant 方法...');
-      result = await processSearchRequest(trimmedQuestion, req.user);
-    }
+    // 使用 OpenAI Assistant API
+    const result = await processSearchRequest(trimmedQuestion, req.user);
 
     console.log('搜索處理完成，返回結果:', JSON.stringify(result, null, 2));
 
@@ -580,27 +514,8 @@ app.get('/api/catalog', (req, res) => {
   }
 });
 
-// 向量服務進度 API
-app.get('/api/vector-progress', (req, res) => {
-  try {
-    const status = vectorService.getStatus();
-    res.json({
-      success: true,
-      data: status
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: '無法獲取向量服務進度',
-      details: error.message 
-    });
-  }
-});
-
 // 健康檢查端點
 app.get('/api/health', (req, res) => {
-  const vectorStatus = vectorService.getStatus();
-  
   const healthStatus = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -613,8 +528,7 @@ app.get('/api/health', (req, res) => {
       googleOAuth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
       mongodb: !!process.env.MONGO_URI,
       session: !!process.env.SESSION_SECRET
-    },
-    vectorService: vectorStatus
+    }
   };
   
   // 檢查關鍵服務是否可用
@@ -631,15 +545,13 @@ app.get('/api/health', (req, res) => {
 
 // 獲取系統資訊端點
 app.get('/api/info', (req, res) => {
-  const vectorStatus = vectorService.getStatus();
-  
   res.json({
     name: '神學知識庫 API',
     version: '1.0.0',
-    vectorService: vectorStatus,
     description: '基於 OpenAI 向量搜索的神學問答系統',
     vectorStoreId: VECTOR_STORE_ID ? 'configured' : 'not configured',
-    googleOAuth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+    googleOAuth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    method: 'OpenAI Assistant API'
   });
 });
 
@@ -684,39 +596,15 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`📊 系統狀態: /api/info`);
   console.log(`💡 向量資料庫 ID: ${VECTOR_STORE_ID ? '已設定' : '未設定'}`);
   console.log(`🔐 Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? '已設定' : '未設定'}`);
+  console.log(`🤖 使用 OpenAI Assistant API 模式`);
   
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     console.log(`⚠️  注意: Google OAuth 未配置，登入功能將不可用`);
     console.log(`   請設置 GOOGLE_CLIENT_ID 和 GOOGLE_CLIENT_SECRET 環境變數`);
   }
   
-  // 在 Railway 環境中延遲初始化向量服務（避免啟動超時）
-  const isRailwayEnv = process.env.RAILWAY_ENVIRONMENT_NAME || process.env.RAILWAY_PROJECT_NAME;
-  if (process.env.NODE_ENV === 'production' && isRailwayEnv) {
-    console.log('🔄 Railway 生產環境 - 服務器已啟動，將在背景初始化 FAISS 向量服務...');
-    console.log('⚡ 系統立即可用，向量搜索將在背景載入完成後啟用');
-    
-    // 延遲 5 秒後開始背景初始化，確保服務器完全啟動
-    setTimeout(async () => {
-      try {
-        console.log('🔄 開始背景初始化 FAISS 向量服務...');
-        await initializeVectorService();
-        console.log('✅ FAISS 向量服務背景初始化完成，系統已準備就緒！');
-      } catch (error) {
-        console.error('❌ FAISS 向量服務背景初始化失敗:', error);
-        console.log('💡 系統將繼續使用傳統的 OpenAI Assistant 模式');
-      }
-    }, 5000);
-  } else if (process.env.NODE_ENV === 'production') {
-    console.log('🔄 生產環境 - 正在初始化 FAISS 向量服務...');
-    try {
-      await initializeVectorService();
-      console.log('✅ FAISS 向量服務初始化完成，系統已準備就緒！');
-    } catch (error) {
-      console.error('❌ FAISS 向量服務初始化失敗:', error);
-      console.log('💡 系統將使用傳統的 OpenAI Assistant 模式');
-    }
-  } else {
-    console.log('💡 開發環境 - 向量服務將在需要時初始化');
+  if (!process.env.VECTOR_STORE_ID) {
+    console.log(`⚠️  注意: VECTOR_STORE_ID 未配置，向量搜索功能將不可用`);
+    console.log(`   請設置 VECTOR_STORE_ID 環境變數`);
   }
 });
