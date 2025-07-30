@@ -1113,10 +1113,10 @@ class VectorService {
         }
     }
 
-    // 純資料庫回答模式
-    async databaseOnlySearch(query, topK = 5) {
+    // 基於資料庫的對話回答模式
+    async databaseBasedConversation(query, topK = 5) {
         const startTime = Date.now();
-        console.log(`🔍 執行純資料庫搜索: "${query}"`);
+        console.log(`🔍 執行基於資料庫的對話搜索: "${query}"`);
         
         try {
             // 1. 使用 FAISS 進行快速向量搜索
@@ -1127,18 +1127,46 @@ class VectorService {
                 return {
                     answer: "抱歉，在資料庫中沒有找到與您問題相關的資訊。",
                     sources: [],
-                    method: "Database Only",
+                    method: "Database-Based Conversation",
                     vectorResults: 0,
                     responseTime: Date.now() - startTime
                 };
             }
             
-            // 2. 直接組合資料庫內容，不使用 AI
-            const answer = `根據資料庫中的相關資料：
+            // 2. 使用 AI 進行對話式回答，但嚴格基於資料庫內容
+            const completion = await this.openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    {
+                        role: "system",
+                        content: `您是一位專業的神學知識庫助手。請根據提供的資料庫內容，針對用戶的問題進行對話式回答。
 
-${vectorResults.map((result, index) => `[${index + 1}] ${result.text}`).join('\n\n')}
+嚴格要求：
+1. 只能使用提供的資料庫內容回答問題
+2. 可以進行對話式回應，但要完全基於資料庫內容
+3. 如果資料庫中沒有相關資訊，請明確說明"資料庫中沒有找到相關資訊"
+4. 在回答中引用相關的來源，使用 [1], [2], [3] 等格式標註引用
+5. 使用中文回答，保持傳統中文的表達方式
+6. 可以組織、整理、解釋資料庫內容，但不能添加外部知識
+7. 確保每個引用都有對應的資料庫來源
 
-以上是資料庫中找到的相關資訊。`;
+重要：請針對用戶問題進行對話式回答，但內容必須完全基於提供的資料庫資料。`
+                    },
+                    {
+                        role: "user",
+                        content: `問題：${query}
+
+資料庫中的相關資料：
+
+${vectorResults.map((result, index) => `[${index + 1}] 來源：${result.fileName}
+內容：${result.text}`).join('\n\n')}`
+                    }
+                ],
+                temperature: 0.3,
+                max_tokens: 1200
+            });
+            
+            const answer = completion.choices[0].message.content;
             
             // 3. 格式化來源
             const sources = vectorResults.map((result, index) => ({
@@ -1152,13 +1180,13 @@ ${vectorResults.map((result, index) => `[${index + 1}] ${result.text}`).join('\n
             return {
                 answer: answer,
                 sources: sources,
-                method: "Database Only",
+                method: "Database-Based Conversation",
                 vectorResults: vectorResults.length,
                 responseTime: Date.now() - startTime
             };
             
         } catch (error) {
-            console.error('❌ 純資料庫搜索失敗:', error.message);
+            console.error('❌ 基於資料庫的對話搜索失敗:', error.message);
             throw error;
         }
     }
