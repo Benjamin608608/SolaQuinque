@@ -454,11 +454,13 @@ async function handleSearch() {
         if (data.success) {
             showResult(data.data.answer, data.data.sources);
         } else {
-            showError(data.error || '搜索失敗，請稍後再試');
+            const errorText = window.translations ? window.translations['search-error'] : '搜索失敗，請稍後再試';
+            showError(data.error || errorText);
         }
     } catch (error) {
         console.error('搜索錯誤:', error);
-        showError('網路錯誤，請檢查連線後再試');
+        const networkError = window.translations ? window.translations['network-error'] : '網路錯誤，請檢查連線後再試';
+        showError(networkError);
     }
 }
 
@@ -466,10 +468,11 @@ async function handleSearch() {
 function showLoadingState() {
     const main = document.querySelector('main');
     if (main) {
+        const loadingText = window.translations ? window.translations['searching'] : '正在搜索相關資料...';
         main.innerHTML = `
             <div class="text-center">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8C2B1D] mx-auto mb-4"></div>
-                <p class="text-[#A6634B]">正在搜索相關資料...</p>
+                <p class="text-[#A6634B]">${loadingText}</p>
             </div>
         `;
     }
@@ -529,7 +532,7 @@ function formatAnswer(answer, sources) {
                 sourceText = '未知來源';
             }
             
-            const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${sourceText}">[${citationNumber}]</span>`;
+            const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${sourceText}">${citationNumber}</span>`;
             formatted = formatted.replace(citationRegex, citationHtml);
         });
     }
@@ -563,10 +566,108 @@ function switchLanguage(lang) {
         btn.classList.remove('active');
     });
     
-    const activeBtn = document.querySelector(`.lang-btn:contains('${lang === 'zh' ? '中文' : 'English'}')`);
-    if (activeBtn) {
-        activeBtn.classList.add('active');
+    // 找到對應的按鈕並設置為活躍狀態
+    buttons.forEach(btn => {
+        if (lang === 'zh' && btn.textContent.includes('中文')) {
+            btn.classList.add('active');
+        } else if (lang === 'en' && btn.textContent.includes('English')) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // 更新頁面文字
+updatePageLanguage(lang);
+}
+
+// 更新頁面語言
+function updatePageLanguage(lang) {
+    const translations = {
+        zh: {
+            'home': '首頁',
+            'catalog': '參考書目',
+            'logout': '登出',
+            'title': '神學知識庫',
+            'subtitle': '探索神學家的智慧，尋找信仰的答案',
+            'placeholder': '詢問任何問題...',
+            'catalog-title': '📚 參考書目',
+            'catalog-subtitle': '探索豐富的神學文獻資料庫',
+            'author-search': '搜尋作者...',
+            'work-search': '搜尋著作名稱...',
+            'loading': '載入參考書目中...',
+            'no-data': '查無資料',
+            'load-error': '無法載入參考書目',
+            'searching': '正在搜索相關資料...',
+            'search-error': '搜索失敗，請稍後再試',
+            'network-error': '網路錯誤，請檢查連線後再試'
+        },
+        en: {
+            'home': 'Home',
+            'catalog': 'Bibliography',
+            'logout': 'Logout',
+            'title': 'Theology Knowledge Base',
+            'subtitle': 'Explore the wisdom of theologians, find answers to faith',
+            'placeholder': 'Ask any question...',
+            'catalog-title': '📚 Bibliography',
+            'catalog-subtitle': 'Explore a rich theological literature database',
+            'author-search': 'Search authors...',
+            'work-search': 'Search work titles...',
+            'loading': 'Loading bibliography...',
+            'no-data': 'No data found',
+            'load-error': 'Unable to load bibliography',
+            'searching': 'Searching for relevant information...',
+            'search-error': 'Search failed, please try again later',
+            'network-error': 'Network error, please check your connection'
+        }
+    };
+    
+    const currentLang = translations[lang];
+    
+    // 更新導航按鈕
+    const homeBtn = document.querySelector('a.btn-primary');
+    if (homeBtn) {
+        const homeText = homeBtn.querySelector('span:not(.material-icons)');
+        if (homeText) {
+            homeText.textContent = currentLang.home;
+        }
     }
+    
+    const catalogBtn = document.querySelector('a.btn-secondary');
+    if (catalogBtn) {
+        const catalogText = catalogBtn.querySelector('span:not(.material-icons)');
+        if (catalogText) {
+            catalogText.textContent = currentLang.catalog;
+        }
+    }
+    
+    // 更新登出按鈕
+    const logoutBtn = document.querySelector('button.btn-secondary:has(.material-icons)');
+    if (logoutBtn) {
+        const logoutText = logoutBtn.querySelector('span:not(.material-icons)');
+        if (logoutText) {
+            logoutText.textContent = currentLang.logout;
+        }
+    }
+    
+    // 更新標題和副標題
+    const title = document.querySelector('.title-text');
+    if (title) {
+        title.textContent = currentLang.title;
+    }
+    
+    const subtitle = document.querySelector('.subtitle-text');
+    if (subtitle) {
+        subtitle.textContent = currentLang.subtitle;
+    }
+    
+    // 更新輸入框佔位符
+    const input = document.querySelector('input[placeholder]');
+    if (input) {
+        input.placeholder = currentLang.placeholder;
+    }
+    
+    // 更新搜索相關文字
+    window.currentLanguage = lang;
+    window.translations = currentLang;
 }
 
 // 添加導航處理器
@@ -616,22 +717,28 @@ function showHomePage() {
 function showCatalogPage() {
     const main = document.querySelector('main');
     if (main) {
+        const catalogTitle = window.translations ? window.translations['catalog-title'] : '📚 參考書目';
+        const catalogSubtitle = window.translations ? window.translations['catalog-subtitle'] : '探索豐富的神學文獻資料庫';
+        const authorSearch = window.translations ? window.translations['author-search'] : '搜尋作者...';
+        const workSearch = window.translations ? window.translations['work-search'] : '搜尋著作名稱...';
+        const loadingText = window.translations ? window.translations['loading'] : '載入參考書目中...';
+        
         main.innerHTML = `
             <div class="catalog-page" style="display: block;">
                 <div class="catalog-header">
-                    <h2>📚 參考書目</h2>
-                    <p>探索豐富的神學文獻資料庫</p>
+                    <h2>${catalogTitle}</h2>
+                    <p>${catalogSubtitle}</p>
                 </div>
                 <div class="catalog-search">
                     <div class="search-row">
-                        <input type="text" placeholder="搜尋作者..." class="search-input">
-                        <input type="text" placeholder="搜尋著作名稱..." class="search-input">
+                        <input type="text" placeholder="${authorSearch}" class="search-input">
+                        <input type="text" placeholder="${workSearch}" class="search-input">
                     </div>
                 </div>
                 <div class="catalog-list" id="catalogList">
                     <div class="text-center p-8">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8C2B1D] mx-auto mb-4"></div>
-                        <p class="text-[#A6634B]">載入參考書目中...</p>
+                        <p class="text-[#A6634B]">${loadingText}</p>
                     </div>
                 </div>
             </div>
@@ -658,9 +765,10 @@ async function loadCatalog() {
         console.error('載入參考書目失敗:', error);
         const catalogList = document.getElementById('catalogList');
         if (catalogList) {
+            const errorText = window.translations ? window.translations['load-error'] : '無法載入參考書目';
             catalogList.innerHTML = `
                 <div class="text-center p-8">
-                    <p class="text-red-600">無法載入參考書目</p>
+                    <p class="text-red-600">${errorText}</p>
                 </div>
             `;
         }
@@ -673,9 +781,10 @@ function renderCatalog(data) {
     if (!catalogList) return;
     
     if (!data || data.length === 0) {
+        const noDataText = window.translations ? window.translations['no-data'] : '查無資料';
         catalogList.innerHTML = `
             <div class="text-center p-8">
-                <p class="text-[#A6634B]">查無資料</p>
+                <p class="text-[#A6634B]">${noDataText}</p>
             </div>
         `;
         return;
@@ -832,6 +941,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 初始化引用標註事件
     bindCitationEvents();
+    
+    // 初始化語言為中文
+    switchLanguage('zh');
 });
 </script>
 </body>
