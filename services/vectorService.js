@@ -1115,15 +1115,21 @@ class VectorService {
 
     // 混合搜索策略：結合 FAISS 和 Assistant API
     async hybridSearch(query, topK = 5) {
+        const startTime = Date.now();
         console.log(`🔍 執行混合搜索: "${query}"`);
         
         // 根據問題複雜度動態調整參數
         const isComplexQuery = this.isComplexQuery(query);
-        const adjustedTopK = isComplexQuery ? 8 : 5;
-        const adjustedMaxTokens = isComplexQuery ? 2000 : 1500;
+        const isSimpleQuery = this.isSimpleQuery(query);
         
-        console.log(`📊 問題複雜度: ${isComplexQuery ? '複雜' : '簡單'}`);
-        console.log(`📊 調整參數: topK=${adjustedTopK}, max_tokens=${adjustedMaxTokens}`);
+        // 快速回答模式：簡單問題使用更激進的優化
+        const useFastMode = isSimpleQuery;
+        const adjustedTopK = useFastMode ? 3 : (isComplexQuery ? 6 : 4);
+        const adjustedMaxTokens = useFastMode ? 800 : (isComplexQuery ? 1500 : 1000);
+        const model = useFastMode ? "gpt-3.5-turbo" : "gpt-4o-mini";
+        
+        console.log(`📊 問題類型: ${useFastMode ? '快速模式' : (isComplexQuery ? '複雜' : '標準')}`);
+        console.log(`📊 優化參數: topK=${adjustedTopK}, max_tokens=${adjustedMaxTokens}, model=${model}`);
         
         try {
             // 1. 使用 FAISS 進行快速向量搜索
@@ -1132,11 +1138,13 @@ class VectorService {
             
             // 2. 使用 OpenAI Chat Completions API 生成高品質回答
             const completion = await this.openai.chat.completions.create({
-                model: "gpt-4o-mini",
+                model: model,
                 messages: [
                     {
                         role: "system",
-                        content: `您是一位專業的神學知識庫助手。請根據提供的上下文資料，為用戶提供準確、詳細且學術性的回答。
+                        content: useFastMode ? 
+                            `您是神學知識庫助手。請簡潔準確地回答問題，使用 [1], [2], [3] 格式引用。保持學術性但簡潔。` :
+                            `您是一位專業的神學知識庫助手。請根據提供的上下文資料，為用戶提供準確、詳細且學術性的回答。
 
 回答要求：
 1. 基於提供的上下文資料進行回答
@@ -1158,7 +1166,7 @@ ${vectorResults.map((result, index) => `[${index + 1}] 來源：${result.fileNam
 內容：${result.text}`).join('\n\n')}`
                     }
                 ],
-                temperature: 0.3,
+                temperature: useFastMode ? 0.1 : 0.3,
                 max_tokens: adjustedMaxTokens
             });
             
@@ -1176,8 +1184,9 @@ ${vectorResults.map((result, index) => `[${index + 1}] 來源：${result.fileNam
             return {
                 answer: answer,
                 sources: sources,
-                method: "Hybrid (FAISS + GPT-4o-mini)",
-                vectorResults: vectorResults.length
+                method: `Hybrid (FAISS + ${model})`,
+                vectorResults: vectorResults.length,
+                responseTime: Date.now() - startTime
             };
             
         } catch (error) {
@@ -1305,6 +1314,26 @@ ${vectorResults.map((result, index) => `[${index + 1}] 來源：${result.fileNam
         const isLongQuery = query.length > 20;
         
         return hasComplexKeywords || hasComplexPatterns || isLongQuery;
+    }
+
+    // 判斷簡單問題（適合快速模式）
+    isSimpleQuery(query) {
+        const simpleKeywords = [
+            '基督', '耶穌', '三位一體', '聖父', '聖子', '聖靈',
+            '救恩', '原罪', '教會', '聖經', '福音', '信仰',
+            '上帝', '神', '天父', '主', '救主'
+        ];
+        
+        // 簡單問題特徵：單一概念，短問題
+        const isShortQuery = query.length <= 10;
+        const hasSimpleKeyword = simpleKeywords.some(keyword => 
+            query.includes(keyword)
+        );
+        
+        // 不包含複雜詞彙
+        const hasNoComplexWords = !this.isComplexQuery(query);
+        
+        return isShortQuery && hasSimpleKeyword && hasNoComplexWords;
     }
 
     // 獲取服務狀態
