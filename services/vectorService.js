@@ -1114,12 +1114,20 @@ class VectorService {
     }
 
     // 混合搜索策略：結合 FAISS 和 Assistant API
-    async hybridSearch(query, topK = 5) { // 減少到 5 個結果以提高速度
+    async hybridSearch(query, topK = 5) {
         console.log(`🔍 執行混合搜索: "${query}"`);
+        
+        // 根據問題複雜度動態調整參數
+        const isComplexQuery = this.isComplexQuery(query);
+        const adjustedTopK = isComplexQuery ? 8 : 5;
+        const adjustedMaxTokens = isComplexQuery ? 2000 : 1500;
+        
+        console.log(`📊 問題複雜度: ${isComplexQuery ? '複雜' : '簡單'}`);
+        console.log(`📊 調整參數: topK=${adjustedTopK}, max_tokens=${adjustedMaxTokens}`);
         
         try {
             // 1. 使用 FAISS 進行快速向量搜索
-            const vectorResults = await this.search(query, topK);
+            const vectorResults = await this.search(query, adjustedTopK);
             console.log(`📊 FAISS 找到 ${vectorResults.length} 個相關片段`);
             
             // 2. 使用 OpenAI Chat Completions API 生成高品質回答
@@ -1151,7 +1159,7 @@ ${vectorResults.map((result, index) => `[${index + 1}] 來源：${result.fileNam
                     }
                 ],
                 temperature: 0.3,
-                max_tokens: 1500 // 減少 token 數量以提高速度
+                max_tokens: adjustedMaxTokens
             });
             
             const answer = completion.choices[0].message.content;
@@ -1265,6 +1273,38 @@ ${vectorResults.map((result, index) => `[${index + 1}] 來源：${result.fileNam
                 this.progress.isBackgroundProcessing = false;
             }
         }, 10000); // 10 秒後開始
+    }
+
+    // 判斷問題複雜度
+    isComplexQuery(query) {
+        const complexKeywords = [
+            '比較', '對比', '差異', '關係', '影響', '發展', '歷史',
+            '演變', '學派', '爭議', '辯論', '解釋', '分析', '探討',
+            '為什麼', '如何', '什麼是', '什麼時候', '在哪裡'
+        ];
+        
+        const complexPatterns = [
+            /與.*的關係/,
+            /對.*的影響/,
+            /.*和.*的比較/,
+            /.*發展.*歷史/,
+            /.*學派.*觀點/
+        ];
+        
+        // 檢查關鍵詞
+        const hasComplexKeywords = complexKeywords.some(keyword => 
+            query.includes(keyword)
+        );
+        
+        // 檢查複雜模式
+        const hasComplexPatterns = complexPatterns.some(pattern => 
+            pattern.test(query)
+        );
+        
+        // 檢查問題長度（長問題通常更複雜）
+        const isLongQuery = query.length > 20;
+        
+        return hasComplexKeywords || hasComplexPatterns || isLongQuery;
     }
 
     // 獲取服務狀態
