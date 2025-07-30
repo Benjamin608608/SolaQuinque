@@ -351,13 +351,16 @@ async function processSearchRequest(question, user) {
             name: "神學知識庫助手",
             instructions: `你是一位專業的神學知識庫助手，專門回答關於基督教神學的問題。
 
+重要：你必須使用文件搜索工具來查找相關的神學資料，然後基於這些資料回答問題。
+
 你的任務：
-1. 基於提供的知識庫資料回答問題
-2. 提供準確、詳細且學術性的回答
-3. 使用繁體中文回答
-4. 保持傳統中文的表達方式
-5. 在回答中使用 [1], [2], [3] 等格式標註引用
-6. 如果資料不足，請明確說明
+1. 使用文件搜索工具查找與問題相關的神學資料
+2. 基於搜索到的資料回答問題
+3. 提供準確、詳細且學術性的回答
+4. 使用繁體中文回答
+5. 保持傳統中文的表達方式
+6. 在回答中使用 [1], [2], [3] 等格式標註引用
+7. 如果資料不足，請明確說明
 
 回答要求：
 - 準確性：確保回答基於可靠的資料
@@ -366,7 +369,7 @@ async function processSearchRequest(question, user) {
 - 可讀性：使用清晰的語言表達
 - 引用格式：使用 [1], [2], [3] 等格式標註引用
 
-重要：請在回答中使用 [1], [2], [3] 等格式來標註引用，這些標註會自動轉換為可點擊的引用連結。
+重要：你必須先使用文件搜索工具查找資料，然後在回答中使用 [1], [2], [3] 等格式來標註引用，這些標註會自動轉換為可點擊的引用連結。
 
 請確保每個回答都符合這些標準。`,
             model: "gpt-4o-mini",
@@ -418,9 +421,15 @@ async function processSearchRequest(question, user) {
 
         // 檢查 Run 的詳細狀態
         console.log(`📊 Run 狀態: ${runStatus.status}`);
+        console.log(`🔧 Assistant ID: ${assistant.id}`);
+        console.log(`💾 向量資料庫 ID: ${process.env.VECTOR_STORE_ID}`);
+        
         if (runStatus.required_action) {
             console.log('🔍 Assistant 需要執行工具調用');
             console.log(`📋 工具調用類型: ${runStatus.required_action.type}`);
+            console.log(`📋 工具調用詳情:`, JSON.stringify(runStatus.required_action, null, 2));
+        } else {
+            console.log('⚠️  Assistant 沒有使用工具調用');
         }
 
         // 獲取回答
