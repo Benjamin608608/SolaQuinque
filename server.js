@@ -449,19 +449,10 @@ async function processSearchRequest(question, user) {
         
         // 組合最終回答
         let finalAnswer = processedText;
-        
-        // 添加詳細的來源列表
-        const sourceList = createSourceList(sourceMap);
-        if (sourceList) {
-            finalAnswer += sourceList;
-        } else {
-            // 如果沒有具體引用，顯示資料庫來源
-            finalAnswer += `\n\n📚 **資料來源：** 神學知識庫`;
-        }
 
         // 如果沒有獲取到回答
         if (!finalAnswer || finalAnswer.trim() === '') {
-            finalAnswer = '很抱歉，我在資料庫中找不到相關資訊來回答這個問題。\n\n📚 **資料來源：** 神學知識庫';
+            finalAnswer = '很抱歉，我在資料庫中找不到相關資訊來回答這個問題。';
         }
 
         return {
