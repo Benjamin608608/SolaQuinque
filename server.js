@@ -326,18 +326,26 @@ async function processAnnotationsInText(text, annotations) {
 
 // 創建來源列表的函數
 function createSourceList(sourceMap) {
-  if (sourceMap.size === 0) return [];
+  if (sourceMap.size === 0) return '';
   
+  let sourceList = '\n\n📚 **引用來源：**\n';
+  
+  // 按照編號順序排列
   const sortedSources = Array.from(sourceMap.entries()).sort((a, b) => a[0] - b[0]);
   
-  return sortedSources.map(([index, source]) => ({
-    index,
-    fileName: source.fileName,
-    quote: source.quote && source.quote.length > 120 
-      ? source.quote.substring(0, 120) + '...' 
-      : source.quote,
-    fileId: source.fileId
-  }));
+  sortedSources.forEach(([index, source]) => {
+    sourceList += `**[${index}]** ${source.fileName}`;
+    if (source.quote && source.quote.length > 0) {
+      // 顯示引用片段（限制長度）
+      const shortQuote = source.quote.length > 120 
+        ? source.quote.substring(0, 120) + '...' 
+        : source.quote;
+      sourceList += `\n    └ *"${shortQuote}"*`;
+    }
+    sourceList += '\n';
+  });
+  
+  return sourceList;
 }
 
 // OpenAI Assistant API 處理
@@ -348,32 +356,23 @@ async function processSearchRequest(question, user) {
         // 創建新的 Assistant（每次都創建新的以確保正確配置）
         console.log('🔄 創建新的 Assistant...');
         assistant = await openai.beta.assistants.create({
-            name: "神學知識庫助手",
-            instructions: `你是一位專業的神學知識庫助手，專門回答關於基督教神學的問題。
+            model: 'gpt-4o-mini',
+            name: 'Theology RAG Assistant',
+            instructions: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
 
-重要：你必須使用文件搜索工具來查找相關的神學資料，然後基於這些資料回答問題。
-
-你的任務：
-1. 使用文件搜索工具查找與問題相關的神學資料
-2. 基於搜索到的資料回答問題
-3. 提供準確、詳細且學術性的回答
+重要規則：
+1. 只使用檢索到的資料來回答問題
+2. 如果資料庫中沒有相關資訊，請明確說明「很抱歉，我在資料庫中找不到相關資訊來回答這個問題，因為資料庫都為英文，建議將專有名詞替換成英文或許會有幫助」
+3. 回答要準確、簡潔且有幫助
 4. 使用繁體中文回答
-5. 保持傳統中文的表達方式
-6. 在回答中使用 [1], [2], [3] 等格式標註引用
-7. 如果資料不足，請明確說明
+5. 專注於提供基於資料庫內容的準確資訊
+6. 盡可能引用具體的資料片段
 
-回答要求：
-- 準確性：確保回答基於可靠的資料
-- 完整性：提供全面的解釋
-- 學術性：保持專業的學術水準
-- 可讀性：使用清晰的語言表達
-- 引用格式：使用 [1], [2], [3] 等格式標註引用
-
-重要：你必須先使用文件搜索工具查找資料，然後在回答中使用 [1], [2], [3] 等格式來標註引用，這些標註會自動轉換為可點擊的引用連結。
-
-請確保每個回答都符合這些標準。`,
-            model: "gpt-4o-mini",
-            tools: [{"type": "file_search"}],
+格式要求：
+- 直接回答問題內容
+- 引用相關的資料片段（如果有的話）
+- 不需要在回答中手動添加資料來源，系統會自動處理`,
+            tools: [{ type: 'file_search' }],
             tool_resources: {
                 file_search: {
                     vector_store_ids: [process.env.VECTOR_STORE_ID]
@@ -398,17 +397,13 @@ async function processSearchRequest(question, user) {
         });
         console.log('✅ Run 創建成功，等待處理...');
 
-        // 等待 Run 完成
+        // 等待完成 - 改良版等待機制
         let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
         let attempts = 0;
-        const maxAttempts = 30; // 最多等待 30 次
+        const maxAttempts = 60; // 增加到 60 秒
 
-        while (runStatus.status === 'queued' || runStatus.status === 'in_progress') {
-            if (attempts >= maxAttempts) {
-                throw new Error('處理超時，請稍後再試');
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 2000)); // 等待 2 秒
+        while (runStatus.status !== 'completed' && runStatus.status !== 'failed' && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
             runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
             attempts++;
             
@@ -416,21 +411,16 @@ async function processSearchRequest(question, user) {
         }
 
         if (runStatus.status === 'failed') {
-            throw new Error('Assistant 處理失敗');
+            throw new Error(`Assistant run failed: ${runStatus.last_error?.message || 'Unknown error'}`);
         }
 
-        // 檢查 Run 的詳細狀態
+        if (attempts >= maxAttempts) {
+            throw new Error('查詢時間過長，請嘗試簡化您的問題或稍後再試');
+        }
+
         console.log(`📊 Run 狀態: ${runStatus.status}`);
         console.log(`🔧 Assistant ID: ${assistant.id}`);
         console.log(`💾 向量資料庫 ID: ${process.env.VECTOR_STORE_ID}`);
-        
-        if (runStatus.required_action) {
-            console.log('🔍 Assistant 需要執行工具調用');
-            console.log(`📋 工具調用類型: ${runStatus.required_action.type}`);
-            console.log(`📋 工具調用詳情:`, JSON.stringify(runStatus.required_action, null, 2));
-        } else {
-            console.log('⚠️  Assistant 沒有使用工具調用');
-        }
 
         // 獲取回答
         const messages = await openai.beta.threads.messages.list(thread.id);
@@ -448,14 +438,43 @@ async function processSearchRequest(question, user) {
             answer, 
             lastMessage.content[0].text.annotations
         );
+
+        // 清理資源
+        try {
+            await openai.beta.assistants.del(assistant.id);
+            console.log('✅ Assistant 資源清理完成');
+        } catch (cleanupError) {
+            console.warn('Failed to cleanup assistant:', cleanupError.message);
+        }
         
-        // 創建來源列表
-        const sources = createSourceList(sourceMap);
+        // 組合最終回答
+        let finalAnswer = processedText;
+        
+        // 添加詳細的來源列表
+        const sourceList = createSourceList(sourceMap);
+        if (sourceList) {
+            finalAnswer += sourceList;
+        } else {
+            // 如果沒有具體引用，顯示資料庫來源
+            finalAnswer += `\n\n📚 **資料來源：** 神學知識庫`;
+        }
+
+        // 如果沒有獲取到回答
+        if (!finalAnswer || finalAnswer.trim() === '') {
+            finalAnswer = '很抱歉，我在資料庫中找不到相關資訊來回答這個問題。\n\n📚 **資料來源：** 神學知識庫';
+        }
 
         return {
             question: question,
-            answer: processedText,
-            sources: sources,
+            answer: finalAnswer,
+            sources: Array.from(sourceMap.entries()).map(([index, source]) => ({
+                index,
+                fileName: source.fileName,
+                quote: source.quote && source.quote.length > 120 
+                    ? source.quote.substring(0, 120) + '...' 
+                    : source.quote,
+                fileId: source.fileId
+            })),
             timestamp: new Date().toISOString(),
             user: user,
             method: 'Assistant API'
