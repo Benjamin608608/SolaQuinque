@@ -583,7 +583,11 @@ class VectorService {
             }
             console.log('✅ FAISS 索引建立完成');
         } else {
-            throw new Error('沒有可用的嵌入向量來建立索引');
+            console.log('⚠️  沒有可用的嵌入向量，等待實際資料載入...');
+            // 不拋出錯誤，而是等待實際資料
+            this.isInitialized = true;
+            console.log('✅ 向量服務初始化完成（等待實際資料）');
+            return; // 提前返回，不建立索引
         }
         
         // 暫時禁用索引保存以避免序列化問題
@@ -717,8 +721,8 @@ class VectorService {
             }
         }
         
-        console.log('⚠️  未找到任何資料檔案，使用預設神學文本');
-        return this.getDefaultTheologyTexts();
+        console.log('⚠️  未找到任何資料檔案，等待背景處理完成實際資料...');
+        return []; // 返回空陣列，不使用預設資料
     }
 
     async loadFromZip(zipPath) {
@@ -1118,6 +1122,18 @@ class VectorService {
         const startTime = Date.now();
         console.log(`🔍 執行基於資料庫的對話搜索: "${query}"`);
         
+        // 檢查是否有實際資料
+        if (!this.texts || this.texts.length === 0) {
+            console.log('⚠️  資料庫中沒有實際資料，等待背景處理完成...');
+            return {
+                answer: "抱歉，目前資料庫正在載入您的實際神學資料，請稍後再試。系統正在背景處理您的文件，完成後將提供基於您實際資料庫的回答。",
+                sources: [],
+                method: "Database-Based Conversation",
+                vectorResults: 0,
+                responseTime: Date.now() - startTime
+            };
+        }
+        
         try {
             // 1. 使用 FAISS 進行快速向量搜索
             const vectorResults = await this.search(query, topK);
@@ -1125,7 +1141,7 @@ class VectorService {
             
             if (vectorResults.length === 0) {
                 return {
-                    answer: "抱歉，在資料庫中沒有找到與您問題相關的資訊。",
+                    answer: "抱歉，在您的資料庫中沒有找到與此問題相關的資訊。",
                     sources: [],
                     method: "Database-Based Conversation",
                     vectorResults: 0,
@@ -1474,7 +1490,7 @@ ${vectorResults.map((result, index) => `[${index + 1}] ${result.text}`).join('\n
     // 獲取資料來源資訊
     getDataSourceInfo() {
         if (this.texts.length === 0) {
-            return "無資料";
+            return "等待實際資料載入（背景處理中）";
         }
         
         // 檢查是否都是預設資料
@@ -1493,7 +1509,16 @@ ${vectorResults.map((result, index) => `[${index + 1}] ${result.text}`).join('\n
         if (isAllDefault) {
             return "預設神學資料庫（等待背景處理完成）";
         } else {
-            return "混合資料庫（包含預設資料和實際文件）";
+            // 檢查是否有實際文件
+            const hasRealFiles = this.texts.some(text => 
+                !defaultFileNames.includes(text.fileName)
+            );
+            
+            if (hasRealFiles) {
+                return "實際資料庫（包含您的神學文件）";
+            } else {
+                return "預設神學資料庫（等待背景處理完成）";
+            }
         }
     }
 }
