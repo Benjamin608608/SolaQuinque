@@ -1,2109 +1,389 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>神學知識庫 - 中世紀手抄本風格</title>
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>神學知識庫</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --deep-red: #8B0000;
-            --ochre: #D68C45;
-            --gold: #D4AF37;
-            --parchment: #F5F1E8;
-            --dark-brown: #2C1810;
-            --light-gold: #F4E4BC;
-            --border-gold: #B8860B;
-        }
-
         body {
-            font-family: 'Crimson Text', serif;
-            line-height: 1.8;
-            color: var(--dark-brown);
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(139, 0, 0, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
-                linear-gradient(135deg, var(--parchment) 0%, #F8F4E8 100%);
-            min-height: 100vh;
-            overflow-x: hidden;
-            margin: 0;
-            padding: 0;
+            font-family: 'Noto Serif TC', serif;
+            background: linear-gradient(180deg, #FDF6E3 0%, #F5E9D2 100%);
         }
-
-        html {
-            overflow-x: hidden;
-            height: 100%;
+        .main-container {
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M21.184 20c.357-.13.72-.264 1.088-.402l1.768-.661C33.64 15.347 39.647 14 50 14c10.271 0 15.362 1.222 24.629 4.928.955.383 1.869.74 2.75 1.072h6.225c-2.51-.73-5.139-1.691-8.233-2.928C65.888 13.278 60.562 12 50 12c-10.626 0-16.855 1.397-26.66 5.063l-1.767.662c-2.475.923-4.664 1.622-6.41 2.275h6.358z' fill='%23EFE5CC' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
         }
-
-        /* 中世紀背景裝飾 */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23D4AF37' fill-opacity='0.03'%3E%3Cpath d='M30 30c0-11.046-8.954-20-20-20s-20 8.954-20 20 8.954 20 20 20 20-8.954 20-20zm0 0c0 11.046 8.954 20 20 20s20-8.954 20-20-8.954-20-20-20-20 8.954-20 20z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-
-
-        .header {
-            text-align: center;
-            margin-bottom: 3rem;
-            color: var(--deep-red);
-            position: relative;
-            padding: 2rem 0;
-            opacity: 0;
-            animation: fadeInUp 1.5s ease-out forwards;
-        }
-
-        .top-navigation {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding: 1rem 2rem;
-            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
-            border: 2px solid var(--border-gold);
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
-        }
-
-        .nav-buttons {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .language-buttons {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .lang-btn {
-            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
-            color: var(--deep-red);
-            border: 2px solid var(--border-gold);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            font-family: 'Crimson Text', serif;
-        }
-
-        .lang-btn:hover {
-            background: linear-gradient(135deg, #F0E6D2, var(--light-gold));
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
-        }
-
-        .lang-btn.active {
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            color: var(--parchment);
-            border-color: var(--gold);
-            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
-        }
-
-        .top-navigation .nav-btn {
-            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
-            border: 2px solid var(--border-gold);
-            border-radius: 10px;
-            padding: 0.8rem 1.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Crimson Text', serif;
-            color: var(--dark-brown);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .top-navigation .nav-btn:hover {
-            background: linear-gradient(135deg, #F0E6D2, var(--light-gold));
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
-        }
-
-        .top-navigation .nav-btn.active {
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            color: var(--parchment);
-            border-color: var(--gold);
-        }
-
-        .top-navigation .user-info {
-            position: static;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            padding: 0.8rem 1.5rem;
-            border-radius: 25px;
-            border: 2px solid var(--gold);
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            opacity: 0;
-            animation: fadeInRight 1s ease-out 1s forwards;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* 中世紀標誌 */
-        .medieval-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-            gap: 1rem;
-        }
-
-        .decorative-pillar {
-            width: 40px;
-            height: 80px;
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .decorative-pillar.left {
-            justify-content: flex-end;
-        }
-
-        .decorative-pillar.right {
-            justify-content: flex-start;
-        }
-
-        .decorative-pillar::before {
-            content: '';
-            position: absolute;
-            width: 8px;
-            height: 100%;
-            background: linear-gradient(135deg, var(--gold), #B8860B);
-            border: 2px solid var(--deep-red);
-            border-radius: 4px;
-        }
-
-        .decorative-pillar::after {
-            content: '';
-            position: absolute;
-            width: 30px;
-            height: 8px;
-            background: linear-gradient(135deg, var(--gold), #B8860B);
-            border: 2px solid var(--deep-red);
-            border-radius: 4px;
-        }
-
-        .decorative-pillar.left::after {
-            right: 0;
-            transform: translateX(50%);
-        }
-
-        .decorative-pillar.right::after {
-            left: 0;
-            transform: translateX(-50%);
-        }
-
-        .header h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 3.5rem;
-            margin-bottom: 0.5rem;
-            color: var(--deep-red);
-            text-shadow: 2px 2px 4px rgba(139, 0, 0, 0.2);
-            letter-spacing: 2px;
-            position: relative;
-        }
-
-        .header h1::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--gold), transparent);
-        }
-
-        .header p {
-            font-size: 1.3rem;
-            color: var(--ochre);
-            font-style: italic;
-            margin-top: 1rem;
-            opacity: 0;
-            animation: fadeInUp 1.5s ease-out 0.5s forwards;
-        }
-
-        .user-info {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            padding: 0.8rem 1.5rem;
-            border-radius: 25px;
-            border: 2px solid var(--gold);
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            opacity: 0;
-            animation: fadeInRight 1s ease-out 1s forwards;
-        }
-
-        @keyframes fadeInRight {
-            from {
-                opacity: 0;
-                transform: translateX(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .user-avatar {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--gold);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .user-details {
-            color: var(--parchment);
-            text-align: left;
-        }
-
-        .user-name {
-            font-weight: 600;
-            font-size: 1rem;
-            font-family: 'Playfair Display', serif;
-        }
-
-        .user-email {
-            font-size: 0.85rem;
-            opacity: 0.9;
-            font-style: italic;
-        }
-
-        .logout-btn {
-            background: linear-gradient(135deg, var(--ochre), #C17A3A);
-            color: var(--parchment);
-            border: 2px solid var(--gold);
-            padding: 0.6rem 1.2rem;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            font-family: 'Crimson Text', serif;
-        }
-
-        .logout-btn:hover {
-            background: linear-gradient(135deg, #C17A3A, var(--ochre));
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
-        }
-
-        .login-container {
-            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
-            border: 3px solid var(--border-gold);
-            border-radius: 15px;
-            padding: 3rem;
-            text-align: center;
-            max-width: 500px;
-            margin: 2rem auto;
-            box-shadow: 
-                0 10px 30px rgba(139, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
-            position: relative;
-            opacity: 0;
-            animation: fadeInUp 1.5s ease-out 0.8s forwards;
-        }
-
-        /* 中世紀裝飾邊框 */
-        .login-container::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, var(--gold), var(--ochre), var(--gold));
-            border-radius: 17px;
-            z-index: -1;
-        }
-
-        .login-container::after {
-            content: '✝';
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--parchment);
-            color: var(--deep-red);
-            font-size: 1.5rem;
-            padding: 0 1rem;
-            border: 2px solid var(--gold);
-            border-radius: 20px;
-        }
-
-        .login-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 2rem;
-            color: var(--deep-red);
-            margin-bottom: 1.5rem;
-            text-shadow: 1px 1px 2px rgba(139, 0, 0, 0.1);
-        }
-
-        .login-description {
-            color: var(--dark-brown);
-            font-size: 1.1rem;
-            line-height: 1.8;
-            margin-bottom: 2rem;
-            font-style: italic;
-        }
-
-        .google-login-btn {
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            color: var(--parchment);
-            border: 2px solid var(--gold);
-            padding: 1rem 2rem;
-            border-radius: 30px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            font-family: 'Crimson Text', serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            margin: 0 auto;
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
-        }
-
-        .google-login-btn:hover {
-            background: linear-gradient(135deg, #6B0000, var(--deep-red));
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.4);
-        }
-
-        .google-icon {
-            width: 24px;
-            height: 24px;
-            filter: brightness(0) invert(1);
-        }
-
-        .nav-icon {
-            font-size: 1.2rem;
-        }
-
-        .nav-text {
-            font-size: 1rem;
-        }
-
-        /* 主要內容區域 */
-        .main-content {
-            display: none;
-            opacity: 0;
-            animation: fadeInUp 1s ease-out forwards;
-        }
-
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 300px);
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
-            background: transparent;
-            border: none;
-            border-radius: 0;
-            margin-bottom: 150px;
-            box-shadow: none;
-        }
-
-        .chat-input-area {
-            background: transparent;
-            border: none;
-            padding: 1.5rem;
-            box-shadow: none;
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            width: 100% !important;
-            z-index: 99999 !important;
-            transform: translateZ(0);
-            will-change: transform;
-        }
-
-        .search-form {
-            margin-bottom: 2rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: var(--deep-red);
-            font-weight: 600;
-            font-family: 'Playfair Display', serif;
-            font-size: 1.1rem;
-        }
-
-        .input-container {
-            display: flex;
-            align-items: flex-end;
-            gap: 1rem;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-
-        .chat-input {
-            flex: 1;
-            padding: 1rem 1.5rem;
-            border: 2px solid var(--border-gold);
-            border-radius: 25px;
-            font-size: 1rem;
-            font-family: 'Crimson Text', serif;
-            background: linear-gradient(135deg, var(--parchment), #F8F4E8);
-            color: var(--dark-brown);
-            transition: all 0.3s ease;
-            resize: none;
-            min-height: 50px;
-            max-height: 150px;
-            box-shadow: 
-                0 4px 15px rgba(139, 0, 0, 0.1),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
-        }
-
-        .chat-input:focus {
-            outline: none;
-            border-color: var(--gold);
-            box-shadow: 
-                0 0 0 3px rgba(212, 175, 55, 0.2),
-                0 6px 20px rgba(139, 0, 0, 0.15);
-            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
-        }
-
-        .send-btn {
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            color: var(--parchment);
-            border: 2px solid var(--gold);
-            padding: 1rem;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1.5rem;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
-        }
-
-        .send-btn:hover {
-            background: linear-gradient(135deg, #6B0000, var(--deep-red));
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.4);
-        }
-
-        .send-btn:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 8px rgba(139, 0, 0, 0.3);
-        }
-
-        .search-btn {
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            color: var(--parchment);
-            border: 2px solid var(--gold);
-            padding: 1rem 2rem;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            font-family: 'Crimson Text', serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
-        }
-
-        .search-btn:hover {
-            background: linear-gradient(135deg, #6B0000, var(--deep-red));
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.4);
-        }
-
-        .search-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-
-
-        /* 結果面板 */
-        .results-panel {
-            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
-            border: 3px solid var(--border-gold);
-            border-radius: 15px;
-            padding: 2rem;
-            box-shadow: 
-                0 8px 25px rgba(139, 0, 0, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
-            position: relative;
-        }
-
-        .results-panel::before {
-            content: '✝';
-            position: absolute;
-            top: -15px;
-            left: 20px;
-            background: var(--parchment);
-            padding: 0.5rem 1rem;
-            border: 2px solid var(--gold);
-            border-radius: 20px;
-            font-size: 1.2rem;
-        }
-
-        .results-container {
-            position: relative;
-        }
-
-
-
-        .loading-state {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: var(--ochre);
-        }
-
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid var(--border-gold);
-            border-top: 3px solid var(--gold);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            font-size: 1.2rem;
-            font-style: italic;
-            color: var(--deep-red);
-        }
-
-        .result-content {
-            display: none;
-        }
-
-        .result-header {
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--border-gold);
-        }
-
-        .result-header h3 {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.5rem;
-            color: var(--deep-red);
-            margin-bottom: 0.5rem;
-        }
-
-        .result-header p {
-            color: var(--ochre);
-            font-style: italic;
-            font-size: 1.1rem;
-        }
-
-        .result-body {
-            line-height: 2;
-            color: var(--dark-brown);
-            font-size: 1.1rem;
-        }
-
-        .result-body h4 {
-            color: var(--deep-red);
-            font-family: 'Playfair Display', serif;
-            margin: 1.5rem 0 0.5rem;
-            font-size: 1.3rem;
-        }
-
-        .result-body p {
-            margin-bottom: 1rem;
-            text-align: justify;
-        }
-
-        .result-body ul {
-            margin: 1rem 0;
-            padding-left: 2rem;
-        }
-
-        .result-body li {
-            margin-bottom: 0.5rem;
-        }
-
-        /* 引用標註樣式 */
-        .citation {
-            background: linear-gradient(135deg, var(--gold), var(--ochre));
-            color: var(--deep-red);
-            padding: 2px 6px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: 1px solid var(--border-gold);
-            transition: all 0.3s ease;
-            display: inline-block;
-            margin: 0 2px;
-            box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2);
-        }
-
-        .citation:hover {
-            background: linear-gradient(135deg, var(--ochre), var(--gold));
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(139, 0, 0, 0.3);
-        }
-
-        /* 引用工具提示 */
-        .citation-tooltip {
-            position: absolute;
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            color: var(--parchment);
-            padding: 1rem;
-            border-radius: 8px;
-            border: 2px solid var(--gold);
-            box-shadow: 0 8px 25px rgba(139, 0, 0, 0.3);
-            font-size: 0.9rem;
-            max-width: 300px;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .citation-tooltip.show {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* 對話消息樣式 */
-        .message {
-            margin-bottom: 1.5rem;
-            display: flex;
-            gap: 1rem;
-        }
-
-        .message.user {
-            justify-content: flex-end;
-        }
-
-        .message.assistant {
-            justify-content: flex-start;
-        }
-
-        .message-content {
-            max-width: 80%;
-            padding: 1rem 1.5rem;
-            border-radius: 20px;
-            position: relative;
-            font-family: 'Crimson Text', serif;
-            line-height: 1.6;
-        }
-
-        .message.user .message-content {
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            color: var(--parchment);
-            border: 2px solid var(--gold);
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
-        }
-
-        .message.assistant .message-content {
-            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
-            color: var(--dark-brown);
-            border: 2px solid var(--border-gold);
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
-        }
-
-        /* 引用標註工具提示改進 */
-        .citation-tooltip {
-            position: absolute;
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            color: var(--parchment);
-            padding: 1rem;
-            border-radius: 8px;
-            border: 2px solid var(--gold);
-            box-shadow: 0 8px 25px rgba(139, 0, 0, 0.3);
-            font-size: 0.9rem;
-            max-width: 300px;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .citation-tooltip::before {
-            content: '';
-            position: absolute;
-            left: var(--arrow-left, 20px);
-            top: 100%;
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 8px solid var(--deep-red);
-            transform: translateX(-50%);
-        }
-
-        .citation-tooltip::after {
-            content: '';
-            position: absolute;
-            left: var(--arrow-left, 20px);
-            top: 100%;
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 8px solid var(--gold);
-            transform: translateX(-50%);
-            margin-top: -2px;
-        }
-
-        /* 當工具提示在下方時的尖端 */
-        .citation-tooltip.tooltip-below::before {
-            top: auto;
-            bottom: 100%;
-            border-top: none;
-            border-bottom: 8px solid var(--deep-red);
-        }
-
-        .citation-tooltip.tooltip-below::after {
-            top: auto;
-            bottom: 100%;
-            border-top: none;
-            border-bottom: 8px solid var(--gold);
-            margin-top: 0;
-            margin-bottom: -2px;
-        }
-
-        .citation-tooltip.show {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .error-message {
-            text-align: center;
-            padding: 2rem;
-            color: #8B0000;
-            background: linear-gradient(135deg, rgba(139, 0, 0, 0.1), rgba(139, 0, 0, 0.05));
-            border: 2px solid var(--deep-red);
-            border-radius: 10px;
-        }
-
-        .error-message strong {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.3rem;
-            display: block;
-            margin-bottom: 1rem;
-        }
-
-        /* 作品目錄頁面 */
-        .catalog-page {
-            display: none;
-            opacity: 0;
-            animation: fadeInUp 1s ease-out forwards;
-        }
-
-        .catalog-header {
-            text-align: center;
-            margin-bottom: 2rem;
-            color: var(--deep-red);
-        }
-
-        .catalog-header h2 {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .catalog-search {
-            margin-bottom: 2rem;
-        }
-
-        .search-row {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .search-input {
-            flex: 1;
-            padding: 1rem 1.5rem;
-            border: 2px solid var(--border-gold);
-            border-radius: 25px;
-            font-size: 1rem;
-            font-family: 'Crimson Text', serif;
-            background: linear-gradient(135deg, var(--parchment), #F8F4E8);
-            color: var(--dark-brown);
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: var(--gold);
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
-        }
-
-        @media (max-width: 768px) {
-            .search-row {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-        }
-
-        .catalog-list {
-            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
-            border: 3px solid var(--border-gold);
-            border-radius: 15px;
-            padding: 2rem;
-            box-shadow: 
-                0 8px 25px rgba(139, 0, 0, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
-        }
-
-        .catalog-author {
-            margin-bottom: 1.5rem;
-        }
-
-        .catalog-author-name {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.3rem;
-            color: var(--deep-red);
-            margin-bottom: 0.5rem;
-            cursor: pointer;
-            transition: color 0.3s ease;
-        }
-
-        .catalog-author-name:hover {
-            color: var(--ochre);
-        }
-
-        .catalog-author ul {
-            list-style: none;
-            padding-left: 1rem;
-        }
-
-        .catalog-author li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .catalog-author li:hover {
-            background: rgba(212, 175, 55, 0.1);
-            padding-left: 0.5rem;
-        }
-
-        /* 新的參考書目樣式 */
-        .catalog-empty {
-            color: var(--ochre);
-            text-align: center;
-            padding: 2rem;
-            background: linear-gradient(135deg, rgba(245, 241, 232, 0.95), rgba(248, 244, 232, 0.95));
-            border: 2px solid var(--border-gold);
-            border-radius: 10px;
-            font-style: italic;
-        }
-
-        .catalog-letter-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .catalog-letter {
-            background: linear-gradient(135deg, var(--deep-red), #6B0000);
-            color: var(--parchment);
-            padding: 1rem 1.5rem;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid var(--gold);
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            font-family: 'Playfair Display', serif;
-            font-weight: 600;
-            font-size: 1.2rem;
-        }
-
-        .catalog-letter:hover {
-            background: linear-gradient(135deg, #6B0000, var(--deep-red));
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.3);
-        }
-
-        .catalog-authors {
-            margin-top: 1rem;
-            padding-left: 1rem;
-        }
-
-        .catalog-author {
-            margin-bottom: 1rem;
-        }
-
-        .catalog-author-name {
-            background: linear-gradient(135deg, var(--ochre), #C17A3A);
-            color: var(--parchment);
-            padding: 0.8rem 1.2rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid var(--gold);
-            box-shadow: 0 2px 8px rgba(139, 0, 0, 0.15);
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            font-family: 'Crimson Text', serif;
-            font-weight: 600;
-            font-size: 1rem;
-        }
-
-        .catalog-author-name:hover {
-            background: linear-gradient(135deg, #C17A3A, var(--ochre));
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.25);
-        }
-
-        .catalog-works {
-            margin-top: 0.8rem;
-            padding-left: 1rem;
-            list-style: none;
-        }
-
-        .catalog-work {
-            background: linear-gradient(135deg, var(--light-gold), #F0E6D2);
-            color: var(--dark-brown);
-            padding: 0.6rem 1rem;
-            margin-bottom: 0.3rem;
-            border-radius: 6px;
-            border: 1px solid var(--border-gold);
-            transition: all 0.3s ease;
-            font-family: 'Crimson Text', serif;
-            font-size: 0.95rem;
-        }
-
-        .catalog-work:hover {
-            background: linear-gradient(135deg, #F0E6D2, var(--light-gold));
-            transform: translateX(5px);
-            box-shadow: 0 2px 8px rgba(139, 0, 0, 0.15);
-        }
-
-        .arrow {
-            transition: transform 0.3s ease;
-        }
-
-        .arrow.expanded {
-            transform: rotate(90deg);
-        }
-
-        .letter-text {
-            font-size: 1.5rem;
+        .title-text {
             font-weight: 700;
+            color: #8C2B1D;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
         }
-
-        .author-count, .works-count {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            font-style: italic;
+        .subtitle-text {
+            color: #A6634B;
         }
-
-        /* 響應式設計 */
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-                max-width: 100%;
-            }
-
-            .header {
-                margin-bottom: 1rem;
-                padding: 0.5rem 0;
-            }
-
-            .header h1 {
-                font-size: 1.5rem;
-                margin-bottom: 0.5rem;
-            }
-
-            .header p {
-                font-size: 0.9rem;
-                margin-bottom: 0.5rem;
-            }
-
-            .top-navigation {
-                flex-direction: row;
-                gap: 0.5rem;
-                padding: 0.5rem;
-                margin-bottom: 1rem;
-                align-items: center;
-                flex-wrap: wrap;
-            }
-
-            .nav-buttons {
-                display: flex;
-                gap: 0.3rem;
-                flex: 1;
-            }
-
-            .nav-btn {
-                padding: 0.4rem 0.6rem;
-                font-size: 0.7rem;
-                min-width: auto;
-                flex: 0 1 auto;
-            }
-
-            .nav-icon {
-                font-size: 0.8rem;
-            }
-
-            .nav-text {
-                font-size: 0.6rem;
-            }
-
-            .language-buttons {
-                display: flex;
-                gap: 0.3rem;
-            }
-
-            .lang-btn {
-                padding: 0.3rem 0.5rem;
-                font-size: 0.7rem;
-            }
-
-            .user-info {
-                position: relative;
-                top: auto;
-                right: auto;
-                margin: 0;
-                max-width: none;
-                flex-direction: row;
-                gap: 0.5rem;
-                padding: 0.3rem 0.5rem;
-                align-items: center;
-                background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(107, 0, 0, 0.9));
-                border: 1px solid var(--gold);
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(139, 0, 0, 0.2);
-            }
-
-            .user-avatar {
-                width: 25px;
-                height: 25px;
-            }
-
-            .user-details {
-                text-align: left;
-                flex: 1;
-            }
-
-            .user-name {
-                font-size: 0.7rem;
-                color: var(--parchment);
-            }
-
-            .user-email {
-                font-size: 0.6rem;
-                color: var(--light-gold);
-            }
-
-            .logout-btn {
-                padding: 0.3rem 0.5rem;
-                font-size: 0.7rem;
-                background: var(--ochre);
-                color: var(--deep-red);
-                border: 1px solid var(--gold);
-            }
-
-            .login-container {
-                margin: 1rem;
-                padding: 1.5rem;
-            }
-
-            .login-title {
-                font-size: 1.5rem;
-            }
-
-            .login-description {
-                font-size: 0.9rem;
-            }
-
-            .google-login-btn {
-                padding: 1rem;
-                font-size: 1rem;
-            }
-
-            .chat-container {
-                margin: 0;
-                padding: 1rem;
-                max-width: 100%;
-                height: calc(100vh - 150px);
-                display: flex;
-                flex-direction: column;
-            }
-
-            .chat-messages {
-                padding: 1rem;
-                margin-bottom: 120px;
-                min-height: calc(100vh - 200px);
-                display: flex;
-                flex-direction: column;
-            }
-
-            .message {
-                margin-bottom: 1rem;
-                padding: 0.8rem;
-                flex-shrink: 0;
-            }
-
-            .message-content {
-                font-size: 0.9rem;
-                line-height: 1.6;
-            }
-
-            .chat-input-area {
-                padding: 1rem;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                width: 100%;
-                border-radius: 0;
-            }
-
-            .input-container {
-                padding: 0 1rem;
-                max-width: 100%;
-            }
-
-            .chat-input {
-                padding: 1rem;
-                font-size: 1rem;
-                min-height: 50px;
-                max-height: 100px;
-            }
-
-            .send-btn {
-                width: 45px;
-                height: 45px;
-                font-size: 1.2rem;
-            }
-
-            .catalog-search {
-                padding: 1rem;
-            }
-
-            .search-row {
-                flex-direction: column;
-                gap: 0.8rem;
-            }
-
-            .search-input {
-                padding: 0.8rem;
-                font-size: 0.9rem;
-            }
-
-            .catalog-list {
-                padding: 1rem;
-            }
-
-            .catalog-letter {
-                padding: 0.8rem 1rem;
-                font-size: 1rem;
-                gap: 0.5rem;
-            }
-
-            .catalog-author-name {
-                font-size: 1.1rem;
-                padding: 0.8rem;
-            }
-
-            .catalog-work {
-                padding: 0.6rem;
-                font-size: 0.9rem;
-            }
-
-            .medieval-decoration {
-                display: none;
-            }
+        .btn-primary {
+            background-color: #8C2B1D;
+            color: #FDF6E3;
+            border: 1px solid #7B2418;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 5px;
-            }
-
-            .header h1 {
-                font-size: 1.8rem;
-            }
-
-            .top-navigation {
-                padding: 0.8rem;
-            }
-
-            .nav-btn {
-                padding: 0.6rem 0.3rem;
-                font-size: 0.8rem;
-            }
-
-            .nav-text {
-                font-size: 0.7rem;
-            }
-
-            .chat-input-area {
-                padding: 0.8rem;
-            }
-
-            .input-container {
-                padding: 0 0.8rem;
-            }
-
-            .chat-input {
-                padding: 0.8rem;
-                font-size: 0.9rem;
-            }
-
-            .send-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 1rem;
-            }
-
-            .message {
-                padding: 0.6rem;
-            }
-
-            .message-content {
-                font-size: 0.8rem;
-            }
+        .btn-secondary {
+            background-color: #FDF6E3;
+            color: #8C2B1D;
+            border: 1px solid #D1C7B8;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
-        /* 滾動動畫 */
-        .fade-in {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.6s ease;
+        .lang-btn {
+            border: 1px solid #D1C7B8;
+            transition: all 0.3s ease;
         }
-
-        .fade-in.visible {
-            opacity: 1;
-            transform: translateY(0);
+        .lang-btn.active {
+            background-color: #8C2B1D;
+            color: #FDF6E3;
+            border-color: #8C2B1D;
         }
-
-        /* 中世紀裝飾元素 */
-        .medieval-decoration {
-            position: fixed;
-            top: 50%;
-            left: 20px;
-            transform: translateY(-50%);
-            width: 40px;
-            height: 200px;
-            background: linear-gradient(180deg, var(--gold), var(--ochre));
-            border-radius: 20px;
-            opacity: 0.3;
-            z-index: -1;
+        .lang-btn:not(.active) {
+            background-color: #FDF6E3;
+            color: #8C2B1D;
         }
-
-        .medieval-decoration::before {
-            content: '✝';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: var(--deep-red);
-            font-size: 1.5rem;
+        .input-wrapper {
+            background-color: #FFFFFF;
+            border: 1px solid #D1C7B8;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         }
-
-        .medieval-decoration.right {
-            left: auto;
-            right: 20px;
+        .submit-btn {
+            background-color: #8C2B1D;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .side-bar {
+            background-color: rgba(245, 233, 210, 0.6);
+            border: 1px solid #E4D9C7;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
         }
     </style>
 </head>
-<body>
-    <!-- 中世紀裝飾元素 -->
-    <div class="medieval-decoration"></div>
-    <div class="medieval-decoration right"></div>
+<body class="min-h-screen flex flex-col">
+<div class="main-container flex-grow flex flex-col items-center p-4 sm:p-6 md:p-8">
+<header class="w-full max-w-7xl mx-auto flex justify-between items-center mb-12 sm:mb-20">
+<div class="flex items-center space-x-2 sm:space-x-4">
+<a class="btn-primary flex items-center py-2 px-4 rounded-full text-sm sm:text-base hover:bg-opacity-90 transition-colors" href="#">
+<span class="material-icons mr-1 text-base sm:text-lg">home</span>
+          首頁
+        </a>
+<a class="btn-secondary flex items-center py-2 px-4 rounded-full text-sm sm:text-base hover:bg-gray-50 transition-colors" href="#">
+<span class="material-icons mr-1 text-base sm:text-lg">menu_book</span>
+          參考書目
+        </a>
+</div>
+<div class="flex items-center space-x-4">
+<div class="flex items-center space-x-1 p-0.5 bg-[#F5E9D2] rounded-full border border-gray-300">
+<button class="lang-btn active text-sm sm:text-base px-4 py-1.5 rounded-full">中文</button>
+<button class="lang-btn text-sm sm:text-base px-4 py-1.5 rounded-full">English</button>
+</div>
+<div class="flex items-center space-x-2">
+<img alt="User avatar" class="w-10 h-10 rounded-full border-2 border-[#D1C7B8] p-0.5" src="https://lh3.googleusercontent.com/a/ACg8ocL5n-HoE2S05eRX8OEKTTwtTgzLSOWlsgHuNG17OPyxwH00a-nyBA=s96-c"/>
+<button class="btn-secondary flex items-center py-2 px-4 rounded-full text-sm sm:text-base hover:bg-gray-50 transition-colors">
+<span class="material-icons mr-1 text-base sm:text-lg">logout</span>
+            登出
+          </button>
+</div>
+</div>
+</header>
+<main class="w-full flex-grow flex flex-col items-center justify-center relative">
+<div class="side-bar absolute left-0 top-1/2 -translate-y-1/2 h-48 w-8 rounded-full flex items-center justify-center opacity-70">
+<span class="material-icons text-[#A6634B] text-lg">add</span>
+</div>
+<div class="text-center mb-8">
+<h1 class="title-text text-4xl sm:text-5xl md:text-6xl tracking-widest relative inline-block px-4">
+<span class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full text-4xl sm:text-5xl md:text-6xl opacity-70">♱</span>
+            神學知識庫
+            <span class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full text-4xl sm:text-5xl md:text-6xl opacity-70">♱</span>
+</h1>
+<p class="subtitle-text text-base sm:text-lg md:text-xl mt-4">探索神學家的智慧，尋找信仰的答案</p>
+</div>
+<div class="side-bar absolute right-0 top-1/2 -translate-y-1/2 h-48 w-8 rounded-full flex items-center justify-center opacity-70">
+<span class="material-icons text-[#A6634B] text-lg">add</span>
+</div>
+</main>
+<footer class="w-full max-w-3xl mx-auto mt-auto pb-8">
+<div class="input-wrapper relative flex items-center rounded-full p-2">
+<input class="w-full bg-transparent border-none focus:ring-0 pl-4 pr-16 py-3 text-gray-700 placeholder-gray-500" placeholder="詢問任何問題..." type="text"/>
+<button class="submit-btn absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center hover:bg-opacity-90 transition-colors">
+<span class="material-icons">send</span>
+</button>
+</div>
+</footer>
+</div>
 
-    <div class="container">
-        <!-- 用戶資訊 -->
-        <div class="user-info" id="userInfo" style="display: none;">
-            <img class="user-avatar" id="userAvatar" src="" alt="用戶頭像">
-            <div class="user-details">
-                <div class="user-name" id="userName"></div>
-                <div class="user-email" id="userEmail"></div>
-            </div>
-            <button class="logout-btn" onclick="logout()">登出</button>
-        </div>
+<script>
+// 檢查用戶認證狀態
+async function checkAuthStatus() {
+    try {
+        const response = await fetch('/api/user');
+        const data = await response.json();
+        
+        if (data.success && data.user) {
+            showAuthenticatedUI(data.user);
+        } else {
+            showLoginUI();
+        }
+    } catch (error) {
+        console.error('檢查認證狀態失敗:', error);
+        showLoginUI();
+    }
+}
 
-        <!-- 頁首 -->
-        <div class="header">
-            <div class="top-navigation">
-                <div class="nav-buttons">
-                    <button class="nav-btn active" id="homeNav" onclick="showHome()">
-                        <span class="nav-icon">🏠</span>
-                        <span class="nav-text" data-zh="首頁" data-en="Home">首頁</span>
+// 顯示已認證的 UI
+function showAuthenticatedUI(user) {
+    // 更新用戶頭像
+    const userAvatar = document.querySelector('img[alt="User avatar"]');
+    if (userAvatar && user.picture) {
+        userAvatar.src = user.picture;
+    }
+    
+    // 顯示登出按鈕
+    const logoutBtn = document.querySelector('button:has(.material-icons)');
+    if (logoutBtn) {
+        logoutBtn.onclick = () => window.location.href = '/auth/logout';
+    }
+    
+    // 顯示搜索功能
+    showSearchUI();
+}
+
+// 顯示登入 UI
+function showLoginUI() {
+    // 隱藏搜索相關元素
+    const footer = document.querySelector('footer');
+    if (footer) {
+        footer.style.display = 'none';
+    }
+    
+    // 添加登入按鈕到主內容區域
+    const main = document.querySelector('main');
+    if (main) {
+        main.innerHTML = `
+            <div class="text-center">
+                <div class="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
+                    <h2 class="text-2xl font-bold text-[#8C2B1D] mb-4">歡迎使用神學知識庫</h2>
+                    <p class="text-gray-600 mb-6">請登入以開始使用</p>
+                    <button onclick="login()" class="btn-primary px-6 py-3 rounded-full flex items-center mx-auto">
+                        <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        使用 Google 登入
                     </button>
-                    <button class="nav-btn" id="catalogNav" onclick="showCatalog()">
-                        <span class="nav-icon">📚</span>
-                        <span class="nav-text" data-zh="參考書目" data-en="Bibliography">參考書目</span>
-                    </button>
-                </div>
-                <div class="language-buttons">
-                    <button class="lang-btn active" id="zhBtn" onclick="switchLanguage('zh')">
-                        <span class="lang-text">中文</span>
-                    </button>
-                    <button class="lang-btn" id="enBtn" onclick="switchLanguage('en')">
-                        <span class="lang-text">English</span>
-                    </button>
-                </div>
-                <div class="user-info" id="userInfo" style="display: none;">
-                    <div class="user-avatar">
-                        <img id="userAvatar" src="" alt="用戶頭像">
-                    </div>
-                    <div class="user-details">
-                        <span id="userName" data-zh="用戶名" data-en="Username">用戶名</span>
-                        <button class="logout-btn" onclick="logout()" data-zh="登出" data-en="Logout">登出</button>
-                    </div>
                 </div>
             </div>
-            <div class="medieval-logo">
-                <div class="decorative-pillar left"></div>
-                <h1 data-zh="神學知識庫" data-en="Theology Knowledge Base">神學知識庫</h1>
-                <div class="decorative-pillar right"></div>
+        `;
+    }
+}
+
+// 顯示搜索 UI
+function showSearchUI() {
+    // 恢復 footer 顯示
+    const footer = document.querySelector('footer');
+    if (footer) {
+        footer.style.display = 'block';
+    }
+    
+    // 添加搜索功能
+    const input = document.querySelector('input[placeholder="詢問任何問題..."]');
+    const submitBtn = document.querySelector('.submit-btn');
+    
+    if (input && submitBtn) {
+        // 處理 Enter 鍵
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+        
+        // 處理提交按鈕點擊
+        submitBtn.addEventListener('click', handleSearch);
+    }
+}
+
+// 處理搜索
+async function handleSearch() {
+    const input = document.querySelector('input[placeholder="詢問任何問題..."]');
+    const question = input.value.trim();
+    
+    if (!question) return;
+    
+    // 顯示載入狀態
+    showLoadingState();
+    
+    try {
+        const response = await fetch('/api/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ question })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showResult(data.data.answer, data.data.sources);
+        } else {
+            showError(data.error || '搜索失敗，請稍後再試');
+        }
+    } catch (error) {
+        console.error('搜索錯誤:', error);
+        showError('網路錯誤，請檢查連線後再試');
+    }
+}
+
+// 顯示載入狀態
+function showLoadingState() {
+    const main = document.querySelector('main');
+    if (main) {
+        main.innerHTML = `
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8C2B1D] mx-auto mb-4"></div>
+                <p class="text-[#A6634B]">正在搜索相關資料...</p>
             </div>
-            <p data-zh="探索神學家的智慧，尋找信仰的答案" data-en="Explore the wisdom of theologians, find answers to faith">探索神學家的智慧，尋找信仰的答案</p>
-        </div>
+        `;
+    }
+}
 
-        <!-- 登入容器 -->
-        <div class="login-container" id="loginContainer">
-            <div class="login-title" data-zh="歡迎使用神學知識庫" data-en="Welcome to Theology Knowledge Base">歡迎使用神學知識庫</div>
-            <p class="login-description" data-zh="為了提供更好的服務體驗，請使用 Google 帳號登入後開始使用。您的個人資訊將受到保護，僅用於改善服務品質。" data-en="For a better service experience, please sign in with your Google account to start using. Your personal information will be protected and only used to improve service quality.">
-                為了提供更好的服務體驗，請使用 Google 帳號登入後開始使用。
-                <br><br>
-                您的個人資訊將受到保護，僅用於改善服務品質。
-            </p>
-            <button class="google-login-btn" onclick="login()">
-                <svg class="google-icon" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                <span data-zh="使用 Google 登入" data-en="Sign in with Google">使用 Google 登入</span>
-            </button>
-        </div>
-
-        <!-- 主要內容區域 -->
-        <div class="main-content" id="mainContent">
-            <div class="chat-container">
-                <div class="chat-messages" id="chatMessages">
-                    <div class="empty-state" id="emptyState" style="display: none;">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 固定輸入區域 -->
-        <div class="chat-input-area" id="chatInputArea">
-            <form class="chat-input-form" id="searchForm">
-                <div class="input-container">
-                    <textarea 
-                        id="question" 
-                        class="chat-input" 
-                        placeholder="詢問任何問題..."
-                        data-zh-placeholder="詢問任何問題..."
-                        data-en-placeholder="Ask any question..."
-                        required
-                    ></textarea>
-                    <button type="submit" class="send-btn" id="searchBtn">
-                        <span id="searchBtnIcon">➤</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- 參考書目頁面 -->
-        <div class="catalog-page" id="catalogPage">
-            <div class="catalog-header">
-                <h2 data-zh="📚 參考書目" data-en="📚 Bibliography">📚 參考書目</h2>
-                <p data-zh="探索豐富的神學文獻資料庫" data-en="Explore a rich theological literature database">探索豐富的神學文獻資料庫</p>
-            </div>
-            <div class="catalog-search">
-                <div class="search-row">
-                    <input type="text" id="authorSearch" placeholder="搜尋作者..." class="search-input" data-zh-placeholder="搜尋作者..." data-en-placeholder="Search authors...">
-                    <input type="text" id="workSearch" placeholder="搜尋著作名稱..." class="search-input" data-zh-placeholder="搜尋著作名稱..." data-en-placeholder="Search work titles...">
-                </div>
-            </div>
-            <div class="catalog-list" id="catalogList">
-                <!-- 目錄內容將在這裡動態載入 -->
-            </div>
-        </div>
-    </div>
-
-    <script>
-        class TheologySearchApp {
-            constructor() {
-                this.initElements();
-                this.bindEvents();
-                this.loadingMessages = [
-                    '🤔 讓我查找相關資料...',
-                    '🔍 深度搜索資料庫中...',
-                    '📚 分析文件內容中...',
-                    '✍️ 整理回答中...',
-                    '⏳ 即將完成...'
-                ];
-                this.currentLoadingIndex = 0;
-                this.checkAuthStatus();
-                this.initScrollAnimations();
-            }
-
-            initElements() {
-                this.form = document.getElementById('searchForm');
-                this.questionInput = document.getElementById('question');
-                this.searchBtn = document.getElementById('searchBtn');
-                this.emptyState = document.getElementById('emptyState');
-                this.chatMessages = document.getElementById('chatMessages');
-                this.searchBtnIcon = document.getElementById('searchBtnIcon');
-            }
-
-            bindEvents() {
-                this.form.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    this.handleSearch();
-                });
-
-
-            }
-
-            initScrollAnimations() {
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            entry.target.classList.add('visible');
-                        }
-                    });
-                });
-
-                document.querySelectorAll('.fade-in').forEach(el => {
-                    observer.observe(el);
-                });
-            }
-
-            async checkAuthStatus() {
-                try {
-                    const response = await fetch('/api/user');
-                    const data = await response.json();
-                    
-                    if (data.success && data.user) {
-                        this.showUserInfo(data.user);
-                        this.showMainContent();
-                    } else {
-                        this.showLoginContainer();
-                    }
-                } catch (error) {
-                    console.error('檢查認證狀態失敗:', error);
-                    this.showLoginContainer();
-                }
-            }
-
-            showUserInfo(user) {
-                const userInfo = document.getElementById('userInfo');
-                const userAvatar = document.getElementById('userAvatar');
-                const userName = document.getElementById('userName');
-
-                userAvatar.src = user.picture || '/default-avatar.png';
-                userName.textContent = user.name || user.displayName || '用戶';
-                userInfo.style.display = 'flex';
-                
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                
-                // 顯示導航按鈕和輸入區域
-                const homeNav = document.getElementById('homeNav');
-                const catalogNav = document.getElementById('catalogNav');
-                const chatInputArea = document.getElementById('chatInputArea');
-                
-                if (homeNav) homeNav.style.display = 'block';
-                if (catalogNav) catalogNav.style.display = 'block';
-                if (chatInputArea) chatInputArea.style.display = 'block';
-            }
-
-            showMainContent() {
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                document.getElementById('mainContent').classList.add('fade-in');
-            }
-
-            showLoginContainer() {
-                document.getElementById('userInfo').style.display = 'none';
-                document.getElementById('loginContainer').style.display = 'block';
-                document.getElementById('mainContent').style.display = 'none';
-                
-                // 隱藏導航按鈕和輸入區域
-                const homeNav = document.getElementById('homeNav');
-                const catalogNav = document.getElementById('catalogNav');
-                const chatInputArea = document.getElementById('chatInputArea');
-                
-                if (homeNav) homeNav.style.display = 'none';
-                if (catalogNav) catalogNav.style.display = 'none';
-                if (chatInputArea) chatInputArea.style.display = 'none';
-            }
-
-            async handleSearch() {
-                const question = this.questionInput.value.trim();
-                if (!question) return;
-
-                // 在手機版隱藏標題區域和裝飾符號，但保留導航按鈕
-                if (window.innerWidth <= 768) {
-                    const header = document.querySelector('.header');
-                    if (header) {
-                        // 隱藏標題文字和裝飾符號
-                        const headerTitle = header.querySelector('h1');
-                        const headerDesc = header.querySelector('p');
-                        const decorativePillars = header.querySelectorAll('.decorative-pillar');
-                        if (headerTitle) headerTitle.style.display = 'none';
-                        if (headerDesc) headerDesc.style.display = 'none';
-                        decorativePillars.forEach(pillar => {
-                            pillar.style.display = 'none';
-                        });
-                    }
-                }
-
-                // 立即顯示用戶對話泡泡
-                const userMessage = document.createElement('div');
-                userMessage.className = 'message user';
-                userMessage.innerHTML = `
-                    <div class="message-content">
-                        ${question}
-                    </div>
-                `;
-                this.chatMessages.appendChild(userMessage);
-                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-
-                // 調整輸入區域位置
-                const chatInputArea = document.querySelector('.chat-input-area');
-                if (chatInputArea) {
-                    chatInputArea.classList.add('with-messages');
-                }
-
-                // 清空輸入欄位
-                this.questionInput.value = '';
-
-                this.showLoading();
-                this.startLoadingAnimation();
-
-                try {
-                    const response = await fetch('/api/search', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ question })
-                    });
-
-                    const data = await response.json();
-                    console.log('API 返回數據:', data);
-
-                    if (data.success) {
-                        console.log('調用 showResult:', data.data.answer, data.data.sources);
-                        this.showResult(question, data.data.answer, data.data.sources);
-                    } else {
-                        this.showError(data.error || '搜尋失敗，請稍後再試');
-                    }
-                } catch (error) {
-                    console.error('搜尋錯誤:', error);
-                    this.showError('網路錯誤，請檢查連線後再試');
-                }
-            }
-
-            showLoading() {
-                // 添加載入消息
-                const loadingMessage = document.createElement('div');
-                loadingMessage.className = 'message assistant';
-                loadingMessage.innerHTML = `
-                    <div class="message-content">
-                        <div class="loading-spinner"></div>
-                        <p>🤔 讓我查找相關資料...</p>
-                    </div>
-                `;
-                this.chatMessages.appendChild(loadingMessage);
-                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-                
-                // 開始載入動畫
-                this.startLoadingAnimation();
-            }
-
-            startLoadingAnimation() {
-                this.currentLoadingIndex = 0;
-                
-                this.loadingInterval = setInterval(() => {
-                    this.currentLoadingIndex = (this.currentLoadingIndex + 1) % this.loadingMessages.length;
-                }, 2000);
-            }
-
-            showResult(question, answer, sources) {
-                clearInterval(this.loadingInterval);
-                
-                console.log('顯示結果:', { question, answer, sources });
-                
-                // 移除載入消息
-                const loadingMessages = this.chatMessages.querySelectorAll('.message.assistant');
-                if (loadingMessages.length > 0) {
-                    loadingMessages[loadingMessages.length - 1].remove();
-                }
-                
-                // 添加助手回答
-                const assistantMessage = document.createElement('div');
-                assistantMessage.className = 'message assistant';
-                const formattedAnswer = this.formatAnswer(answer, sources);
-                assistantMessage.innerHTML = `
-                    <div class="message-content">
+// 顯示結果
+function showResult(answer, sources) {
+    const main = document.querySelector('main');
+    if (main) {
+        // 格式化答案，處理引用標註
+        let formattedAnswer = formatAnswer(answer, sources);
+        
+        main.innerHTML = `
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="prose max-w-none">
                         ${formattedAnswer}
                     </div>
-                `;
-                this.chatMessages.appendChild(assistantMessage);
-                
-                // 滾動到底部
-                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-                
-                console.log('助手回答已添加');
-            }
+                </div>
+            </div>
+        `;
+    }
+}
 
-            formatAnswer(answer, sources) {
-                let formattedAnswer = answer;
-                
-                // 處理 Markdown 格式
-                formattedAnswer = formattedAnswer
-                    // 處理粗體 **text** -> <strong>text</strong>
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    // 處理斜體 *text* -> <em>text</em>
-                    .replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>')
-                    // 處理換行
-                    .replace(/\n\n/g, '</p><p>')
-                    .replace(/\n/g, '<br>');
-                
-                // 包裝成段落
-                if (!formattedAnswer.startsWith('<p>')) {
-                    formattedAnswer = '<p>' + formattedAnswer + '</p>';
-                }
-                
-                // 處理引用標註 [1], [2] 等
-                if (sources && sources.length > 0) {
-                    sources.forEach((source, index) => {
-                        const citationNumber = index + 1;
-                        const citationRegex = new RegExp(`\\[${citationNumber}\\]`, 'g');
-                        
-                        let sourceText = '';
-                        if (typeof source === 'string') {
-                            sourceText = source;
-                        } else if (source && source.fileName) {
-                            sourceText = source.fileName;
-                        } else {
-                            sourceText = '未知來源';
-                        }
-                        
-                        // 添加更多來源資訊到工具提示
-                        let tooltipContent = sourceText;
-                        if (source && source.text) {
-                            tooltipContent += '\n\n引用內容：\n' + source.text;
-                        }
-                        
-                        const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${tooltipContent}">[${citationNumber}]</span>`;
-                        formattedAnswer = formattedAnswer.replace(citationRegex, citationHtml);
-                    });
-                }
-                
-                return formattedAnswer;
-            }
-
-            showError(message) {
-                clearInterval(this.loadingInterval);
-                
-                this.errorText.textContent = message;
-                this.loadingState.style.display = 'none';
-                this.errorMessage.style.display = 'block';
-            }
-        }
-
-        // 全局函數
-        function login() {
-            window.location.href = '/auth/google';
-        }
-
-        function logout() {
-            window.location.href = '/auth/logout';
-        }
-
-        // 導航功能
-        function showHome() {
-            document.getElementById('catalogPage').style.display = 'none';
-            document.getElementById('mainContent').style.display = 'block';
-            document.getElementById('homeNav').classList.add('active');
-            document.getElementById('catalogNav').classList.remove('active');
+// 格式化答案
+function formatAnswer(answer, sources) {
+    let formatted = answer;
+    
+    // 處理 Markdown 格式
+    formatted = formatted
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+    
+    // 包裝成段落
+    if (!formatted.startsWith('<p>')) {
+        formatted = '<p>' + formatted + '</p>';
+    }
+    
+    // 處理引用標註 [1], [2] 等
+    if (sources && sources.length > 0) {
+        sources.forEach((source, index) => {
+            const citationNumber = index + 1;
+            const citationRegex = new RegExp(`\\[${citationNumber}\\]`, 'g');
             
-            // 在手機版重新顯示標題區域和裝飾符號
-            if (window.innerWidth <= 768) {
-                const header = document.querySelector('.header');
-                if (header) {
-                    const headerTitle = header.querySelector('h1');
-                    const headerDesc = header.querySelector('p');
-                    const decorativePillars = header.querySelectorAll('.decorative-pillar');
-                    if (headerTitle) headerTitle.style.display = 'block';
-                    if (headerDesc) headerDesc.style.display = 'block';
-                    decorativePillars.forEach(pillar => {
-                        pillar.style.display = 'block';
-                    });
-                }
-            }
-            
-            // 顯示輸入區域
-            const chatInputArea = document.getElementById('chatInputArea');
-            if (chatInputArea) {
-                chatInputArea.style.display = 'block';
-            }
-            
-            // 重置輸入區域位置
-            if (chatInputArea) {
-                chatInputArea.classList.remove('with-messages');
-            }
-            
-            // 清空聊天記錄
-            const chatMessages = document.getElementById('chatMessages');
-            if (chatMessages) {
-                chatMessages.innerHTML = '<div class="empty-state" id="emptyState" style="display: none;"></div>';
-            }
-        }
-
-        function showCatalog() {
-            document.getElementById('mainContent').style.display = 'none';
-            document.getElementById('catalogPage').style.display = 'block';
-            document.getElementById('catalogNav').classList.add('active');
-            document.getElementById('homeNav').classList.remove('active');
-            
-            // 隱藏輸入區域
-            const chatInputArea = document.getElementById('chatInputArea');
-            if (chatInputArea) {
-                chatInputArea.style.display = 'none';
-            }
-            
-            // 如果還沒有載入目錄，則載入
-            if (typeof loadCatalog === 'function' && !catalogData || catalogData.length === 0) {
-                loadCatalog();
-            }
-        }
-
-        // 初始化應用
-        document.addEventListener('DOMContentLoaded', () => {
-            window.theologyApp = new TheologySearchApp();
-            
-            // 添加引用標註的點擊事件
-            document.addEventListener('click', (e) => {
-                if (e.target.classList.contains('citation')) {
-                    const tooltip = document.createElement('div');
-                    tooltip.className = 'citation-tooltip';
-                    tooltip.textContent = e.target.title;
-                    
-                    // 移除現有的工具提示
-                    document.querySelectorAll('.citation-tooltip').forEach(t => t.remove());
-                    
-                    // 添加新的工具提示
-                    document.body.appendChild(tooltip);
-                    
-                    // 獲取引用標註的位置
-                    const citationRect = e.target.getBoundingClientRect();
-                    
-                    // 等待工具提示渲染完成後再計算位置
-                    setTimeout(() => {
-                        const tooltipRect = tooltip.getBoundingClientRect();
-                        const tooltipWidth = tooltipRect.width;
-                        const tooltipHeight = tooltipRect.height;
-                        
-                        // 計算工具提示的位置，讓尖端指向引用標註
-                        let tooltipLeft = citationRect.left - (tooltipWidth / 2) + (citationRect.width / 2);
-                        let tooltipTop = citationRect.top - tooltipHeight - 10; // 在引用標註上方
-                        
-                        // 確保工具提示不會超出視窗邊界
-                        if (tooltipLeft < 10) tooltipLeft = 10;
-                        if (tooltipLeft + tooltipWidth > window.innerWidth - 10) {
-                            tooltipLeft = window.innerWidth - tooltipWidth - 10;
-                        }
-                        if (tooltipTop < 10) {
-                            tooltipTop = citationRect.bottom + 10; // 改為在下方顯示
-                            tooltip.classList.add('tooltip-below');
-                        }
-                        
-                        // 設置工具提示位置
-                        tooltip.style.left = tooltipLeft + 'px';
-                        tooltip.style.top = tooltipTop + 'px';
-                        
-                        // 計算尖端位置，讓它精確指向引用標註的中心
-                        const arrowLeft = citationRect.left - tooltipLeft + (citationRect.width / 2);
-                        tooltip.style.setProperty('--arrow-left', arrowLeft + 'px');
-                        
-                        // 在手機版進一步優化尖端指向
-                        if (window.innerWidth <= 768) {
-                            // 重新計算尖端位置，確保在手機版更精確
-                            const citationCenter = citationRect.left + (citationRect.width / 2);
-                            const tooltipLeftPos = tooltipLeft;
-                            const preciseArrowLeft = citationCenter - tooltipLeftPos;
-                            tooltip.style.setProperty('--arrow-left', preciseArrowLeft + 'px');
-                        }
-                        
-                        // 顯示工具提示
-                        tooltip.classList.add('show');
-                    }, 10);
-                    
-                    // 點擊其他地方時隱藏
-                    const hideTooltip = (event) => {
-                        if (!tooltip.contains(event.target) && !e.target.contains(event.target)) {
-                            tooltip.classList.remove('show');
-                            setTimeout(() => tooltip.remove(), 300);
-                            document.removeEventListener('click', hideTooltip);
-                        }
-                    };
-                    
-                    setTimeout(() => {
-                        document.addEventListener('click', hideTooltip);
-                    }, 100);
-                }
-            });
-        });
-
-        // 作品目錄功能
-        const catalogList = document.getElementById('catalogList');
-        const authorSearch = document.getElementById('authorSearch');
-        const workSearch = document.getElementById('workSearch');
-        let catalogData = [];
-
-        async function loadCatalog() {
-            catalogList.innerHTML = '<div style="text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">載入中...</div>';
-            try {
-                const res = await fetch('/api/catalog');
-                catalogData = await res.json();
-                renderCatalog(catalogData);
-            } catch {
-                catalogList.innerHTML = '<div style="color:red; text-align:center; padding:20px; background:rgba(255,255,255,0.9); border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">無法載入作品目錄</div>';
-            }
-        }
-
-        function renderCatalog(data) {
-            if (!data.length) {
-                const emptyText = currentLanguage === 'zh' ? '查無資料' : 'No data found';
-                catalogList.innerHTML = `<div class="catalog-empty">${emptyText}</div>`;
-                return;
-            }
-            
-            // 按字母分組
-            const groupedData = {};
-            data.forEach(author => {
-                const firstLetter = author.author.charAt(0).toUpperCase();
-                if (!groupedData[firstLetter]) {
-                    groupedData[firstLetter] = [];
-                }
-                groupedData[firstLetter].push(author);
-            });
-            
-            let html = '';
-            Object.keys(groupedData).sort().forEach(letter => {
-                const authorCountText = currentLanguage === 'zh' 
-                    ? `(${groupedData[letter].length} 位作者)` 
-                    : `(${groupedData[letter].length} authors)`;
-                
-                html += `<div class="catalog-letter-group">
-                    <div class="catalog-letter" onclick="toggleLetter('${letter}')">
-                        <span id="arrow${letter}" class="arrow">▶</span>
-                        <span class="letter-text">${letter}</span>
-                        <span class="author-count" data-zh="(${groupedData[letter].length} 位作者)" data-en="(${groupedData[letter].length} authors)">${authorCountText}</span>
-                    </div>
-                    <div id="authors${letter}" class="catalog-authors" style="display:none;">
-                        ${groupedData[letter].map((author, idx) => {
-                            const authorId = `${letter}_${idx}`;
-                            const worksCountText = currentLanguage === 'zh' 
-                                ? `(${author.works.length} 部作品)` 
-                                : `(${author.works.length} works)`;
-                            
-                            return `<div class="catalog-author">
-                                <div class="catalog-author-name" onclick="toggleAuthor('${authorId}')">
-                                    <span id="arrow${authorId}" class="arrow">▶</span>
-                                    <span class="author-name">${author.author}</span>
-                                    <span class="works-count" data-zh="(${author.works.length} 部作品)" data-en="(${author.works.length} works)">${worksCountText}</span>
-                                </div>
-                                <ul id="works${authorId}" class="catalog-works" style="display:none;">
-                                    ${author.works.map(work => `<li class="catalog-work">${work}</li>`).join('')}
-                                </ul>
-                            </div>`;
-                        }).join('')}
-                    </div>
-                </div>`;
-            });
-            catalogList.innerHTML = html;
-        }
-
-        window.toggleLetter = function(letter) {
-            const authorsDiv = document.getElementById('authors'+letter);
-            const arrow = document.getElementById('arrow'+letter);
-            if (authorsDiv.style.display === 'none') {
-                authorsDiv.style.display = 'block';
-                arrow.classList.add('expanded');
+            let sourceText = '';
+            if (typeof source === 'string') {
+                sourceText = source;
+            } else if (source && source.fileName) {
+                sourceText = source.fileName;
             } else {
-                authorsDiv.style.display = 'none';
-                arrow.classList.remove('expanded');
-            }
-        };
-
-        window.toggleAuthor = function(authorId) {
-            const worksUl = document.getElementById('works'+authorId);
-            const arrow = document.getElementById('arrow'+authorId);
-            if (worksUl.style.display === 'none') {
-                worksUl.style.display = 'block';
-                arrow.classList.add('expanded');
-            } else {
-                worksUl.style.display = 'none';
-                arrow.classList.remove('expanded');
-            }
-        };
-
-        // 搜尋功能
-        function performSearch() {
-            const authorTerm = authorSearch.value.toLowerCase();
-            const workTerm = workSearch.value.toLowerCase();
-            
-            const filteredData = catalogData.filter(author => {
-                const authorMatch = author.author.toLowerCase().includes(authorTerm);
-                const workMatch = author.works.some(work => work.toLowerCase().includes(workTerm));
-                
-                // 如果兩個搜尋欄位都有輸入，需要同時匹配
-                if (authorTerm && workTerm) {
-                    return authorMatch && workMatch;
-                }
-                // 如果只有作者搜尋有輸入
-                else if (authorTerm) {
-                    return authorMatch;
-                }
-                // 如果只有著作搜尋有輸入
-                else if (workTerm) {
-                    return workMatch;
-                }
-                // 如果都沒有輸入，顯示全部
-                else {
-                    return true;
-                }
-            });
-            
-            renderCatalog(filteredData);
-        }
-
-        // 添加事件監聽器
-        authorSearch.addEventListener('input', performSearch);
-        workSearch.addEventListener('input', performSearch);
-
-        // 語言切換功能
-        let currentLanguage = 'zh';
-
-        function switchLanguage(lang) {
-            currentLanguage = lang;
-            
-            // 更新語言按鈕狀態
-            document.getElementById('zhBtn').classList.toggle('active', lang === 'zh');
-            document.getElementById('enBtn').classList.toggle('active', lang === 'en');
-            
-            // 更新所有帶有 data-zh 和 data-en 屬性的元素
-            document.querySelectorAll('[data-zh][data-en]').forEach(element => {
-                element.textContent = element.getAttribute(`data-${lang}`);
-            });
-            
-            // 更新 placeholder
-            document.querySelectorAll('[data-zh-placeholder][data-en-placeholder]').forEach(element => {
-                element.placeholder = element.getAttribute(`data-${lang}-placeholder`);
-            });
-            
-            // 更新載入訊息
-            if (window.theologyApp) {
-                window.theologyApp.loadingMessages = lang === 'zh' ? [
-                    '🤔 讓我查找相關資料...',
-                    '🔍 深度搜索資料庫中...',
-                    '📚 分析文件內容中...',
-                    '✍️ 整理回答中...',
-                    '⏳ 即將完成...'
-                ] : [
-                    '🤔 Let me search for relevant information...',
-                    '🔍 Deep searching the database...',
-                    '📚 Analyzing document content...',
-                    '✍️ Organizing the answer...',
-                    '⏳ Almost done...'
-                ];
+                sourceText = '未知來源';
             }
             
-            // 重新渲染目錄以更新動態內容的語言
-            if (catalogData && catalogData.length > 0) {
-                renderCatalog(catalogData);
-            }
-        }
-
-        // 初始化語言
-        document.addEventListener('DOMContentLoaded', () => {
-            switchLanguage('zh');
+            const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${sourceText}">[${citationNumber}]</span>`;
+            formatted = formatted.replace(citationRegex, citationHtml);
         });
-    </script>
+    }
+    
+    return formatted;
+}
+
+// 顯示錯誤
+function showError(message) {
+    const main = document.querySelector('main');
+    if (main) {
+        main.innerHTML = `
+            <div class="text-center">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+                    <p class="text-red-600">${message}</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// 登入函數
+function login() {
+    window.location.href = '/auth/google';
+}
+
+// 語言切換功能
+function switchLanguage(lang) {
+    const buttons = document.querySelectorAll('.lang-btn');
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const activeBtn = document.querySelector(`.lang-btn:contains('${lang === 'zh' ? '中文' : 'English'}')`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuthStatus();
+    
+    // 添加語言切換事件
+    const langButtons = document.querySelectorAll('.lang-btn');
+    langButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const isChinese = btn.textContent.includes('中文');
+            switchLanguage(isChinese ? 'zh' : 'en');
+        });
+    });
+    
+    // 添加引用標註點擊事件
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('citation')) {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'fixed bg-[#8C2B1D] text-white p-3 rounded-lg shadow-lg z-50';
+            tooltip.textContent = e.target.title;
+            
+            // 移除現有的工具提示
+            document.querySelectorAll('.fixed.bg-\\[\\#8C2B1D\\]').forEach(t => t.remove());
+            
+            // 添加新的工具提示
+            document.body.appendChild(tooltip);
+            
+            // 設置位置
+            const rect = e.target.getBoundingClientRect();
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+            
+            // 點擊其他地方時隱藏
+            setTimeout(() => {
+                document.addEventListener('click', () => {
+                    tooltip.remove();
+                }, { once: true });
+            }, 100);
+        }
+    });
+});
+</script>
 </body>
 </html>
