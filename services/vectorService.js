@@ -291,6 +291,9 @@ class VectorService {
                 }
                 
                 console.log(`💾 剩餘文件列表已保存到: ${remainingFilesPath}`);
+                
+                // 啟動背景處理
+                this.startBackgroundProcessing(outputDir, remainingFiles, downloadOnlyMode);
             }
             
             return texts;
@@ -1161,6 +1164,95 @@ ${vectorResults.map((result, index) => `[${index + 1}] 來源：${result.fileNam
             console.error('❌ 混合搜索失敗:', error.message);
             throw error;
         }
+    }
+
+    // 啟動背景處理
+    async startBackgroundProcessing(outputDir, remainingFiles, downloadOnlyMode) {
+        console.log('🚀 啟動背景處理...');
+        
+        // 延遲 10 秒後開始背景處理，確保系統完全啟動
+        setTimeout(async () => {
+            try {
+                console.log('🔄 開始背景處理剩餘文件...');
+                console.log(`📊 待處理文件數: ${remainingFiles.length}`);
+                
+                let processedCount = 0;
+                const batchSize = 10; // 每批處理 10 個文件
+                
+                for (let i = 0; i < remainingFiles.length; i += batchSize) {
+                    const batch = remainingFiles.slice(i, i + batchSize);
+                    const batchNum = Math.floor(i / batchSize) + 1;
+                    const totalBatches = Math.ceil(remainingFiles.length / batchSize);
+                    
+                    console.log(`\n📦 背景處理批次 ${batchNum}/${totalBatches} (${batch.length} 個文件)`);
+                    
+                    for (const file of batch) {
+                        try {
+                            const filePath = path.join(outputDir, file.name);
+                            
+                            // 下載文件
+                            console.log(`📥 背景下載: ${file.name}`);
+                            await this.downloadFromGoogleDrive(file.id, filePath);
+                            
+                            // 如果是文本文件且不是下載模式，則處理文本
+                            if (file.name.toLowerCase().endsWith('.txt') && !downloadOnlyMode) {
+                                const content = await fs.readFile(filePath, 'utf8');
+                                const chunks = this.splitTextIntoChunks(content);
+                                
+                                chunks.forEach(chunk => {
+                                    this.texts.push({
+                                        text: chunk,
+                                        fileName: file.name
+                                    });
+                                });
+                                
+                                console.log(`📚 處理文本: ${file.name} -> ${chunks.length} 個片段`);
+                            }
+                            
+                            processedCount++;
+                            
+                            // 更新進度
+                            this.progress.processedFiles = this.progress.processedFiles + processedCount;
+                            this.progress.remainingFiles = this.progress.totalFiles - this.progress.processedFiles;
+                            
+                            // 每處理 5 個文件顯示一次進度
+                            if (processedCount % 5 === 0) {
+                                const totalProcessed = this.progress.processedFiles;
+                                const progressPercent = ((totalProcessed / this.progress.totalFiles) * 100).toFixed(1);
+                                console.log(`📊 背景處理進度: ${progressPercent}% (${totalProcessed}/${this.progress.totalFiles})`);
+                            }
+                            
+                        } catch (error) {
+                            console.error(`❌ 背景處理文件失敗 ${file.name}:`, error.message);
+                            continue;
+                        }
+                    }
+                    
+                    // 批次間休息 3 秒
+                    if (i + batchSize < remainingFiles.length) {
+                        console.log(`⏸️  批次 ${batchNum} 完成，休息 3 秒...`);
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                    }
+                }
+                
+                console.log('🎉 背景處理完成！');
+                console.log(`✅ 總共處理了 ${processedCount} 個文件`);
+                console.log(`📚 總文本片段數: ${this.texts.length}`);
+                
+                // 重新建立索引以包含新處理的文件
+                if (!downloadOnlyMode && this.texts.length > 0) {
+                    console.log('🔄 重新建立 FAISS 索引以包含新文件...');
+                    await this.buildIndex();
+                    console.log('✅ FAISS 索引更新完成');
+                }
+                
+                this.progress.isBackgroundProcessing = false;
+                
+            } catch (error) {
+                console.error('❌ 背景處理失敗:', error.message);
+                this.progress.isBackgroundProcessing = false;
+            }
+        }, 10000); // 10 秒後開始
     }
 
     // 獲取服務狀態
