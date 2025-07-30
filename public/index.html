@@ -1762,7 +1762,13 @@
                             sourceText = '未知來源';
                         }
                         
-                        const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${sourceText}">[${citationNumber}]</span>`;
+                        // 添加更多來源資訊到工具提示
+                        let tooltipContent = sourceText;
+                        if (source && source.text) {
+                            tooltipContent += '\n\n引用內容：\n' + source.text;
+                        }
+                        
+                        const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${tooltipContent}">[${citationNumber}]</span>`;
                         formattedAnswer = formattedAnswer.replace(citationRegex, citationHtml);
                     });
                 }

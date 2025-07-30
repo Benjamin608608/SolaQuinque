@@ -413,7 +413,7 @@ async function processSearchRequest(question, user) {
 2. 提供準確、詳細且學術性的回答
 3. 使用繁體中文回答
 4. 保持傳統中文的表達方式
-5. 引用相關的來源和作者
+5. 在回答中使用 [1], [2], [3] 等格式標註引用
 6. 如果資料不足，請明確說明
 
 回答要求：
@@ -421,6 +421,9 @@ async function processSearchRequest(question, user) {
 - 完整性：提供全面的解釋
 - 學術性：保持專業的學術水準
 - 可讀性：使用清晰的語言表達
+- 引用格式：使用 [1], [2], [3] 等格式標註引用
+
+重要：請在回答中使用 [1], [2], [3] 等格式來標註引用，這些標註會自動轉換為可點擊的引用連結。
 
 請確保每個回答都符合這些標準。`,
                 model: "gpt-4o-mini",
@@ -482,24 +485,18 @@ async function processSearchRequest(question, user) {
         const answer = lastMessage.content[0].text.value;
         console.log('✅ 成功獲取 Assistant 回答');
 
-        // 獲取來源資訊
-        const sources = [];
-        if (lastMessage.content[0].text.annotations) {
-            lastMessage.content[0].text.annotations.forEach((annotation, index) => {
-                if (annotation.type === 'file_citation') {
-                    sources.push({
-                        index: index + 1,
-                        fileName: annotation.text,
-                        quote: annotation.text,
-                        fileId: annotation.file_citation.file_id
-                    });
-                }
-            });
-        }
+        // 處理註解並轉換為引用格式
+        const { processedText, sourceMap } = await processAnnotationsInText(
+            answer, 
+            lastMessage.content[0].text.annotations
+        );
+        
+        // 創建來源列表
+        const sources = createSourceList(sourceMap);
 
         return {
             question: question,
-            answer: answer,
+            answer: processedText,
             sources: sources,
             timestamp: new Date().toISOString(),
             user: user,
