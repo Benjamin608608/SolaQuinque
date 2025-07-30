@@ -527,6 +527,9 @@
 
         // 顯示已認證的 UI
         function showAuthenticatedUI(user) {
+            // 設置當前頁面狀態
+            window.currentPage = 'home';
+            
             // 顯示導航按鈕
             const navLinks = document.getElementById('navLinks');
             if (navLinks) {
@@ -549,8 +552,8 @@
                 logoutBtn.onclick = () => window.location.href = '/auth/logout';
             }
             
-            // 顯示搜索功能
-            showSearchUI();
+            // 顯示首頁內容
+            showHomePage();
             
             // 添加導航按鈕功能
             addNavigationHandlers();
