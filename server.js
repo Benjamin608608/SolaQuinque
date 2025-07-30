@@ -348,14 +348,50 @@ function createSourceList(sourceMap) {
   return sourceList;
 }
 
-// OpenAI Assistant API 處理
-async function processSearchRequest(question, user) {
-    console.log('🔄 使用 OpenAI Assistant API 方法...');
+// 全局 Assistant 實例
+let globalAssistant = null;
+
+// 簡單的快取機制
+const searchCache = new Map();
+const CACHE_DURATION = 30 * 60 * 1000; // 30分鐘快取
+
+// 獲取快取結果
+function getCachedResult(question) {
+    const key = question.toLowerCase().trim();
+    const cached = searchCache.get(key);
     
-    try {
-        // 創建新的 Assistant（每次都創建新的以確保正確配置）
-        console.log('🔄 創建新的 Assistant...');
-        assistant = await openai.beta.assistants.create({
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        console.log('✅ 使用快取結果');
+        return cached.result;
+    }
+    return null;
+}
+
+// 設置快取結果
+function setCachedResult(question, result) {
+    const key = question.toLowerCase().trim();
+    searchCache.set(key, {
+        result: result,
+        timestamp: Date.now()
+    });
+    console.log('💾 結果已快取');
+    
+    // 清理過期的快取（保持記憶體使用合理）
+    if (searchCache.size > 100) {
+        const now = Date.now();
+        for (const [key, value] of searchCache.entries()) {
+            if (now - value.timestamp > CACHE_DURATION) {
+                searchCache.delete(key);
+            }
+        }
+    }
+}
+
+// 獲取或創建 Assistant
+async function getOrCreateAssistant() {
+    if (!globalAssistant) {
+        console.log('🔄 創建全局 Assistant...');
+        globalAssistant = await openai.beta.assistants.create({
             model: 'gpt-4o-mini',
             name: 'Theology RAG Assistant',
             instructions: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
@@ -379,7 +415,25 @@ async function processSearchRequest(question, user) {
                 }
             }
         });
-        console.log('✅ 新 Assistant 創建成功');
+        console.log('✅ 全局 Assistant 創建成功');
+    }
+    return globalAssistant;
+}
+
+// OpenAI Assistant API 處理
+async function processSearchRequest(question, user) {
+    console.log('🔄 使用 OpenAI Assistant API 方法...');
+    
+    // 檢查快取
+    const cachedResult = getCachedResult(question);
+    if (cachedResult) {
+        return cachedResult;
+    }
+    
+    try {
+        // 使用全局 Assistant（重用機制）
+        const assistant = await getOrCreateAssistant();
+        console.log('✅ 使用現有 Assistant');
 
         // 創建 Thread
         const thread = await openai.beta.threads.create();
@@ -439,13 +493,8 @@ async function processSearchRequest(question, user) {
             lastMessage.content[0].text.annotations
         );
 
-        // 清理資源
-        try {
-            await openai.beta.assistants.del(assistant.id);
-            console.log('✅ Assistant 資源清理完成');
-        } catch (cleanupError) {
-            console.warn('Failed to cleanup assistant:', cleanupError.message);
-        }
+        // 不清理 Assistant，保持重用
+        console.log('✅ Assistant 重用完成');
         
         // 組合最終回答
         let finalAnswer = processedText;
@@ -455,7 +504,7 @@ async function processSearchRequest(question, user) {
             finalAnswer = '很抱歉，我在資料庫中找不到相關資訊來回答這個問題。';
         }
 
-        return {
+        const result = {
             question: question,
             answer: finalAnswer,
             sources: Array.from(sourceMap.entries()).map(([index, source]) => ({
@@ -470,6 +519,11 @@ async function processSearchRequest(question, user) {
             user: user,
             method: 'Assistant API'
         };
+
+        // 設置快取
+        setCachedResult(question, result);
+
+        return result;
 
     } catch (error) {
         console.error('❌ Assistant API 處理失敗:', error.message);
