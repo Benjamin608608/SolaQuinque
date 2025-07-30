@@ -937,23 +937,23 @@ class VectorService {
         return [
             {
                 text: "三位一體是基督教的核心教義，指上帝是三位一體的：聖父、聖子、聖靈。這三位是同一位上帝，但有不同的位格。",
-                fileName: "三位一體教義.txt"
+                fileName: "預設神學資料庫 - 三位一體教義"
             },
             {
                 text: "原罪是指人類始祖亞當和夏娃在伊甸園中違背上帝命令，吃了禁果，導致人類與上帝關係破裂，所有後代都繼承了這種罪性。",
-                fileName: "原罪教義.txt"
+                fileName: "預設神學資料庫 - 原罪教義"
             },
             {
                 text: "救恩是上帝通過耶穌基督的死亡和復活，為人類提供與上帝和好的途徑。這是一個免費的禮物，通過信心接受。",
-                fileName: "救恩教義.txt"
+                fileName: "預設神學資料庫 - 救恩教義"
             },
             {
                 text: "聖經是上帝啟示的話語，包含舊約和新約兩部分。它是基督徒信仰和生活的權威指南。",
-                fileName: "聖經權威.txt"
+                fileName: "預設神學資料庫 - 聖經權威"
             },
             {
                 text: "教會是基督的身體，是信徒的聚集。它的使命是傳揚福音、教導真理、施行聖禮、關懷社會。",
-                fileName: "教會使命.txt"
+                fileName: "預設神學資料庫 - 教會使命"
             }
         ];
     }
@@ -1438,7 +1438,8 @@ ${vectorResults.map((result, index) => `[${index + 1}] ${result.text}`).join('\n
         const status = {
             isInitialized: this.isInitialized,
             textCount: this.texts.length,
-            hasIndex: !!this.faissIndex
+            hasIndex: !!this.faissIndex,
+            dataSource: this.getDataSourceInfo()
         };
         
         // 添加進度資訊
@@ -1468,6 +1469,32 @@ ${vectorResults.map((result, index) => `[${index + 1}] ${result.text}`).join('\n
         }
         
         return status;
+    }
+
+    // 獲取資料來源資訊
+    getDataSourceInfo() {
+        if (this.texts.length === 0) {
+            return "無資料";
+        }
+        
+        // 檢查是否都是預設資料
+        const defaultFileNames = [
+            "預設神學資料庫 - 三位一體教義",
+            "預設神學資料庫 - 原罪教義", 
+            "預設神學資料庫 - 救恩教義",
+            "預設神學資料庫 - 聖經權威",
+            "預設神學資料庫 - 教會使命"
+        ];
+        
+        const isAllDefault = this.texts.every(text => 
+            defaultFileNames.includes(text.fileName)
+        );
+        
+        if (isAllDefault) {
+            return "預設神學資料庫（等待背景處理完成）";
+        } else {
+            return "混合資料庫（包含預設資料和實際文件）";
+        }
     }
 }
 
