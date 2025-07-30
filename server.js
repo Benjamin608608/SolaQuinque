@@ -345,16 +345,11 @@ async function processSearchRequest(question, user) {
     console.log('🔄 使用 OpenAI Assistant API 方法...');
     
     try {
-        // 創建或獲取 Assistant
-        let assistant;
-        try {
-            assistant = await openai.beta.assistants.retrieve(process.env.VECTOR_STORE_ID);
-            console.log('✅ 成功獲取現有 Assistant');
-        } catch (error) {
-            console.log('🔄 創建新的 Assistant...');
-            assistant = await openai.beta.assistants.create({
-                name: "神學知識庫助手",
-                instructions: `你是一位專業的神學知識庫助手，專門回答關於基督教神學的問題。
+        // 創建新的 Assistant（每次都創建新的以確保正確配置）
+        console.log('🔄 創建新的 Assistant...');
+        assistant = await openai.beta.assistants.create({
+            name: "神學知識庫助手",
+            instructions: `你是一位專業的神學知識庫助手，專門回答關於基督教神學的問題。
 
 你的任務：
 1. 基於提供的知識庫資料回答問題
@@ -374,16 +369,15 @@ async function processSearchRequest(question, user) {
 重要：請在回答中使用 [1], [2], [3] 等格式來標註引用，這些標註會自動轉換為可點擊的引用連結。
 
 請確保每個回答都符合這些標準。`,
-                model: "gpt-4o-mini",
-                tools: [{"type": "file_search"}],
-                tool_resources: {
-                    file_search: {
-                        vector_store_ids: [process.env.VECTOR_STORE_ID]
-                    }
+            model: "gpt-4o-mini",
+            tools: [{"type": "file_search"}],
+            tool_resources: {
+                file_search: {
+                    vector_store_ids: [process.env.VECTOR_STORE_ID]
                 }
-            });
-            console.log('✅ 新 Assistant 創建成功');
-        }
+            }
+        });
+        console.log('✅ 新 Assistant 創建成功');
 
         // 創建 Thread
         const thread = await openai.beta.threads.create();
@@ -420,6 +414,13 @@ async function processSearchRequest(question, user) {
 
         if (runStatus.status === 'failed') {
             throw new Error('Assistant 處理失敗');
+        }
+
+        // 檢查 Run 的詳細狀態
+        console.log(`📊 Run 狀態: ${runStatus.status}`);
+        if (runStatus.required_action) {
+            console.log('🔍 Assistant 需要執行工具調用');
+            console.log(`📋 工具調用類型: ${runStatus.required_action.type}`);
         }
 
         // 獲取回答
