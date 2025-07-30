@@ -4,123 +4,111 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>神學知識庫</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&amp;display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
-    <style>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+    <style type="text/tailwindcss">
+        :root {
+            --primary: #6D4C41;
+            --secondary: #F5F5F5;
+            --background: #FFFFFF;
+            --text-primary: #374151;
+            --text-secondary: #6B7280;
+            --accent: #E0E0E0;
+            --gold-leaf: #D4AF37;
+        }
+        
         body {
             font-family: 'Noto Serif TC', serif;
-            background: linear-gradient(180deg, #FDF6E3 0%, #F5E9D2 100%);
+            background-color: var(--background);
+            color: var(--text-primary);
+            background-image: url('data:image/svg+xml,%3Csvg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23F5F5F5" fill-opacity="0.3"%3E%3Cpath d="M13 22.5L22.5 13l1.5 1.5L14.5 24zM87 22.5L77.5 13l-1.5 1.5L85.5 24zM13 77.5L22.5 87l1.5-1.5L14.5 76zM87 77.5L77.5 87l-1.5-1.5L85.5 76z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
         }
-        .main-container {
-            background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M21.184 20c.357-.13.72-.264 1.088-.402l1.768-.661C33.64 15.347 39.647 14 50 14c10.271 0 15.362 1.222 24.629 4.928.955.383 1.869.74 2.75 1.072h6.225c-2.51-.73-5.139-1.691-8.233-2.928C65.888 13.278 60.562 12 50 12c-10.626 0-16.855 1.397-26.66 5.063l-1.767.662c-2.475.923-4.664 1.622-6.41 2.275h6.358z' fill='%23EFE5CC' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
+        
+        .icon-btn {
+            @apply p-2 rounded-full flex items-center justify-center transition-colors duration-300;
         }
-        .title-text {
-            font-weight: 700;
-            color: #8C2B1D;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        
+        .icon-btn:hover {
+            background-color: var(--secondary);
         }
-        .subtitle-text {
-            color: #A6634B;
-        }
-        .btn-primary {
-            background-color: #8C2B1D;
-            color: #FDF6E3;
-            border: 1px solid #7B2418;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .btn-secondary {
-            background-color: #FDF6E3;
-            color: #8C2B1D;
-            border: 1px solid #D1C7B8;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .lang-btn {
-            border: 1px solid #D1C7B8;
+        
+        .search-input {
+            background-color: var(--secondary);
+            border: 1px solid var(--accent);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
             transition: all 0.3s ease;
         }
-        .lang-btn.active {
-            background-color: #8C2B1D;
-            color: #FDF6E3;
-            border-color: #8C2B1D;
+        
+        .search-input::placeholder {
+            color: var(--text-secondary);
+            font-weight: 300;
         }
-        .lang-btn:not(.active) {
-            background-color: #FDF6E3;
-            color: #8C2B1D;
+        
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(109, 76, 65, 0.2);
+            border-color: var(--primary);
         }
-        .input-wrapper {
-            background-color: #FFFFFF;
-            border: 1px solid #D1C7B8;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        }
+        
         .submit-btn {
-            background-color: #8C2B1D;
+            background-color: var(--primary);
             color: white;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        .side-bar {
-            background-color: rgba(245, 233, 210, 0.6);
-            border: 1px solid #E4D9C7;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
-        }
-        
-        /* 引用標註樣式 */
-        .citation {
-            background: linear-gradient(135deg, #8C2B1D, #A6634B);
-            color: #FDF6E3;
-            padding: 2px 6px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: 1px solid #7B2418;
+            box-shadow: 0 4px 14px rgba(109, 76, 65, 0.25);
             transition: all 0.3s ease;
-            display: inline-block;
-            margin: 0 2px;
-            box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2);
-            min-width: 20px;
-            text-align: center;
+            background-image: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(0,0,0,0.1));
         }
         
-        .citation:hover {
-            background: linear-gradient(135deg, #A6634B, #8C2B1D);
+        .submit-btn:hover {
+            background-color: #5D4037;
             transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(139, 0, 0, 0.3);
+            box-shadow: 0 6px 18px rgba(109, 76, 65, 0.3);
         }
         
-        /* 工具提示樣式 */
-        .citation-tooltip {
-            position: absolute;
-            background: linear-gradient(135deg, #8C2B1D, #A6634B);
-            color: #FDF6E3;
-            padding: 1rem;
-            border-radius: 8px;
-            border: 2px solid #D4AF37;
-            box-shadow: 0 8px 25px rgba(139, 0, 0, 0.3);
-            font-size: 0.9rem;
-            max-width: 300px;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
+        .submit-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(109, 76, 65, 0.2);
         }
         
-        .citation-tooltip::before {
-            content: '';
-            position: absolute;
-            left: var(--arrow-left, 20px);
-            top: 100%;
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 8px solid #8C2B1D;
-            transform: translateX(-50%);
+        .nav-link {
+            @apply flex items-center space-x-2 px-4 py-2 rounded-md transition-all duration-300 text-[var(--text-secondary)] font-light text-sm hover:bg-[var(--secondary)] hover:text-[var(--primary)];
         }
         
-        .citation-tooltip.show {
-            opacity: 1;
-            visibility: visible;
+        .nav-link.active {
+            @apply bg-[var(--primary)] text-white shadow-sm;
+            background-image: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(0,0,0,0.05));
+        }
+        
+        .lang-switch {
+            @apply flex items-center rounded-md bg-transparent p-0.5;
+        }
+        
+        .lang-btn {
+            @apply px-3 py-1.5 text-sm rounded-md transition-all duration-300 font-light;
+        }
+        
+        .lang-btn.active {
+            @apply bg-white/70 backdrop-blur-sm text-[var(--primary)] shadow-sm border border-black/5;
+        }
+        
+        .lang-btn:not(.active) {
+            @apply text-[var(--text-secondary)] hover:bg-black/5;
+        }
+        
+        .header-bg {
+            background: linear-gradient(to bottom, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 100%);
+            backdrop-filter: blur(3px);
+        }
+        
+        .footer-bg {
+            background: linear-gradient(to top, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 100%);
+            backdrop-filter: blur(3px);
+        }
+        
+        .cross-container {
+            background-color: transparent;
+            border: 1px solid var(--accent);
         }
         
         /* 聊天消息樣式 */
@@ -148,17 +136,17 @@
         }
         
         .message.user .message-content {
-            background: linear-gradient(135deg, #8C2B1D, #A6634B);
-            color: #FDF6E3;
-            border: 2px solid #D4AF37;
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
+            background: linear-gradient(135deg, var(--primary), #5D4037);
+            color: white;
+            border: 2px solid var(--gold-leaf);
+            box-shadow: 0 4px 15px rgba(109, 76, 65, 0.3);
         }
         
         .message.assistant .message-content {
-            background: linear-gradient(135deg, #FDF6E3, #F5E9D2);
-            color: #2C1810;
-            border: 2px solid #D1C7B8;
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.1);
+            background: linear-gradient(135deg, var(--secondary), #E8E8E8);
+            color: var(--text-primary);
+            border: 2px solid var(--accent);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
         
         /* 聊天容器樣式 */
@@ -183,48 +171,63 @@
             box-shadow: none;
         }
         
-        @media (max-width: 768px) {
-            .chat-container {
-                height: calc(100vh - 150px);
-                padding: 0 0.5rem;
-            }
-            
-            .chat-messages {
-                margin-bottom: 100px;
-                padding: 0.5rem;
-            }
-            
-            /* 改善手機版消息內容 */
-            .message-content {
-                max-width: 95% !important;
-                padding: 0.75rem 1rem !important;
-                font-size: 0.9rem;
-                line-height: 1.5;
-            }
-            
-            /* 改善手機版按鈕大小 */
-            .btn-primary, .btn-secondary {
-                min-height: 44px;
-                padding: 0.75rem 1rem;
-                font-size: 0.875rem;
-            }
-            
-            /* 改善手機版輸入框 */
-            .input-wrapper {
-                margin: 0 0.5rem;
-            }
-            
-            /* 改善手機版標題 */
-            .title-text {
-                font-size: 1.75rem !important;
-                line-height: 1.2;
-            }
-            
-            /* 改善手機版副標題 */
-            .subtitle-text {
-                font-size: 0.875rem !important;
-                padding: 0 1rem;
-            }
+        /* 引用標註樣式 */
+        .citation {
+            background: linear-gradient(135deg, var(--primary), #5D4037);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--gold-leaf);
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin: 0 2px;
+            box-shadow: 0 2px 4px rgba(109, 76, 65, 0.2);
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        .citation:hover {
+            background: linear-gradient(135deg, #5D4037, var(--primary));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(109, 76, 65, 0.3);
+        }
+        
+        /* 工具提示樣式 */
+        .citation-tooltip {
+            position: absolute;
+            background: linear-gradient(135deg, var(--primary), #5D4037);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 2px solid var(--gold-leaf);
+            box-shadow: 0 8px 25px rgba(109, 76, 65, 0.3);
+            font-size: 0.9rem;
+            max-width: 300px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .citation-tooltip::before {
+            content: '';
+            position: absolute;
+            left: var(--arrow-left, 20px);
+            top: 100%;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid var(--primary);
+            transform: translateX(-50%);
+        }
+        
+        .citation-tooltip.show {
+            opacity: 1;
+            visibility: visible;
         }
         
         /* 參考書目頁面樣式 */
@@ -237,7 +240,7 @@
         .catalog-header {
             text-align: center;
             margin-bottom: 2rem;
-            color: #8C2B1D;
+            color: var(--primary);
         }
         
         .catalog-header h2 {
@@ -257,55 +260,23 @@
             margin-bottom: 1rem;
         }
         
-        @media (min-width: 768px) {
-            .search-row {
-                flex-direction: row;
-            }
-        }
-        
-        .search-input {
-            flex: 1;
-            padding: 0.75rem 1rem;
-            border: 2px solid #D1C7B8;
-            border-radius: 25px;
-            font-size: 0.875rem;
-            font-family: 'Noto Serif TC', serif;
-            background: linear-gradient(135deg, #FDF6E3, #F5E9D2);
-            color: #2C1810;
-            transition: all 0.3s ease;
-            min-height: 44px;
-        }
-        
-        @media (min-width: 768px) {
-            .search-input {
-                padding: 1rem 1.5rem;
-                font-size: 1rem;
-            }
-        }
-        
-        .search-input:focus {
-            outline: none;
-            border-color: #8C2B1D;
-            box-shadow: 0 0 0 3px rgba(140, 43, 29, 0.2);
-        }
-        
         .catalog-list {
-            background: linear-gradient(135deg, rgba(253, 246, 227, 0.95), rgba(245, 233, 210, 0.95));
-            border: 3px solid #D1C7B8;
+            background: linear-gradient(135deg, rgba(245, 245, 245, 0.95), rgba(232, 232, 232, 0.95));
+            border: 3px solid var(--accent);
             border-radius: 15px;
             padding: 2rem;
-            box-shadow: 0 8px 25px rgba(139, 0, 0, 0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
         
         .catalog-letter {
-            background: linear-gradient(135deg, #8C2B1D, #A6634B);
-            color: #FDF6E3;
+            background: linear-gradient(135deg, var(--primary), #5D4037);
+            color: white;
             padding: 0.75rem 1rem;
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
-            border: 2px solid #D4AF37;
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.2);
+            border: 2px solid var(--gold-leaf);
+            box-shadow: 0 4px 15px rgba(109, 76, 65, 0.2);
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -316,23 +287,54 @@
             min-height: 44px;
         }
         
-        @media (min-width: 768px) {
-            .catalog-letter {
-                padding: 1rem 1.5rem;
-                gap: 1rem;
-                font-size: 1.2rem;
-                margin-bottom: 1rem;
+        .catalog-letter:hover {
+            background: linear-gradient(135deg, #5D4037, var(--primary));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(109, 76, 65, 0.3);
+        }
+        
+        /* 動畫效果 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
         
-        .catalog-letter:hover {
-            background: linear-gradient(135deg, #A6634B, #8C2B1D);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.3);
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
         }
         
-        /* 手機版參考書目改善 */
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 響應式設計 */
         @media (max-width: 768px) {
+            .chat-container {
+                height: calc(100vh - 150px);
+                padding: 0 0.5rem;
+            }
+            
+            .chat-messages {
+                margin-bottom: 100px;
+                padding: 0.5rem;
+            }
+            
+            .message-content {
+                max-width: 95% !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }
+            
             .catalog-header h2 {
                 font-size: 1.5rem;
                 margin-bottom: 0.5rem;
@@ -361,716 +363,675 @@
             }
         }
         
-        /* 動畫效果 */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
+        @media (min-width: 768px) {
+            .search-row {
+                flex-direction: row;
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
+            
+            .catalog-letter {
+                padding: 1rem 1.5rem;
+                gap: 1rem;
+                font-size: 1.2rem;
+                margin-bottom: 1rem;
             }
         }
-        
-        .fade-in {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.6s ease;
-        }
-        
-        .fade-in.visible {
-            opacity: 1;
-            transform: translateY(0);
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col bg-gradient-to-b from-[#FDF6E3] to-[#F5E9D2]">
-<div class="main-container flex-grow flex flex-col items-center p-2 sm:p-4 md:p-6 lg:p-8 w-full max-w-7xl mx-auto">
-<!-- 響應式頁首 -->
-<header class="w-full flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-8 md:mb-12 lg:mb-20 gap-3 sm:gap-4 lg:gap-0">
-<!-- 導航按鈕區域 -->
-<div class="flex items-center space-x-1 sm:space-x-2 md:space-x-4 w-full sm:w-auto justify-center sm:justify-start">
-<a class="btn-primary flex items-center py-2 px-2 sm:px-3 md:px-4 rounded-full text-xs sm:text-sm md:text-base hover:bg-opacity-90 transition-colors min-h-[44px]" href="#">
-<span class="material-icons mr-1 text-sm sm:text-base md:text-lg">home</span>
-<span class="hidden sm:inline">首頁</span>
-</a>
-<a class="btn-secondary flex items-center py-2 px-2 sm:px-3 md:px-4 rounded-full text-xs sm:text-sm md:text-base hover:bg-gray-50 transition-colors min-h-[44px]" href="#">
-<span class="material-icons mr-1 text-sm sm:text-base md:text-lg">menu_book</span>
-<span class="hidden sm:inline">參考書目</span>
-</a>
-</div>
-
-<!-- 右側控制區域 -->
-<div class="flex items-center space-x-1 sm:space-x-2 md:space-x-4 w-full sm:w-auto justify-center sm:justify-end">
-<!-- 語言切換按鈕 -->
-<div class="flex items-center space-x-1 p-0.5 bg-[#F5E9D2] rounded-full border border-gray-300">
-<button class="lang-btn active text-xs sm:text-sm md:text-base px-1 sm:px-2 md:px-4 py-1.5 rounded-full min-h-[32px] sm:min-h-[44px]">中文</button>
-<button class="lang-btn text-xs sm:text-sm md:text-base px-1 sm:px-2 md:px-4 py-1.5 rounded-full min-h-[32px] sm:min-h-[44px]">English</button>
-</div>
-
-<!-- 用戶資訊區域 -->
-<div class="flex items-center space-x-1 sm:space-x-2">
-<img alt="User avatar" class="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full border-2 border-[#D1C7B8] p-0.5" src="https://lh3.googleusercontent.com/a/ACg8ocL5n-HoE2S05eRX8OEKTTwtTgzLSOWlsgHuNG17OPyxwH00a-nyBA=s96-c"/>
-<button class="btn-secondary flex items-center py-2 px-2 sm:px-3 md:px-4 rounded-full text-xs sm:text-sm md:text-base hover:bg-gray-50 transition-colors min-h-[44px]">
-<span class="material-icons mr-1 text-sm sm:text-base md:text-lg">logout</span>
-<span class="hidden sm:inline">登出</span>
-</button>
-</div>
-</div>
-</header>
-
-<!-- 響應式主內容區域 -->
-<main class="w-full flex-grow flex flex-col items-center justify-center relative px-2 sm:px-4 md:px-0">
-<!-- 側邊裝飾（手機版隱藏） -->
-<div class="side-bar absolute left-0 top-1/2 -translate-y-1/2 h-48 w-8 rounded-full flex items-center justify-center opacity-70 hidden md:flex">
-<span class="material-icons text-[#A6634B] text-lg">add</span>
-</div>
-
-<!-- 標題區域 -->
-<div class="text-center mb-4 sm:mb-6 md:mb-8 w-full max-w-4xl mx-auto px-2 sm:px-4">
-<h1 class="title-text text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl tracking-widest relative inline-block px-2 sm:px-4">
-<span class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-70 hidden sm:inline">♱</span>
-神學知識庫
-<span class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-70 hidden sm:inline">♱</span>
-</h1>
-<p class="subtitle-text text-sm sm:text-base md:text-lg lg:text-xl mt-2 sm:mt-4 px-2 sm:px-4">探索神學家的智慧，尋找信仰的答案</p>
-</div>
-
-<!-- 側邊裝飾（手機版隱藏） -->
-<div class="side-bar absolute right-0 top-1/2 -translate-y-1/2 h-48 w-8 rounded-full flex items-center justify-center opacity-70 hidden md:flex">
-<span class="material-icons text-[#A6634B] text-lg">add</span>
-</div>
-</main>
-
-<!-- 響應式底部輸入區域 -->
-<footer class="w-full max-w-2xl sm:max-w-3xl mx-auto mt-auto pb-2 sm:pb-4 md:pb-8 px-2 sm:px-4 md:px-0">
-<div class="input-wrapper relative flex items-center rounded-full p-2 w-full">
-<input class="w-full bg-transparent border-none focus:ring-0 pl-4 pr-16 py-3 sm:py-4 text-gray-700 placeholder-gray-500 text-sm sm:text-base" placeholder="詢問任何問題..." type="text"/>
-<button class="submit-btn absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center hover:bg-opacity-90 transition-colors min-h-[44px]">
-<span class="material-icons text-sm sm:text-base">send</span>
-</button>
-</div>
-</footer>
-</div>
-
-<script>
-// 檢查用戶認證狀態
-async function checkAuthStatus() {
-    try {
-        const response = await fetch('/api/user');
-        const data = await response.json();
-        
-        if (data.success && data.user) {
-            showAuthenticatedUI(data.user);
-        } else {
-            showLoginUI();
-        }
-    } catch (error) {
-        console.error('檢查認證狀態失敗:', error);
-        showLoginUI();
-    }
-}
-
-// 顯示已認證的 UI
-function showAuthenticatedUI(user) {
-    // 更新用戶頭像
-    const userAvatar = document.querySelector('img[alt="User avatar"]');
-    if (userAvatar && user.picture) {
-        userAvatar.src = user.picture;
-    }
-    
-    // 顯示登出按鈕
-    const logoutBtn = document.querySelector('button:has(.material-icons)');
-    if (logoutBtn) {
-        logoutBtn.onclick = () => window.location.href = '/auth/logout';
-    }
-    
-    // 顯示搜索功能
-    showSearchUI();
-    
-    // 添加導航按鈕功能
-    addNavigationHandlers();
-}
-
-// 顯示登入 UI
-function showLoginUI() {
-    // 隱藏搜索相關元素
-    const footer = document.querySelector('footer');
-    if (footer) {
-        footer.style.display = 'none';
-    }
-    
-    // 添加登入按鈕到主內容區域
-    const main = document.querySelector('main');
-    if (main) {
-        main.innerHTML = `
-            <div class="text-center px-4 sm:px-6">
-                <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8 max-w-sm sm:max-w-md mx-auto">
-                    <h2 class="text-xl sm:text-2xl font-bold text-[#8C2B1D] mb-3 sm:mb-4">歡迎使用神學知識庫</h2>
-                    <p class="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">請登入以開始使用</p>
-                    <button onclick="login()" class="btn-primary px-4 sm:px-6 py-3 rounded-full flex items-center mx-auto min-h-[44px] text-sm sm:text-base">
-                        <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2" viewBox="0 0 24 24">
-                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        使用 Google 登入
-                    </button>
-                </div>
+<body class="flex flex-col min-h-screen antialiased">
+    <header class="p-3 flex justify-between items-center w-full header-bg sticky top-0 z-10">
+        <div class="flex items-center space-x-1">
+            <a class="nav-link active" href="#" id="homeLink">
+                <span class="material-icons-outlined text-lg">cottage</span>
+                <span class="text-base">首頁</span>
+            </a>
+            <a class="nav-link" href="#" id="catalogLink">
+                <span class="material-icons-outlined text-lg">auto_stories</span>
+                <span class="text-base">參考</span>
+            </a>
+        </div>
+        <div class="flex items-center space-x-2">
+            <div class="lang-switch">
+                <button class="lang-btn active" onclick="switchLanguage('zh')">中</button>
+                <button class="lang-btn" onclick="switchLanguage('en')">EN</button>
             </div>
-        `;
-    }
-}
+            <button class="icon-btn text-[var(--text-secondary)]" id="userAvatar">
+                <span class="material-icons-outlined text-2xl">account_circle</span>
+            </button>
+            <button class="icon-btn text-red-500/70 hover:bg-red-500/10" id="logoutBtn">
+                <span class="material-icons-outlined text-2xl">logout</span>
+            </button>
+        </div>
+    </header>
+    
+    <main class="flex-grow flex flex-col items-center justify-center text-center px-6 -mt-8" id="mainContent">
+        <div class="w-24 h-24 mb-8 flex items-center justify-center rounded-full cross-container shadow-inner">
+            <span class="text-5xl text-[var(--primary)] font-light" style="text-shadow: 1px 1px 3px rgba(109, 76, 65, 0.1);">†</span>
+        </div>
+        <h1 class="text-5xl font-serif font-bold tracking-wider text-[var(--text-primary)]" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.05);">
+            神學知識庫
+        </h1>
+        <p class="text-[var(--text-secondary)] mt-5 text-lg max-w-md font-light leading-relaxed">
+            探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。
+        </p>
+    </main>
+    
+    <footer class="p-4 w-full footer-bg sticky bottom-0">
+        <div class="relative w-full max-w-lg mx-auto">
+            <span class="material-icons-outlined absolute left-5 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] text-xl">search</span>
+            <input class="w-full search-input rounded-full py-4 pl-14 pr-16 text-base" placeholder="詢問任何問題..." type="text" id="searchInput"/>
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 submit-btn rounded-full w-12 h-12 flex items-center justify-center" id="submitBtn">
+                <span class="material-icons-outlined text-2xl">arrow_upward</span>
+            </button>
+        </div>
+    </footer>
 
-// 顯示搜索 UI
-function showSearchUI() {
-    // 恢復 footer 顯示
-    const footer = document.querySelector('footer');
-    if (footer) {
-        footer.style.display = 'block';
-    }
-    
-    // 添加搜索功能
-    const input = document.querySelector('input[placeholder="詢問任何問題..."]');
-    const submitBtn = document.querySelector('.submit-btn');
-    
-    if (input && submitBtn) {
-        // 處理 Enter 鍵
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleSearch();
+    <script>
+        // 檢查用戶認證狀態
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/user');
+                const data = await response.json();
+                
+                if (data.success && data.user) {
+                    showAuthenticatedUI(data.user);
+                } else {
+                    showLoginUI();
+                }
+            } catch (error) {
+                console.error('檢查認證狀態失敗:', error);
+                showLoginUI();
             }
-        });
-        
-        // 處理提交按鈕點擊
-        submitBtn.addEventListener('click', handleSearch);
-    }
-}
-
-// 處理搜索
-async function handleSearch() {
-    const input = document.querySelector('input[placeholder="詢問任何問題..."]');
-    const question = input.value.trim();
-    
-    if (!question) return;
-    
-    // 顯示載入狀態
-    showLoadingState();
-    
-    try {
-        const response = await fetch('/api/search', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ question })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showResult(data.data.answer, data.data.sources);
-        } else {
-            const errorText = window.translations ? window.translations['search-error'] : '搜索失敗，請稍後再試';
-            showError(data.error || errorText);
         }
-    } catch (error) {
-        console.error('搜索錯誤:', error);
-        const networkError = window.translations ? window.translations['network-error'] : '網路錯誤，請檢查連線後再試';
-        showError(networkError);
-    }
-}
 
-// 顯示載入狀態
-function showLoadingState() {
-    const main = document.querySelector('main');
-    if (main) {
-        const loadingText = window.translations ? window.translations['searching'] : '正在搜索相關資料...';
-        main.innerHTML = `
-            <div class="text-center px-4 sm:px-6">
-                <div class="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-[#8C2B1D] mx-auto mb-3 sm:mb-4"></div>
-                <p class="text-[#A6634B] text-sm sm:text-base">${loadingText}</p>
-            </div>
-        `;
-    }
-}
+        // 顯示已認證的 UI
+        function showAuthenticatedUI(user) {
+            // 更新用戶頭像
+            const userAvatar = document.getElementById('userAvatar');
+            if (userAvatar && user.picture) {
+                userAvatar.innerHTML = `<img src="${user.picture}" alt="User avatar" class="w-8 h-8 rounded-full border-2 border-[var(--accent)]"/>`;
+            }
+            
+            // 顯示登出按鈕
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.onclick = () => window.location.href = '/auth/logout';
+            }
+            
+            // 顯示搜索功能
+            showSearchUI();
+            
+            // 添加導航按鈕功能
+            addNavigationHandlers();
+        }
 
-// 顯示結果
-function showResult(answer, sources) {
-    const main = document.querySelector('main');
-    if (main) {
-        // 格式化答案，處理引用標註
-        let formattedAnswer = formatAnswer(answer, sources);
-        
-        main.innerHTML = `
-            <div class="chat-container">
-                <div class="chat-messages" id="chatMessages">
-                    <div class="message assistant">
-                        <div class="message-content">
-                            ${formattedAnswer}
+        // 顯示登入 UI
+        function showLoginUI() {
+            // 隱藏搜索相關元素
+            const footer = document.querySelector('footer');
+            if (footer) {
+                footer.style.display = 'none';
+            }
+            
+            // 添加登入按鈕到主內容區域
+            const main = document.getElementById('mainContent');
+            if (main) {
+                main.innerHTML = `
+                    <div class="text-center px-4 sm:px-6">
+                        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8 max-w-sm sm:max-w-md mx-auto">
+                            <h2 class="text-xl sm:text-2xl font-bold text-[var(--primary)] mb-3 sm:mb-4">歡迎使用神學知識庫</h2>
+                            <p class="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">請登入以開始使用</p>
+                            <button onclick="login()" class="submit-btn px-4 sm:px-6 py-3 rounded-full flex items-center mx-auto min-h-[44px] text-sm sm:text-base">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2" viewBox="0 0 24 24">
+                                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                </svg>
+                                使用 Google 登入
+                            </button>
                         </div>
                     </div>
-                </div>
-            </div>
-        `;
-        
-        // 重新綁定引用標註事件
-        bindCitationEvents();
-    }
-}
+                `;
+            }
+        }
 
-// 格式化答案
-function formatAnswer(answer, sources) {
-    let formatted = answer;
-    
-    // 處理 Markdown 格式
-    formatted = formatted
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/\n/g, '<br>');
-    
-    // 包裝成段落
-    if (!formatted.startsWith('<p>')) {
-        formatted = '<p>' + formatted + '</p>';
-    }
-    
-    // 處理引用標註 [1], [2] 等
-    if (sources && sources.length > 0) {
-        sources.forEach((source, index) => {
-            const citationNumber = index + 1;
-            const citationRegex = new RegExp(`\\[${citationNumber}\\]`, 'g');
-            
-            let sourceText = '';
-            if (typeof source === 'string') {
-                sourceText = source;
-            } else if (source && source.fileName) {
-                sourceText = source.fileName;
-            } else {
-                sourceText = '未知來源';
+        // 顯示搜索 UI
+        function showSearchUI() {
+            // 恢復 footer 顯示
+            const footer = document.querySelector('footer');
+            if (footer) {
+                footer.style.display = 'block';
             }
             
-            const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${sourceText}">${citationNumber}</span>`;
-            formatted = formatted.replace(citationRegex, citationHtml);
-        });
-    }
-    
-    return formatted;
-}
-
-// 顯示錯誤
-function showError(message) {
-    const main = document.querySelector('main');
-    if (main) {
-        main.innerHTML = `
-            <div class="text-center px-4 sm:px-6">
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 max-w-sm sm:max-w-md mx-auto">
-                    <p class="text-red-600 text-sm sm:text-base">${message}</p>
-                </div>
-            </div>
-        `;
-    }
-}
-
-// 登入函數
-function login() {
-    window.location.href = '/auth/google';
-}
-
-// 語言切換功能
-function switchLanguage(lang) {
-    const buttons = document.querySelectorAll('.lang-btn');
-    buttons.forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // 找到對應的按鈕並設置為活躍狀態
-    buttons.forEach(btn => {
-        if (lang === 'zh' && btn.textContent.includes('中文')) {
-            btn.classList.add('active');
-        } else if (lang === 'en' && btn.textContent.includes('English')) {
-            btn.classList.add('active');
+            // 添加搜索功能
+            const input = document.getElementById('searchInput');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (input && submitBtn) {
+                // 處理 Enter 鍵
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        handleSearch();
+                    }
+                });
+                
+                // 處理提交按鈕點擊
+                submitBtn.addEventListener('click', handleSearch);
+            }
         }
-    });
-    
-    // 更新頁面文字
-updatePageLanguage(lang);
-}
 
-// 更新頁面語言
-function updatePageLanguage(lang) {
-    const translations = {
-        zh: {
-            'home': '首頁',
-            'catalog': '參考書目',
-            'logout': '登出',
-            'title': '神學知識庫',
-            'subtitle': '探索神學家的智慧，尋找信仰的答案',
-            'placeholder': '詢問任何問題...',
-            'catalog-title': '📚 參考書目',
-            'catalog-subtitle': '探索豐富的神學文獻資料庫',
-            'author-search': '搜尋作者...',
-            'work-search': '搜尋著作名稱...',
-            'loading': '載入參考書目中...',
-            'no-data': '查無資料',
-            'load-error': '無法載入參考書目',
-            'searching': '正在搜索相關資料...',
-            'search-error': '搜索失敗，請稍後再試',
-            'network-error': '網路錯誤，請檢查連線後再試'
-        },
-        en: {
-            'home': 'Home',
-            'catalog': 'Bibliography',
-            'logout': 'Logout',
-            'title': 'Theology Knowledge Base',
-            'subtitle': 'Explore the wisdom of theologians, find answers to faith',
-            'placeholder': 'Ask any question...',
-            'catalog-title': '📚 Bibliography',
-            'catalog-subtitle': 'Explore a rich theological literature database',
-            'author-search': 'Search authors...',
-            'work-search': 'Search work titles...',
-            'loading': 'Loading bibliography...',
-            'no-data': 'No data found',
-            'load-error': 'Unable to load bibliography',
-            'searching': 'Searching for relevant information...',
-            'search-error': 'Search failed, please try again later',
-            'network-error': 'Network error, please check your connection'
+        // 處理搜索
+        async function handleSearch() {
+            const input = document.getElementById('searchInput');
+            const question = input.value.trim();
+            
+            if (!question) return;
+            
+            // 顯示載入狀態
+            showLoadingState();
+            
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult(data.data.answer, data.data.sources);
+                } else {
+                    const errorText = window.translations ? window.translations['search-error'] : '搜索失敗，請稍後再試';
+                    showError(data.error || errorText);
+                }
+            } catch (error) {
+                console.error('搜索錯誤:', error);
+                const networkError = window.translations ? window.translations['network-error'] : '網路錯誤，請檢查連線後再試';
+                showError(networkError);
+            }
         }
-    };
-    
-    const currentLang = translations[lang];
-    
-    // 更新導航按鈕
-    const homeBtn = document.querySelector('a.btn-primary');
-    if (homeBtn) {
-        const homeText = homeBtn.querySelector('span:not(.material-icons)');
-        if (homeText) {
-            homeText.textContent = currentLang.home;
-        }
-    }
-    
-    const catalogBtn = document.querySelector('a.btn-secondary');
-    if (catalogBtn) {
-        const catalogText = catalogBtn.querySelector('span:not(.material-icons)');
-        if (catalogText) {
-            catalogText.textContent = currentLang.catalog;
-        }
-    }
-    
-    // 更新登出按鈕
-    const logoutBtn = document.querySelector('button.btn-secondary:has(.material-icons)');
-    if (logoutBtn) {
-        const logoutText = logoutBtn.querySelector('span:not(.material-icons)');
-        if (logoutText) {
-            logoutText.textContent = currentLang.logout;
-        }
-    }
-    
-    // 更新標題和副標題
-    const title = document.querySelector('.title-text');
-    if (title) {
-        title.textContent = currentLang.title;
-    }
-    
-    const subtitle = document.querySelector('.subtitle-text');
-    if (subtitle) {
-        subtitle.textContent = currentLang.subtitle;
-    }
-    
-    // 更新輸入框佔位符
-    const input = document.querySelector('input[placeholder]');
-    if (input) {
-        input.placeholder = currentLang.placeholder;
-    }
-    
-    // 更新搜索相關文字
-    window.currentLanguage = lang;
-    window.translations = currentLang;
-}
 
-// 添加導航處理器
-function addNavigationHandlers() {
-    const homeBtn = document.querySelector('a[href="#"]:has(.material-icons)');
-    const catalogBtn = document.querySelector('a.btn-secondary:has(.material-icons)');
-    
-    if (homeBtn) {
-        homeBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            showHomePage();
-        });
-    }
-    
-    if (catalogBtn) {
-        catalogBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            showCatalogPage();
-        });
-    }
-}
-
-// 顯示首頁
-function showHomePage() {
-    const main = document.querySelector('main');
-    if (main) {
-        main.innerHTML = `
-            <div class="text-center mb-4 sm:mb-6 md:mb-8 px-2 sm:px-4">
-                <h1 class="title-text text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl tracking-widest relative inline-block px-2 sm:px-4">
-                    <span class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-70 hidden sm:inline">♱</span>
-                    神學知識庫
-                    <span class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-70 hidden sm:inline">♱</span>
-                </h1>
-                <p class="subtitle-text text-sm sm:text-base md:text-lg lg:text-xl mt-2 sm:mt-4 px-2 sm:px-4">探索神學家的智慧，尋找信仰的答案</p>
-            </div>
-        `;
-    }
-    
-    // 顯示輸入區域
-    const footer = document.querySelector('footer');
-    if (footer) {
-        footer.style.display = 'block';
-    }
-}
-
-// 顯示參考書目頁面
-function showCatalogPage() {
-    const main = document.querySelector('main');
-    if (main) {
-        const catalogTitle = window.translations ? window.translations['catalog-title'] : '📚 參考書目';
-        const catalogSubtitle = window.translations ? window.translations['catalog-subtitle'] : '探索豐富的神學文獻資料庫';
-        const authorSearch = window.translations ? window.translations['author-search'] : '搜尋作者...';
-        const workSearch = window.translations ? window.translations['work-search'] : '搜尋著作名稱...';
-        const loadingText = window.translations ? window.translations['loading'] : '載入參考書目中...';
-        
-        main.innerHTML = `
-            <div class="catalog-page w-full max-w-4xl mx-auto px-2 sm:px-4 md:px-0" style="display: block;">
-                <div class="catalog-header">
-                    <h2 class="text-lg sm:text-xl md:text-2xl lg:text-3xl">${catalogTitle}</h2>
-                    <p class="text-xs sm:text-sm md:text-base lg:text-lg">${catalogSubtitle}</p>
-                </div>
-                <div class="catalog-search">
-                    <div class="search-row">
-                        <input type="text" placeholder="${authorSearch}" class="search-input">
-                        <input type="text" placeholder="${workSearch}" class="search-input">
+        // 顯示載入狀態
+        function showLoadingState() {
+            const main = document.getElementById('mainContent');
+            if (main) {
+                const loadingText = window.translations ? window.translations['searching'] : '正在搜索相關資料...';
+                main.innerHTML = `
+                    <div class="text-center px-4 sm:px-6">
+                        <div class="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-[var(--primary)] mx-auto mb-3 sm:mb-4"></div>
+                        <p class="text-[var(--text-secondary)] text-sm sm:text-base">${loadingText}</p>
                     </div>
-                </div>
-                <div class="catalog-list" id="catalogList">
-                    <div class="text-center p-4 sm:p-8">
-                        <div class="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-[#8C2B1D] mx-auto mb-4"></div>
-                        <p class="text-[#A6634B] text-sm sm:text-base">${loadingText}</p>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // 載入參考書目
-        loadCatalog();
-    }
-    
-    // 隱藏輸入區域
-    const footer = document.querySelector('footer');
-    if (footer) {
-        footer.style.display = 'none';
-    }
-}
-
-// 載入參考書目
-async function loadCatalog() {
-    try {
-        const response = await fetch('/api/catalog');
-        const catalogData = await response.json();
-        renderCatalog(catalogData);
-    } catch (error) {
-        console.error('載入參考書目失敗:', error);
-        const catalogList = document.getElementById('catalogList');
-        if (catalogList) {
-            const errorText = window.translations ? window.translations['load-error'] : '無法載入參考書目';
-            catalogList.innerHTML = `
-                <div class="text-center p-8">
-                    <p class="text-red-600">${errorText}</p>
-                </div>
-            `;
+                `;
+            }
         }
-    }
-}
 
-// 渲染參考書目
-function renderCatalog(data) {
-    const catalogList = document.getElementById('catalogList');
-    if (!catalogList) return;
-    
-    if (!data || data.length === 0) {
-        const noDataText = window.translations ? window.translations['no-data'] : '查無資料';
-        catalogList.innerHTML = `
-            <div class="text-center p-8">
-                <p class="text-[#A6634B]">${noDataText}</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // 按字母分組
-    const groupedData = {};
-    data.forEach(author => {
-        const firstLetter = author.author.charAt(0).toUpperCase();
-        if (!groupedData[firstLetter]) {
-            groupedData[firstLetter] = [];
-        }
-        groupedData[firstLetter].push(author);
-    });
-    
-    let html = '';
-    Object.keys(groupedData).sort().forEach(letter => {
-        html += `
-            <div class="catalog-letter" onclick="toggleLetter('${letter}')">
-                <span class="arrow">▶</span>
-                <span class="letter-text">${letter}</span>
-                <span class="author-count">(${groupedData[letter].length} 位作者)</span>
-            </div>
-            <div id="authors${letter}" class="catalog-authors" style="display:none;">
-                ${groupedData[letter].map((author, idx) => {
-                    const authorId = `${letter}_${idx}`;
-                    return `
-                        <div class="catalog-author">
-                            <div class="catalog-author-name" onclick="toggleAuthor('${authorId}')">
-                                <span class="arrow">▶</span>
-                                <span class="author-name">${author.author}</span>
-                                <span class="works-count">(${author.works.length} 部作品)</span>
+        // 顯示結果
+        function showResult(answer, sources) {
+            const main = document.getElementById('mainContent');
+            if (main) {
+                // 格式化答案，處理引用標註
+                let formattedAnswer = formatAnswer(answer, sources);
+                
+                main.innerHTML = `
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="message assistant">
+                                <div class="message-content">
+                                    ${formattedAnswer}
+                                </div>
                             </div>
-                            <ul id="works${authorId}" class="catalog-works" style="display:none;">
-                                ${author.works.map(work => `<li class="catalog-work">${work}</li>`).join('')}
-                            </ul>
+                        </div>
+                    </div>
+                `;
+                
+                // 重新綁定引用標註事件
+                bindCitationEvents();
+            }
+        }
+
+        // 格式化答案
+        function formatAnswer(answer, sources) {
+            let formatted = answer;
+            
+            // 處理 Markdown 格式
+            formatted = formatted
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+            
+            // 包裝成段落
+            if (!formatted.startsWith('<p>')) {
+                formatted = '<p>' + formatted + '</p>';
+            }
+            
+            // 處理引用標註 [1], [2] 等
+            if (sources && sources.length > 0) {
+                sources.forEach((source, index) => {
+                    const citationNumber = index + 1;
+                    const citationRegex = new RegExp(`\\[${citationNumber}\\]`, 'g');
+                    
+                    let sourceText = '';
+                    if (typeof source === 'string') {
+                        sourceText = source;
+                    } else if (source && source.fileName) {
+                        sourceText = source.fileName;
+                    } else {
+                        sourceText = '未知來源';
+                    }
+                    
+                    const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${sourceText}">${citationNumber}</span>`;
+                    formatted = formatted.replace(citationRegex, citationHtml);
+                });
+            }
+            
+            return formatted;
+        }
+
+        // 顯示錯誤
+        function showError(message) {
+            const main = document.getElementById('mainContent');
+            if (main) {
+                main.innerHTML = `
+                    <div class="text-center px-4 sm:px-6">
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 max-w-sm sm:max-w-md mx-auto">
+                            <p class="text-red-600 text-sm sm:text-base">${message}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 登入函數
+        function login() {
+            window.location.href = '/auth/google';
+        }
+
+        // 語言切換功能
+        function switchLanguage(lang) {
+            const buttons = document.querySelectorAll('.lang-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 找到對應的按鈕並設置為活躍狀態
+            buttons.forEach(btn => {
+                if (lang === 'zh' && btn.textContent.includes('中')) {
+                    btn.classList.add('active');
+                } else if (lang === 'en' && btn.textContent.includes('EN')) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // 更新頁面文字
+            updatePageLanguage(lang);
+        }
+
+        // 更新頁面語言
+        function updatePageLanguage(lang) {
+            const translations = {
+                zh: {
+                    'home': '首頁',
+                    'catalog': '參考',
+                    'logout': '登出',
+                    'title': '神學知識庫',
+                    'subtitle': '探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。',
+                    'placeholder': '詢問任何問題...',
+                    'catalog-title': '📚 參考書目',
+                    'catalog-subtitle': '探索豐富的神學文獻資料庫',
+                    'author-search': '搜尋作者...',
+                    'work-search': '搜尋著作名稱...',
+                    'loading': '載入參考書目中...',
+                    'no-data': '查無資料',
+                    'load-error': '無法載入參考書目',
+                    'searching': '正在搜索相關資料...',
+                    'search-error': '搜索失敗，請稍後再試',
+                    'network-error': '網路錯誤，請檢查連線後再試'
+                },
+                en: {
+                    'home': 'Home',
+                    'catalog': 'Catalog',
+                    'logout': 'Logout',
+                    'title': 'Theology Knowledge Base',
+                    'subtitle': 'Explore the wisdom of theologians throughout history, find solid foundations for your faith.',
+                    'placeholder': 'Ask any question...',
+                    'catalog-title': '📚 Bibliography',
+                    'catalog-subtitle': 'Explore a rich theological literature database',
+                    'author-search': 'Search authors...',
+                    'work-search': 'Search work titles...',
+                    'loading': 'Loading bibliography...',
+                    'no-data': 'No data found',
+                    'load-error': 'Unable to load bibliography',
+                    'searching': 'Searching for relevant information...',
+                    'search-error': 'Search failed, please try again later',
+                    'network-error': 'Network error, please check your connection'
+                }
+            };
+            
+            const currentLang = translations[lang];
+            
+            // 更新導航按鈕
+            const homeLink = document.getElementById('homeLink');
+            if (homeLink) {
+                const homeText = homeLink.querySelector('span:not(.material-icons-outlined)');
+                if (homeText) {
+                    homeText.textContent = currentLang.home;
+                }
+            }
+            
+            const catalogLink = document.getElementById('catalogLink');
+            if (catalogLink) {
+                const catalogText = catalogLink.querySelector('span:not(.material-icons-outlined)');
+                if (catalogText) {
+                    catalogText.textContent = currentLang.catalog;
+                }
+            }
+            
+            // 更新標題和副標題
+            const title = document.querySelector('h1');
+            if (title) {
+                title.textContent = currentLang.title;
+            }
+            
+            const subtitle = document.querySelector('p');
+            if (subtitle) {
+                subtitle.textContent = currentLang.subtitle;
+            }
+            
+            // 更新輸入框佔位符
+            const input = document.getElementById('searchInput');
+            if (input) {
+                input.placeholder = currentLang.placeholder;
+            }
+            
+            // 更新搜索相關文字
+            window.currentLanguage = lang;
+            window.translations = currentLang;
+        }
+
+        // 添加導航處理器
+        function addNavigationHandlers() {
+            const homeLink = document.getElementById('homeLink');
+            const catalogLink = document.getElementById('catalogLink');
+            
+            if (homeLink) {
+                homeLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showHomePage();
+                });
+            }
+            
+            if (catalogLink) {
+                catalogLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showCatalogPage();
+                });
+            }
+        }
+
+        // 顯示首頁
+        function showHomePage() {
+            const main = document.getElementById('mainContent');
+            if (main) {
+                main.innerHTML = `
+                    <div class="text-center mb-4 sm:mb-6 md:mb-8 px-2 sm:px-4">
+                        <div class="w-24 h-24 mb-8 flex items-center justify-center rounded-full cross-container shadow-inner">
+                            <span class="text-5xl text-[var(--primary)] font-light" style="text-shadow: 1px 1px 3px rgba(109, 76, 65, 0.1);">†</span>
+                        </div>
+                        <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-serif font-bold tracking-wider text-[var(--text-primary)]" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.05);">
+                            神學知識庫
+                        </h1>
+                        <p class="text-[var(--text-secondary)] mt-2 sm:mt-4 px-2 sm:px-4 text-sm sm:text-base md:text-lg lg:text-xl font-light leading-relaxed max-w-md">
+                            探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。
+                        </p>
+                    </div>
+                `;
+            }
+            
+            // 顯示輸入區域
+            const footer = document.querySelector('footer');
+            if (footer) {
+                footer.style.display = 'block';
+            }
+        }
+
+        // 顯示參考書目頁面
+        function showCatalogPage() {
+            const main = document.getElementById('mainContent');
+            if (main) {
+                const catalogTitle = window.translations ? window.translations['catalog-title'] : '📚 參考書目';
+                const catalogSubtitle = window.translations ? window.translations['catalog-subtitle'] : '探索豐富的神學文獻資料庫';
+                const authorSearch = window.translations ? window.translations['author-search'] : '搜尋作者...';
+                const workSearch = window.translations ? window.translations['work-search'] : '搜尋著作名稱...';
+                const loadingText = window.translations ? window.translations['loading'] : '載入參考書目中...';
+                
+                main.innerHTML = `
+                    <div class="catalog-page w-full max-w-4xl mx-auto px-2 sm:px-4 md:px-0" style="display: block;">
+                        <div class="catalog-header">
+                            <h2 class="text-lg sm:text-xl md:text-2xl lg:text-3xl">${catalogTitle}</h2>
+                            <p class="text-xs sm:text-sm md:text-base lg:text-lg">${catalogSubtitle}</p>
+                        </div>
+                        <div class="catalog-search">
+                            <div class="search-row">
+                                <input type="text" placeholder="${authorSearch}" class="search-input">
+                                <input type="text" placeholder="${workSearch}" class="search-input">
+                            </div>
+                        </div>
+                        <div class="catalog-list" id="catalogList">
+                            <div class="text-center p-4 sm:p-8">
+                                <div class="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-[var(--primary)] mx-auto mb-4"></div>
+                                <p class="text-[var(--text-secondary)] text-sm sm:text-base">${loadingText}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 載入參考書目
+                loadCatalog();
+            }
+            
+            // 隱藏輸入區域
+            const footer = document.querySelector('footer');
+            if (footer) {
+                footer.style.display = 'none';
+            }
+        }
+
+        // 載入參考書目
+        async function loadCatalog() {
+            try {
+                const response = await fetch('/api/catalog');
+                const catalogData = await response.json();
+                renderCatalog(catalogData);
+            } catch (error) {
+                console.error('載入參考書目失敗:', error);
+                const catalogList = document.getElementById('catalogList');
+                if (catalogList) {
+                    const errorText = window.translations ? window.translations['load-error'] : '無法載入參考書目';
+                    catalogList.innerHTML = `
+                        <div class="text-center p-8">
+                            <p class="text-red-600">${errorText}</p>
                         </div>
                     `;
-                }).join('')}
-            </div>
-        `;
-    });
-    
-    catalogList.innerHTML = html;
-}
-
-// 切換字母展開
-window.toggleLetter = function(letter) {
-    const authorsDiv = document.getElementById('authors'+letter);
-    const arrow = document.querySelector(`#authors${letter}`).previousElementSibling.querySelector('.arrow');
-    if (authorsDiv.style.display === 'none') {
-        authorsDiv.style.display = 'block';
-        arrow.style.transform = 'rotate(90deg)';
-    } else {
-        authorsDiv.style.display = 'none';
-        arrow.style.transform = 'rotate(0deg)';
-    }
-};
-
-// 切換作者展開
-window.toggleAuthor = function(authorId) {
-    const worksUl = document.getElementById('works'+authorId);
-    const arrow = document.querySelector(`#works${authorId}`).previousElementSibling.querySelector('.arrow');
-    if (worksUl.style.display === 'none') {
-        worksUl.style.display = 'block';
-        arrow.style.transform = 'rotate(90deg)';
-    } else {
-        worksUl.style.display = 'none';
-        arrow.style.transform = 'rotate(0deg)';
-    }
-};
-
-// 綁定引用標註事件
-function bindCitationEvents() {
-    document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('citation')) {
-            showCitationTooltip(e.target);
+                }
+            }
         }
-    });
-}
 
-// 顯示引用工具提示
-function showCitationTooltip(citationElement) {
-    const tooltip = document.createElement('div');
-    tooltip.className = 'citation-tooltip';
-    tooltip.textContent = citationElement.title;
-    
-    // 移除現有的工具提示
-    document.querySelectorAll('.citation-tooltip').forEach(t => t.remove());
-    
-    // 添加新的工具提示
-    document.body.appendChild(tooltip);
-    
-    // 獲取引用標註的位置
-    const rect = citationElement.getBoundingClientRect();
-    
-    // 等待工具提示渲染完成後再計算位置
-    setTimeout(() => {
-        const tooltipRect = tooltip.getBoundingClientRect();
-        const tooltipWidth = tooltipRect.width;
-        const tooltipHeight = tooltipRect.height;
-        
-        // 計算工具提示的位置
-        let tooltipLeft = rect.left - (tooltipWidth / 2) + (rect.width / 2);
-        let tooltipTop = rect.top - tooltipHeight - 10;
-        
-        // 確保工具提示不會超出視窗邊界
-        if (tooltipLeft < 10) tooltipLeft = 10;
-        if (tooltipLeft + tooltipWidth > window.innerWidth - 10) {
-            tooltipLeft = window.innerWidth - tooltipWidth - 10;
+        // 渲染參考書目
+        function renderCatalog(data) {
+            const catalogList = document.getElementById('catalogList');
+            if (!catalogList) return;
+            
+            if (!data || data.length === 0) {
+                const noDataText = window.translations ? window.translations['no-data'] : '查無資料';
+                catalogList.innerHTML = `
+                    <div class="text-center p-8">
+                        <p class="text-[var(--text-secondary)]">${noDataText}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 按字母分組
+            const groupedData = {};
+            data.forEach(author => {
+                const firstLetter = author.author.charAt(0).toUpperCase();
+                if (!groupedData[firstLetter]) {
+                    groupedData[firstLetter] = [];
+                }
+                groupedData[firstLetter].push(author);
+            });
+            
+            let html = '';
+            Object.keys(groupedData).sort().forEach(letter => {
+                html += `
+                    <div class="catalog-letter" onclick="toggleLetter('${letter}')">
+                        <span class="arrow">▶</span>
+                        <span class="letter-text">${letter}</span>
+                        <span class="author-count">(${groupedData[letter].length} 位作者)</span>
+                    </div>
+                    <div id="authors${letter}" class="catalog-authors" style="display:none;">
+                        ${groupedData[letter].map((author, idx) => {
+                            const authorId = `${letter}_${idx}`;
+                            return `
+                                <div class="catalog-author">
+                                    <div class="catalog-author-name" onclick="toggleAuthor('${authorId}')">
+                                        <span class="arrow">▶</span>
+                                        <span class="author-name">${author.author}</span>
+                                        <span class="works-count">(${author.works.length} 部作品)</span>
+                                    </div>
+                                    <ul id="works${authorId}" class="catalog-works" style="display:none;">
+                                        ${author.works.map(work => `<li class="catalog-work">${work}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            });
+            
+            catalogList.innerHTML = html;
         }
-        if (tooltipTop < 10) {
-            tooltipTop = rect.bottom + 10;
-        }
-        
-        // 手機版特殊處理
-        if (window.innerWidth <= 768) {
-            tooltip.style.maxWidth = '280px';
-            tooltip.style.fontSize = '0.8rem';
-            tooltip.style.padding = '0.75rem';
-        }
-        
-        // 設置工具提示位置
-        tooltip.style.left = tooltipLeft + 'px';
-        tooltip.style.top = tooltipTop + 'px';
-        
-        // 計算尖端位置
-        const arrowLeft = rect.left - tooltipLeft + (rect.width / 2);
-        tooltip.style.setProperty('--arrow-left', arrowLeft + 'px');
-        
-        // 顯示工具提示
-        tooltip.classList.add('show');
-    }, 10);
-    
-    // 點擊其他地方時隱藏
-    const hideTooltip = (event) => {
-        if (!tooltip.contains(event.target) && !citationElement.contains(event.target)) {
-            tooltip.classList.remove('show');
-            setTimeout(() => tooltip.remove(), 300);
-            document.removeEventListener('click', hideTooltip);
-        }
-    };
-    
-    setTimeout(() => {
-        document.addEventListener('click', hideTooltip);
-    }, 100);
-}
 
-// 初始化
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuthStatus();
-    
-    // 添加語言切換事件
-    const langButtons = document.querySelectorAll('.lang-btn');
-    langButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const isChinese = btn.textContent.includes('中文');
-            switchLanguage(isChinese ? 'zh' : 'en');
+        // 切換字母展開
+        window.toggleLetter = function(letter) {
+            const authorsDiv = document.getElementById('authors'+letter);
+            const arrow = document.querySelector(`#authors${letter}`).previousElementSibling.querySelector('.arrow');
+            if (authorsDiv.style.display === 'none') {
+                authorsDiv.style.display = 'block';
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                authorsDiv.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        };
+
+        // 切換作者展開
+        window.toggleAuthor = function(authorId) {
+            const worksUl = document.getElementById('works'+authorId);
+            const arrow = document.querySelector(`#works${authorId}`).previousElementSibling.querySelector('.arrow');
+            if (worksUl.style.display === 'none') {
+                worksUl.style.display = 'block';
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                worksUl.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        };
+
+        // 綁定引用標註事件
+        function bindCitationEvents() {
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('citation')) {
+                    showCitationTooltip(e.target);
+                }
+            });
+        }
+
+        // 顯示引用工具提示
+        function showCitationTooltip(citationElement) {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'citation-tooltip';
+            tooltip.textContent = citationElement.title;
+            
+            // 移除現有的工具提示
+            document.querySelectorAll('.citation-tooltip').forEach(t => t.remove());
+            
+            // 添加新的工具提示
+            document.body.appendChild(tooltip);
+            
+            // 獲取引用標註的位置
+            const rect = citationElement.getBoundingClientRect();
+            
+            // 等待工具提示渲染完成後再計算位置
+            setTimeout(() => {
+                const tooltipRect = tooltip.getBoundingClientRect();
+                const tooltipWidth = tooltipRect.width;
+                const tooltipHeight = tooltipRect.height;
+                
+                // 計算工具提示的位置
+                let tooltipLeft = rect.left - (tooltipWidth / 2) + (rect.width / 2);
+                let tooltipTop = rect.top - tooltipHeight - 10;
+                
+                // 確保工具提示不會超出視窗邊界
+                if (tooltipLeft < 10) tooltipLeft = 10;
+                if (tooltipLeft + tooltipWidth > window.innerWidth - 10) {
+                    tooltipLeft = window.innerWidth - tooltipWidth - 10;
+                }
+                if (tooltipTop < 10) {
+                    tooltipTop = rect.bottom + 10;
+                }
+                
+                // 手機版特殊處理
+                if (window.innerWidth <= 768) {
+                    tooltip.style.maxWidth = '280px';
+                    tooltip.style.fontSize = '0.8rem';
+                    tooltip.style.padding = '0.75rem';
+                }
+                
+                // 設置工具提示位置
+                tooltip.style.left = tooltipLeft + 'px';
+                tooltip.style.top = tooltipTop + 'px';
+                
+                // 計算尖端位置
+                const arrowLeft = rect.left - tooltipLeft + (rect.width / 2);
+                tooltip.style.setProperty('--arrow-left', arrowLeft + 'px');
+                
+                // 顯示工具提示
+                tooltip.classList.add('show');
+            }, 10);
+            
+            // 點擊其他地方時隱藏
+            const hideTooltip = (event) => {
+                if (!tooltip.contains(event.target) && !citationElement.contains(event.target)) {
+                    tooltip.classList.remove('show');
+                    setTimeout(() => tooltip.remove(), 300);
+                    document.removeEventListener('click', hideTooltip);
+                }
+            };
+            
+            setTimeout(() => {
+                document.addEventListener('click', hideTooltip);
+            }, 100);
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthStatus();
+            
+            // 初始化引用標註事件
+            bindCitationEvents();
+            
+            // 初始化語言為中文
+            switchLanguage('zh');
         });
-    });
-    
-    // 初始化引用標註事件
-    bindCitationEvents();
-    
-    // 初始化語言為中文
-    switchLanguage('zh');
-});
-</script>
+    </script>
 </body>
 </html>
