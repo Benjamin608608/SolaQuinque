@@ -147,6 +147,17 @@
             color: var(--text-primary);
             border: 2px solid var(--accent);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            line-height: 1.8;
+            text-align: justify;
+        }
+        
+        .message.assistant .message-content p {
+            margin-bottom: 1rem;
+            text-indent: 2em;
+        }
+        
+        .message.assistant .message-content p:last-child {
+            margin-bottom: 0;
         }
         
         /* 聊天容器樣式 */
@@ -382,7 +393,16 @@
                 max-width: 95% !important;
                 padding: 0.75rem 1rem !important;
                 font-size: 0.9rem;
-                line-height: 1.5;
+                line-height: 1.6;
+            }
+            
+            .message.assistant .message-content {
+                text-align: left;
+            }
+            
+            .message.assistant .message-content p {
+                text-indent: 1.5em;
+                margin-bottom: 0.75rem;
             }
             
             .catalog-header h2 {
@@ -717,11 +737,30 @@
         function formatAnswer(answer, sources) {
             let formatted = answer;
             
+            // 移除重複的開場白
+            const unwantedPhrases = [
+                '探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。',
+                'Explore the wisdom of theologians throughout history, finding solid foundations for your faith.'
+            ];
+            
+            unwantedPhrases.forEach(phrase => {
+                formatted = formatted.replace(new RegExp(phrase, 'g'), '');
+            });
+            
+            // 清理多餘的空白和換行
+            formatted = formatted.trim();
+            
             // 處理 Markdown 格式
             formatted = formatted
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\n\n/g, '</p><p>')
                 .replace(/\n/g, '<br>');
+            
+            // 改善段落結構
+            formatted = formatted
+                .replace(/<p><p>/g, '<p>')
+                .replace(/<\/p><\/p>/g, '</p>')
+                .replace(/<p>\s*<\/p>/g, '');
             
             // 包裝成段落
             if (!formatted.startsWith('<p>')) {
