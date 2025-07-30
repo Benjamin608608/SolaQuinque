@@ -513,10 +513,14 @@
                 if (data.success && data.user) {
                     showAuthenticatedUI(data.user);
                 } else {
+                    // 設置當前頁面狀態為登入頁面
+                    window.currentPage = 'login';
                     showLoginUI();
                 }
             } catch (error) {
                 console.error('檢查認證狀態失敗:', error);
+                // 設置當前頁面狀態為登入頁面
+                window.currentPage = 'login';
                 showLoginUI();
             }
         }
@@ -554,6 +558,9 @@
 
         // 顯示登入 UI
         function showLoginUI() {
+            // 設置當前頁面狀態
+            window.currentPage = 'login';
+            
             // 隱藏導航按鈕和用戶按鈕
             const navLinks = document.getElementById('navLinks');
             const userAvatar = document.getElementById('userAvatar');
@@ -966,15 +973,13 @@
                 loadCatalog();
             }
             
-            // 如果當前在首頁，重新顯示以更新翻譯
-            const mainContent = document.getElementById('mainContent');
-            if (mainContent) {
-                const content = mainContent.innerHTML;
-                if (content.includes('神學知識庫') || content.includes('Theological Knowledge Base')) {
-                    showHomePage();
-                } else if (content.includes('歡迎使用神學知識庫') || content.includes('Welcome to Theological Knowledge Base') || content.includes('login')) {
-                    showLoginUI();
-                }
+            // 根據當前頁面狀態重新顯示以更新翻譯
+            if (window.currentPage === 'login') {
+                showLoginUI();
+            } else if (window.currentPage === 'home') {
+                showHomePage();
+            } else if (window.currentPage === 'catalog') {
+                showCatalogPage();
             }
         }
 
@@ -1000,6 +1005,9 @@
 
         // 顯示首頁
         function showHomePage() {
+            // 設置當前頁面狀態
+            window.currentPage = 'home';
+            
             const main = document.getElementById('mainContent');
             if (main) {
                 // 如果有正在進行的搜尋，顯示載入狀態
@@ -1040,6 +1048,9 @@
 
         // 顯示參考書目頁面
         function showCatalogPage() {
+            // 設置當前頁面狀態
+            window.currentPage = 'catalog';
+            
             const main = document.getElementById('mainContent');
             if (main) {
                 const catalogTitle = window.translations ? window.translations['catalog-title'] : '參考書目';
@@ -1312,6 +1323,7 @@
             // 初始化搜尋狀態
             window.isSearching = false;
             window.currentQuestion = null;
+            window.currentPage = 'login'; // 默認為登入頁面
             
             checkAuthStatus();
             
