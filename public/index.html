@@ -587,14 +587,14 @@
             const submitBtn = document.getElementById('submitBtn');
             
             if (input && submitBtn) {
-                // 移除舊的事件監聽器以避免重複綁定
+                // 清除舊的事件監聽器
                 const newInput = input.cloneNode(true);
                 const newSubmitBtn = submitBtn.cloneNode(true);
                 
                 input.parentNode.replaceChild(newInput, input);
                 submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
                 
-                // 重新獲取元素
+                // 重新獲取元素並綁定事件
                 const newInputElement = document.getElementById('searchInput');
                 const newSubmitBtnElement = document.getElementById('submitBtn');
                 
@@ -668,6 +668,12 @@
                     </div>
                 `;
             }
+            
+            // 確保 footer 顯示
+            const footer = document.querySelector('footer');
+            if (footer) {
+                footer.style.display = 'block';
+            }
         }
 
         // 顯示結果
@@ -691,6 +697,12 @@
                 
                 // 重新綁定引用標註事件
                 bindCitationEvents();
+                
+                // 確保 footer 顯示
+                const footer = document.querySelector('footer');
+                if (footer) {
+                    footer.style.display = 'block';
+                }
             }
         }
 
@@ -743,6 +755,12 @@
                         </div>
                     </div>
                 `;
+            }
+            
+            // 確保 footer 顯示
+            const footer = document.querySelector('footer');
+            if (footer) {
+                footer.style.display = 'block';
             }
         }
 
@@ -904,13 +922,13 @@
             
             // 如果當前在首頁，重新顯示以更新翻譯
             const mainContent = document.getElementById('mainContent');
-            if (mainContent && mainContent.innerHTML.includes('神學知識庫') || mainContent.innerHTML.includes('Theological Knowledge Base')) {
-                showHomePage();
-            }
-            
-            // 如果當前在登入頁面，重新顯示以更新翻譯
-            if (mainContent && mainContent.innerHTML.includes('歡迎使用神學知識庫') || mainContent.innerHTML.includes('Welcome to Theological Knowledge Base')) {
-                showLoginUI();
+            if (mainContent) {
+                const content = mainContent.innerHTML;
+                if (content.includes('神學知識庫') || content.includes('Theological Knowledge Base')) {
+                    showHomePage();
+                } else if (content.includes('歡迎使用神學知識庫') || content.includes('Welcome to Theological Knowledge Base')) {
+                    showLoginUI();
+                }
             }
         }
 
@@ -1243,6 +1261,10 @@
 
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
+            // 初始化搜尋狀態
+            window.isSearching = false;
+            window.currentQuestion = null;
+            
             checkAuthStatus();
             
             // 初始化引用標註事件
