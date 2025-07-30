@@ -567,10 +567,10 @@
                 `;
             }
             
-            // 保持 footer 顯示，讓搜尋功能持續運作
+            // 隱藏搜尋輸入框，只在首頁顯示
             const footer = document.querySelector('footer');
             if (footer) {
-                footer.style.display = 'block';
+                footer.style.display = 'none';
             }
         }
 
@@ -619,6 +619,10 @@
             
             if (!question) return;
             
+            // 設置搜尋狀態
+            window.isSearching = true;
+            window.currentQuestion = question;
+            
             // 顯示載入狀態
             showLoadingState();
             
@@ -643,6 +647,10 @@
                 console.error('搜索錯誤:', error);
                 const networkError = window.translations ? window.translations['network-error'] : '網路錯誤，請檢查連線後再試';
                 showError(networkError);
+            } finally {
+                // 清除搜尋狀態
+                window.isSearching = false;
+                window.currentQuestion = null;
             }
         }
 
@@ -651,10 +659,12 @@
             const main = document.getElementById('mainContent');
             if (main) {
                 const loadingText = window.translations ? window.translations['searching'] : '正在搜索相關資料...';
+                const question = window.currentQuestion || '';
                 main.innerHTML = `
                     <div class="text-center px-4 sm:px-6">
                         <div class="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-[var(--primary)] mx-auto mb-3 sm:mb-4"></div>
-                        <p class="text-[var(--text-secondary)] text-sm sm:text-base">${loadingText}</p>
+                        <p class="text-[var(--text-secondary)] text-sm sm:text-base mb-2">${loadingText}</p>
+                        ${question ? `<p class="text-[var(--primary)] text-sm font-medium">"${question}"</p>` : ''}
                     </div>
                 `;
             }
@@ -928,6 +938,12 @@
         function showHomePage() {
             const main = document.getElementById('mainContent');
             if (main) {
+                // 如果有正在進行的搜尋，顯示載入狀態
+                if (window.isSearching) {
+                    showLoadingState();
+                    return;
+                }
+                
                 const homeTitle = window.translations ? window.translations['home-title'] : '神學知識庫';
                 const homeSubtitle = window.translations ? window.translations['home-subtitle'] : '探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。';
                 
@@ -1004,10 +1020,10 @@
                 }, 100);
             }
             
-            // 保持 footer 顯示，讓搜尋功能持續運作
+            // 隱藏搜尋輸入框，只在首頁顯示
             const footer = document.querySelector('footer');
             if (footer) {
-                footer.style.display = 'block';
+                footer.style.display = 'none';
             }
         }
 
