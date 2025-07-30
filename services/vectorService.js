@@ -17,6 +17,17 @@ class VectorService {
         this.texts = [];
         this.faissIndex = null;
         this.isInitialized = false;
+        
+        // 添加進度追蹤
+        this.progress = {
+            totalFiles: 0,
+            processedFiles: 0,
+            downloadedFiles: 0,
+            remainingFiles: 0,
+            isBackgroundProcessing: false,
+            startTime: null,
+            estimatedTimeRemaining: null
+        };
     }
 
     // 從 Google Drive 下載檔案
@@ -89,6 +100,14 @@ class VectorService {
             // 列出資料夾中的所有文件
             const filesList = await this.listGoogleDriveFiles(folderId);
             console.log(`📋 找到 ${filesList.length} 個文件`);
+            
+            // 初始化進度追蹤
+            this.progress.totalFiles = filesList.length;
+            this.progress.processedFiles = 0;
+            this.progress.downloadedFiles = 0;
+            this.progress.remainingFiles = filesList.length;
+            this.progress.startTime = Date.now();
+            this.progress.isBackgroundProcessing = true;
             
             if (filesList.length === 0) {
                 throw new Error('資料夾中沒有找到文件');
@@ -207,9 +226,17 @@ class VectorService {
                         
                         downloadedCount++;
                         
+                        // 更新進度追蹤
+                        this.progress.processedFiles = downloadedCount;
+                        this.progress.downloadedFiles = downloadedCount;
+                        this.progress.remainingFiles = this.progress.totalFiles - downloadedCount;
+                        
                         // 定期顯示進度
                         if (downloadedCount % PROGRESS_INTERVAL === 0) {
-                            console.log(`📊 進度更新: 已下載 ${downloadedCount}/${filesToProcess.length} 個文件，跳過 ${skippedCount} 個，提取了 ${processedTextCount} 個文本片段`);
+                            const progressPercent = ((downloadedCount / filesToProcess.length) * 100).toFixed(1);
+                            const elapsed = Math.round((Date.now() - this.progress.startTime) / 1000);
+                            console.log(`📊 進度更新: ${progressPercent}% (${downloadedCount}/${filesToProcess.length}) - 已用時 ${elapsed}秒`);
+                            console.log(`📊 詳細: 已下載 ${downloadedCount} 個文件，跳過 ${skippedCount} 個，提取了 ${processedTextCount} 個文本片段`);
                         }
                         
                     } catch (error) {
@@ -1138,11 +1165,39 @@ ${vectorResults.map((result, index) => `[${index + 1}] 來源：${result.fileNam
 
     // 獲取服務狀態
     getStatus() {
-        return {
+        const status = {
             isInitialized: this.isInitialized,
             textCount: this.texts.length,
             hasIndex: !!this.faissIndex
         };
+        
+        // 添加進度資訊
+        if (this.progress.isBackgroundProcessing) {
+            const elapsed = Date.now() - this.progress.startTime;
+            const progressPercent = this.progress.totalFiles > 0 ? 
+                ((this.progress.processedFiles / this.progress.totalFiles) * 100).toFixed(1) : 0;
+            
+            // 估算剩餘時間
+            let estimatedTimeRemaining = null;
+            if (this.progress.processedFiles > 0) {
+                const avgTimePerFile = elapsed / this.progress.processedFiles;
+                const remainingFiles = this.progress.totalFiles - this.progress.processedFiles;
+                estimatedTimeRemaining = Math.round(avgTimePerFile * remainingFiles / 1000); // 秒
+            }
+            
+            status.progress = {
+                totalFiles: this.progress.totalFiles,
+                processedFiles: this.progress.processedFiles,
+                downloadedFiles: this.progress.downloadedFiles,
+                remainingFiles: this.progress.remainingFiles,
+                progressPercent: parseFloat(progressPercent),
+                elapsedSeconds: Math.round(elapsed / 1000),
+                estimatedTimeRemaining: estimatedTimeRemaining,
+                isBackgroundProcessing: true
+            };
+        }
+        
+        return status;
     }
 }
 

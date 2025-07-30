@@ -580,8 +580,27 @@ app.get('/api/catalog', (req, res) => {
   }
 });
 
+// 向量服務進度 API
+app.get('/api/vector-progress', (req, res) => {
+  try {
+    const status = vectorService.getStatus();
+    res.json({
+      success: true,
+      data: status
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: '無法獲取向量服務進度',
+      details: error.message 
+    });
+  }
+});
+
 // 健康檢查端點
 app.get('/api/health', (req, res) => {
+  const vectorStatus = vectorService.getStatus();
+  
   const healthStatus = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -594,7 +613,8 @@ app.get('/api/health', (req, res) => {
       googleOAuth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
       mongodb: !!process.env.MONGO_URI,
       session: !!process.env.SESSION_SECRET
-    }
+    },
+    vectorService: vectorStatus
   };
   
   // 檢查關鍵服務是否可用
@@ -611,9 +631,12 @@ app.get('/api/health', (req, res) => {
 
 // 獲取系統資訊端點
 app.get('/api/info', (req, res) => {
+  const vectorStatus = vectorService.getStatus();
+  
   res.json({
     name: '神學知識庫 API',
     version: '1.0.0',
+    vectorService: vectorStatus,
     description: '基於 OpenAI 向量搜索的神學問答系統',
     vectorStoreId: VECTOR_STORE_ID ? 'configured' : 'not configured',
     googleOAuth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
