@@ -153,7 +153,7 @@
         .chat-container {
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 200px);
+            height: calc(100vh - 250px);
             max-width: 1000px;
             margin: 0 auto;
             width: 100%;
@@ -369,7 +369,7 @@
         /* 響應式設計 */
         @media (max-width: 768px) {
             .chat-container {
-                height: calc(100vh - 150px);
+                height: calc(100vh - 200px);
                 padding: 0 0.5rem;
             }
             
@@ -531,12 +531,6 @@
 
         // 顯示登入 UI
         function showLoginUI() {
-            // 隱藏搜索相關元素
-            const footer = document.querySelector('footer');
-            if (footer) {
-                footer.style.display = 'none';
-            }
-            
             // 隱藏導航按鈕和用戶按鈕
             const navLinks = document.getElementById('navLinks');
             const userAvatar = document.getElementById('userAvatar');
@@ -567,6 +561,12 @@
                     </div>
                 `;
             }
+            
+            // 保持 footer 顯示，讓搜尋功能持續運作
+            const footer = document.querySelector('footer');
+            if (footer) {
+                footer.style.display = 'block';
+            }
         }
 
         // 顯示搜索 UI
@@ -582,15 +582,28 @@
             const submitBtn = document.getElementById('submitBtn');
             
             if (input && submitBtn) {
-                // 處理 Enter 鍵
-                input.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        handleSearch();
-                    }
-                });
+                // 移除舊的事件監聽器以避免重複綁定
+                const newInput = input.cloneNode(true);
+                const newSubmitBtn = submitBtn.cloneNode(true);
                 
-                // 處理提交按鈕點擊
-                submitBtn.addEventListener('click', handleSearch);
+                input.parentNode.replaceChild(newInput, input);
+                submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+                
+                // 重新獲取元素
+                const newInputElement = document.getElementById('searchInput');
+                const newSubmitBtnElement = document.getElementById('submitBtn');
+                
+                if (newInputElement && newSubmitBtnElement) {
+                    // 處理 Enter 鍵
+                    newInputElement.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            handleSearch();
+                        }
+                    });
+                    
+                    // 處理提交按鈕點擊
+                    newSubmitBtnElement.addEventListener('click', handleSearch);
+                }
             }
         }
 
@@ -909,6 +922,9 @@
             if (footer) {
                 footer.style.display = 'block';
             }
+            
+            // 重新綁定搜尋功能
+            showSearchUI();
         }
 
         // 顯示參考書目頁面
@@ -959,10 +975,10 @@
                 }, 100);
             }
             
-            // 隱藏輸入區域
+            // 保持 footer 顯示，讓搜尋功能持續運作
             const footer = document.querySelector('footer');
             if (footer) {
-                footer.style.display = 'none';
+                footer.style.display = 'block';
             }
         }
 
