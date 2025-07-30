@@ -460,12 +460,14 @@
     </header>
     
     <main class="flex-grow flex flex-col items-center justify-center text-center px-6 -mt-8" id="mainContent">
-        <div class="w-24 h-24 mb-8 flex items-center justify-center rounded-full cross-container shadow-inner">
-            <span class="text-5xl text-[var(--primary)] font-light" style="text-shadow: 1px 1px 3px rgba(109, 76, 65, 0.1);">†</span>
+        <div class="relative">
+            <div class="w-24 h-24 mb-4 flex items-center justify-center rounded-full cross-container shadow-inner mx-auto">
+                <span class="text-5xl text-[var(--primary)] font-light" style="text-shadow: 1px 1px 3px rgba(109, 76, 65, 0.1);">†</span>
+            </div>
+            <h1 class="text-5xl font-serif font-bold tracking-wider text-[var(--text-primary)]" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.05);">
+                神學知識庫
+            </h1>
         </div>
-        <h1 class="text-5xl font-serif font-bold tracking-wider text-[var(--text-primary)]" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.05);">
-            神學知識庫
-        </h1>
         <p class="text-[var(--text-secondary)] mt-5 text-lg max-w-md font-light leading-relaxed">
             探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。
         </p>
@@ -475,7 +477,7 @@
         <div class="relative w-full max-w-lg mx-auto">
             <span class="material-icons-outlined absolute left-5 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] text-xl">search</span>
             <input class="w-full search-input rounded-full py-4 pl-14 pr-16 text-base" placeholder="詢問任何問題..." type="text" id="searchInput"/>
-            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 submit-btn rounded-full w-12 h-12 flex items-center justify-center" id="submitBtn">
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 submit-btn rounded-full w-12 h-12 flex items-center justify-center z-10" id="submitBtn">
                 <span class="material-icons-outlined text-2xl">arrow_upward</span>
             </button>
         </div>
@@ -587,12 +589,17 @@
             const submitBtn = document.getElementById('submitBtn');
             
             if (input && submitBtn) {
-                // 清除舊的事件監聽器
-                const newInput = input.cloneNode(true);
-                const newSubmitBtn = submitBtn.cloneNode(true);
+                // 移除舊的事件監聽器
+                const oldInput = input.cloneNode(true);
+                const oldSubmitBtn = submitBtn.cloneNode(true);
                 
-                input.parentNode.replaceChild(newInput, input);
-                submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+                // 保持按鈕的樣式和位置
+                oldSubmitBtn.className = submitBtn.className;
+                oldSubmitBtn.id = submitBtn.id;
+                oldSubmitBtn.innerHTML = submitBtn.innerHTML;
+                
+                input.parentNode.replaceChild(oldInput, input);
+                submitBtn.parentNode.replaceChild(oldSubmitBtn, submitBtn);
                 
                 // 重新獲取元素並綁定事件
                 const newInputElement = document.getElementById('searchInput');
@@ -926,7 +933,7 @@
                 const content = mainContent.innerHTML;
                 if (content.includes('神學知識庫') || content.includes('Theological Knowledge Base')) {
                     showHomePage();
-                } else if (content.includes('歡迎使用神學知識庫') || content.includes('Welcome to Theological Knowledge Base')) {
+                } else if (content.includes('歡迎使用神學知識庫') || content.includes('Welcome to Theological Knowledge Base') || content.includes('login')) {
                     showLoginUI();
                 }
             }
@@ -966,13 +973,15 @@
                 const homeSubtitle = window.translations ? window.translations['home-subtitle'] : '探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。';
                 
                 main.innerHTML = `
-                    <div class="text-center mb-4 sm:mb-6 md:mb-8 px-2 sm:px-4">
-                        <div class="w-24 h-24 mb-8 flex items-center justify-center rounded-full cross-container shadow-inner">
-                            <span class="text-5xl text-[var(--primary)] font-light" style="text-shadow: 1px 1px 3px rgba(109, 76, 65, 0.1);">†</span>
+                    <div class="text-center px-2 sm:px-4">
+                        <div class="relative">
+                            <div class="w-24 h-24 mb-4 flex items-center justify-center rounded-full cross-container shadow-inner mx-auto">
+                                <span class="text-5xl text-[var(--primary)] font-light" style="text-shadow: 1px 1px 3px rgba(109, 76, 65, 0.1);">†</span>
+                            </div>
+                            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-serif font-bold tracking-wider text-[var(--text-primary)]" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.05);">
+                                ${homeTitle}
+                            </h1>
                         </div>
-                        <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-serif font-bold tracking-wider text-[var(--text-primary)]" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.05);">
-                            ${homeTitle}
-                        </h1>
                         <p class="text-[var(--text-secondary)] mt-2 sm:mt-4 px-2 sm:px-4 text-sm sm:text-base md:text-lg lg:text-xl font-light leading-relaxed max-w-md">
                             ${homeSubtitle}
                         </p>
