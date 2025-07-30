@@ -360,13 +360,13 @@ function createSourceList(sourceMap) {
 
 // FAISS 向量搜索處理
 async function processSearchRequestWithFAISS(question, user) {
-    console.log('🔄 使用 FAISS 混合搜索方法...');
+    console.log('🔄 使用 FAISS 純資料庫搜索方法...');
     
     try {
-        // 使用混合搜索策略
-        const result = await vectorService.hybridSearch(question, 15);
+        // 使用純資料庫搜索策略，確保回答完全基於資料庫內容
+        const result = await vectorService.databaseOnlySearch(question, 10);
         
-        console.log('✅ 混合搜索完成');
+        console.log('✅ 純資料庫搜索完成');
         console.log(`📊 使用了 ${result.vectorResults} 個向量搜索結果`);
         
         return {
@@ -384,7 +384,7 @@ async function processSearchRequestWithFAISS(question, user) {
         };
         
     } catch (error) {
-        console.error('❌ FAISS 混合搜索失敗:', error.message);
+        console.error('❌ FAISS 純資料庫搜索失敗:', error.message);
         console.log('🔄 回退到傳統 Assistant API 方法...');
         
         // 回退到傳統方法
