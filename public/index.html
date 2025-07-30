@@ -384,7 +384,7 @@
 </head>
 <body class="flex flex-col min-h-screen antialiased">
     <header class="p-3 flex justify-between items-center w-full header-bg sticky top-0 z-10">
-        <div class="flex items-center space-x-1">
+        <div class="flex items-center space-x-1" id="navLinks" style="display: none;">
             <a class="nav-link active" href="#" id="homeLink">
                 <span class="material-icons-outlined text-lg">cottage</span>
                 <span class="text-base">首頁</span>
@@ -399,10 +399,10 @@
                 <button class="lang-btn active" onclick="switchLanguage('zh')">中</button>
                 <button class="lang-btn" onclick="switchLanguage('en')">EN</button>
             </div>
-            <button class="icon-btn text-[var(--text-secondary)]" id="userAvatar">
+            <button class="icon-btn text-[var(--text-secondary)]" id="userAvatar" style="display: none;">
                 <span class="material-icons-outlined text-2xl">account_circle</span>
             </button>
-            <button class="icon-btn text-red-500/70 hover:bg-red-500/10" id="logoutBtn">
+            <button class="icon-btn text-red-500/70 hover:bg-red-500/10" id="logoutBtn" style="display: none;">
                 <span class="material-icons-outlined text-2xl">logout</span>
             </button>
         </div>
@@ -450,15 +450,25 @@
 
         // 顯示已認證的 UI
         function showAuthenticatedUI(user) {
+            // 顯示導航按鈕
+            const navLinks = document.getElementById('navLinks');
+            if (navLinks) {
+                navLinks.style.display = 'flex';
+            }
+            
             // 更新用戶頭像
             const userAvatar = document.getElementById('userAvatar');
-            if (userAvatar && user.picture) {
-                userAvatar.innerHTML = `<img src="${user.picture}" alt="User avatar" class="w-8 h-8 rounded-full border-2 border-[var(--accent)]"/>`;
+            if (userAvatar) {
+                userAvatar.style.display = 'flex';
+                if (user.picture) {
+                    userAvatar.innerHTML = `<img src="${user.picture}" alt="User avatar" class="w-8 h-8 rounded-full border-2 border-[var(--accent)]"/>`;
+                }
             }
             
             // 顯示登出按鈕
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
+                logoutBtn.style.display = 'flex';
                 logoutBtn.onclick = () => window.location.href = '/auth/logout';
             }
             
@@ -476,6 +486,15 @@
             if (footer) {
                 footer.style.display = 'none';
             }
+            
+            // 隱藏導航按鈕和用戶按鈕
+            const navLinks = document.getElementById('navLinks');
+            const userAvatar = document.getElementById('userAvatar');
+            const logoutBtn = document.getElementById('logoutBtn');
+            
+            if (navLinks) navLinks.style.display = 'none';
+            if (userAvatar) userAvatar.style.display = 'none';
+            if (logoutBtn) logoutBtn.style.display = 'none';
             
             // 添加登入按鈕到主內容區域
             const main = document.getElementById('mainContent');
