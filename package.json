@@ -4,7 +4,7 @@
   "description": "神學知識庫網頁版 - 基於 OpenAI 向量搜索的神學問答系統",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node scripts/railway-start.js",
     "dev": "nodemon server.js",
     "check-env": "node scripts/check-env.js",
     "check-deployment": "node scripts/check-deployment.js",

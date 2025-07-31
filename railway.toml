@@ -11,3 +11,4 @@ healthcheckTimeout = 300
 [env]
 PORT = "$PORT"
 NODE_ENV = "production"
+NODE_OPTIONS = "--max-old-space-size=512"
