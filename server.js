@@ -384,6 +384,21 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
             if (translatedAuthorName && translatedAuthorName !== fullAuthorName) {
               // 替換作者名稱，保持年份和格式
               translatedText = originalText.replace(fullAuthorName, translatedAuthorName);
+            } else if (fullNameWithYear) {
+              // 如果完整匹配有翻譯，使用完整匹配的翻譯
+              const fullName = fullNameWithYear[1];
+              const translatedFullName = getAuthorName(fullName, language);
+              if (translatedFullName && translatedFullName !== fullName) {
+                // 替換整個完整名稱，但保持年份格式
+                const yearMatch = fullName.match(/\(([^)]+)\)/);
+                if (yearMatch) {
+                  const year = yearMatch[1];
+                  const translatedWithYear = `${translatedFullName} (${year})`;
+                  translatedText = originalText.replace(fullName, translatedWithYear);
+                } else {
+                  translatedText = originalText.replace(fullName, translatedFullName);
+                }
+              }
             }
           }
           
