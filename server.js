@@ -769,6 +769,10 @@ async function processSearchRequestInternal(question, user, language = 'zh') {
         });
         console.log('✅ Run 創建成功，等待處理...');
 
+        // 延遲起始輪詢 - 預估等待再查
+        console.log('⏳ 預估等待 3 秒後開始檢查狀態...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
         // 等待完成 - 超優化版等待機制
         let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
         let attempts = 0;
