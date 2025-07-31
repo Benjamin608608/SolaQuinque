@@ -43,8 +43,8 @@ async function loadAuthorTranslations() {
 function getAuthorName(englishName, language = 'zh') {
   if (!englishName) return '';
   
-  if (language === 'zh' && authorTranslations[englishName]) {
-    return authorTranslations[englishName];
+  if (language === 'zh' && authorTranslations.authors[englishName]) {
+    return authorTranslations.authors[englishName];
   }
   return englishName;
 }
