@@ -49,64 +49,7 @@ function getAuthorName(englishName, language = 'zh') {
   return englishName;
 }
 
-// 文本掃描翻譯函數 - 當沒有註解時使用
-function scanAndTranslateText(text, language = 'zh') {
-    if (!text || language !== 'zh') {
-        return text;
-    }
-    
-    console.log('🔍 開始文本掃描翻譯...');
-    let translatedText = text;
-    let translationCount = 0;
-    
-    // 遍歷所有作者對照表
-    for (const [englishName, chineseName] of Object.entries(authorTranslations)) {
-        // 創建多種匹配模式，按優先級排序
-        const patterns = [
-            // 方括號模式：[Herman Bavinck (1854-1921)] - 最高優先級
-            {
-                pattern: new RegExp(`\\[${englishName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`, 'gi'),
-                replacement: (match) => {
-                    const yearMatch = englishName.match(/\(([^)]+)\)/);
-                    const year = yearMatch ? yearMatch[1] : '';
-                    return year ? `[${chineseName} (${year})]` : `[${chineseName}]`;
-                }
-            },
-            // 完整名稱模式：Herman Bavinck (1854-1921) - 中等優先級
-            {
-                pattern: new RegExp(`\\b${englishName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'),
-                replacement: (match) => {
-                    const yearMatch = englishName.match(/\(([^)]+)\)/);
-                    const year = yearMatch ? yearMatch[1] : '';
-                    return year ? `${chineseName} (${year})` : chineseName;
-                }
-            },
-            // 純名稱模式：Herman Bavinck - 最低優先級
-            {
-                pattern: new RegExp(`\\b${englishName.split(' (')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'),
-                replacement: () => chineseName
-            }
-        ];
-        
-        for (const { pattern, replacement } of patterns) {
-            if (pattern.test(translatedText)) {
-                // 執行替換
-                translatedText = translatedText.replace(pattern, (match) => {
-                    const result = replacement(match);
-                    translationCount++;
-                    console.log(`✅ 文本掃描翻譯: "${match}" -> "${result}"`);
-                    return result;
-                });
-                
-                // 只處理一次，避免重複替換
-                break;
-            }
-        }
-    }
-    
-    console.log(`📊 文本掃描翻譯完成，共翻譯 ${translationCount} 處`);
-    return translatedText;
-}
+
 
 // 讓 express-session 支援 proxy (如 Railway/Heroku/Render)
 app.set('trust proxy', 1);
@@ -1119,12 +1062,6 @@ async function processSearchRequestInternal(question, user, language = 'zh') {
             annotations,
             language
         );
-        
-        // 如果沒有註解，進行文本掃描翻譯
-        if (!annotations || annotations.length === 0) {
-            console.log('🔍 沒有註解，進行文本掃描翻譯...');
-            processedText = scanAndTranslateText(answer, language);
-        }
 
         // 不清理 Assistant，保持重用
         console.log('✅ Assistant 重用完成');
