@@ -36,6 +36,66 @@ function getAuthorName(englishName, language = 'zh') {
   return englishName;
 }
 
+// 文本監聽翻譯函數 - 掃描整個文本並替換作者名稱
+function translateTextContent(text, language = 'zh') {
+    if (!text || language !== 'zh') {
+        return text;
+    }
+    
+    console.log('🔍 開始文本監聽翻譯...');
+    let translatedText = text;
+    let translationCount = 0;
+    
+    // 遍歷所有作者對照表
+    for (const [englishName, chineseName] of Object.entries(authorTranslations)) {
+        // 創建多種匹配模式，按優先級排序
+        const patterns = [
+            // 方括號模式：[Herman Bavinck (1854-1921)] - 最高優先級
+            {
+                pattern: new RegExp(`\\[${englishName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`, 'gi'),
+                replacement: (match, yearMatch) => {
+                    const year = yearMatch ? yearMatch[1] : '';
+                    return year ? `[${chineseName} (${year})]` : `[${chineseName}]`;
+                }
+            },
+            // 完整名稱模式：Herman Bavinck (1854-1921) - 中等優先級
+            {
+                pattern: new RegExp(`\\b${englishName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'),
+                replacement: (match, yearMatch) => {
+                    const year = yearMatch ? yearMatch[1] : '';
+                    return year ? `${chineseName} (${year})` : chineseName;
+                }
+            },
+            // 純名稱模式：Herman Bavinck - 最低優先級
+            {
+                pattern: new RegExp(`\\b${englishName.split(' (')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'),
+                replacement: () => chineseName
+            }
+        ];
+        
+        for (const { pattern, replacement } of patterns) {
+            if (pattern.test(translatedText)) {
+                // 提取年份信息
+                const yearMatch = englishName.match(/\(([^)]+)\)/);
+                
+                // 執行替換
+                translatedText = translatedText.replace(pattern, (match) => {
+                    const result = replacement(match, yearMatch);
+                    translationCount++;
+                    console.log(`✅ 翻譯: "${match}" -> "${result}"`);
+                    return result;
+                });
+                
+                // 只處理一次，避免重複替換
+                break;
+            }
+        }
+    }
+    
+    console.log(`📊 文本監聽翻譯完成，共翻譯 ${translationCount} 處`);
+    return translatedText;
+}
+
 // 讓 express-session 支援 proxy (如 Railway/Heroku/Render)
 app.set('trust proxy', 1);
 
@@ -630,9 +690,12 @@ async function processSearchRequest(question, user, language = 'zh') {
         const answer = lastMessage.content[0].text.value;
         console.log('✅ 成功獲取 Assistant 回答');
 
+        // 應用文本監聽翻譯
+        let translatedAnswer = translateTextContent(answer, language);
+        
         // 處理註解並轉換為引用格式
         const { processedText, sourceMap } = await processAnnotationsInText(
-            answer, 
+            translatedAnswer, 
             lastMessage.content[0].text.annotations,
             language
         );
