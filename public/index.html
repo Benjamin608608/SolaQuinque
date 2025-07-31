@@ -221,7 +221,7 @@
         
         /* 工具提示樣式 */
         .citation-tooltip {
-            position: absolute;
+            position: fixed;
             background: linear-gradient(135deg, var(--primary), #5D4037);
             color: white;
             padding: 1rem;
@@ -1331,26 +1331,60 @@
                 tooltip.style.left = tooltipLeft + 'px';
                 tooltip.style.top = tooltipTop + 'px';
                 
-                // 計算尖端位置
+                // 計算尖端位置 - 修正箭頭連接點
                 const arrowLeft = rect.left - tooltipLeft + (rect.width / 2);
                 tooltip.style.setProperty('--arrow-left', arrowLeft + 'px');
                 
                 // 顯示工具提示
                 tooltip.classList.add('show');
+                
+                // 添加滾動監聽器，讓工具提示跟隨滾動
+                const updateTooltipPosition = () => {
+                    const newRect = citationElement.getBoundingClientRect();
+                    const newTooltipLeft = newRect.left - (tooltipWidth / 2) + (newRect.width / 2);
+                    const newTooltipTop = newRect.top - tooltipHeight - 10;
+                    
+                    // 重新計算邊界
+                    let finalTooltipLeft = newTooltipLeft;
+                    let finalTooltipTop = newTooltipTop;
+                    
+                    if (finalTooltipLeft < 10) finalTooltipLeft = 10;
+                    if (finalTooltipLeft + tooltipWidth > window.innerWidth - 10) {
+                        finalTooltipLeft = window.innerWidth - tooltipWidth - 10;
+                    }
+                    if (finalTooltipTop < 10) {
+                        finalTooltipTop = newRect.bottom + 10;
+                    }
+                    
+                    tooltip.style.left = finalTooltipLeft + 'px';
+                    tooltip.style.top = finalTooltipTop + 'px';
+                    
+                    // 更新箭頭位置
+                    const newArrowLeft = newRect.left - finalTooltipLeft + (newRect.width / 2);
+                    tooltip.style.setProperty('--arrow-left', newArrowLeft + 'px');
+                };
+                
+                // 添加滾動和調整大小監聽器
+                window.addEventListener('scroll', updateTooltipPosition);
+                window.addEventListener('resize', updateTooltipPosition);
+                
+                // 在工具提示隱藏時移除監聽器
+                const originalHideTooltip = (event) => {
+                    if (!tooltip.contains(event.target) && !citationElement.contains(event.target)) {
+                        tooltip.classList.remove('show');
+                        setTimeout(() => {
+                            tooltip.remove();
+                            window.removeEventListener('scroll', updateTooltipPosition);
+                            window.removeEventListener('resize', updateTooltipPosition);
+                        }, 300);
+                        document.removeEventListener('click', originalHideTooltip);
+                    }
+                };
+                
+                setTimeout(() => {
+                    document.addEventListener('click', originalHideTooltip);
+                }, 100);
             }, 10);
-            
-            // 點擊其他地方時隱藏
-            const hideTooltip = (event) => {
-                if (!tooltip.contains(event.target) && !citationElement.contains(event.target)) {
-                    tooltip.classList.remove('show');
-                    setTimeout(() => tooltip.remove(), 300);
-                    document.removeEventListener('click', hideTooltip);
-                }
-            };
-            
-            setTimeout(() => {
-                document.addEventListener('click', hideTooltip);
-            }, 100);
         }
 
         // 初始化
