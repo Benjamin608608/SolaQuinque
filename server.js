@@ -11,6 +11,31 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// 載入作者對照表
+let authorTranslations = {};
+async function loadAuthorTranslations() {
+  try {
+    const translationsPath = path.join(__dirname, 'config', 'author-translations.json');
+    if (fs.existsSync(translationsPath)) {
+      const data = JSON.parse(fs.readFileSync(translationsPath, 'utf8'));
+      authorTranslations = data.authors || {};
+      console.log('✅ 已載入作者對照表');
+    }
+  } catch (error) {
+    console.warn('⚠️ 無法載入作者對照表:', error.message);
+  }
+}
+
+// 獲取作者名稱（根據語言）
+function getAuthorName(englishName, language = 'zh') {
+  if (!englishName) return '';
+  
+  if (language === 'zh' && authorTranslations[englishName]) {
+    return authorTranslations[englishName];
+  }
+  return englishName;
+}
+
 // 讓 express-session 支援 proxy (如 Railway/Heroku/Render)
 app.set('trust proxy', 1);
 
@@ -258,11 +283,22 @@ app.get('/api/user', (req, res) => {
 });
 
 // 獲取文件名稱的函數
-async function getFileName(fileId) {
+async function getFileName(fileId, language = 'zh') {
   try {
     const file = await openai.files.retrieve(fileId);
     let fileName = file.filename || `檔案-${fileId.substring(0, 8)}`;
     fileName = fileName.replace(/\.(txt|pdf|docx?|rtf|md)$/i, '');
+    
+    // 嘗試從檔案名稱中提取作者名稱並翻譯
+    const authorMatch = fileName.match(/^([^(]+?)\s*\(/);
+    if (authorMatch) {
+      const englishAuthorName = authorMatch[1].trim();
+      const translatedAuthorName = getAuthorName(englishAuthorName, language);
+      if (translatedAuthorName !== englishAuthorName) {
+        fileName = fileName.replace(englishAuthorName, translatedAuthorName);
+      }
+    }
+    
     return fileName;
   } catch (error) {
     console.warn(`無法獲取檔案名稱 ${fileId}:`, error.message);
@@ -271,7 +307,7 @@ async function getFileName(fileId) {
 }
 
 // 處理引用標記並轉換為網頁格式的函數
-async function processAnnotationsInText(text, annotations) {
+async function processAnnotationsInText(text, annotations, language = 'zh') {
   let processedText = text;
   const sourceMap = new Map();
   const usedSources = new Map();
@@ -281,7 +317,7 @@ async function processAnnotationsInText(text, annotations) {
     for (const annotation of annotations) {
       if (annotation.type === 'file_citation' && annotation.file_citation) {
         const fileId = annotation.file_citation.file_id;
-        const fileName = await getFileName(fileId);
+        const fileName = await getFileName(fileId, language);
         const quote = annotation.file_citation.quote || '';
         
         let citationIndex;
@@ -429,7 +465,7 @@ async function getOrCreateAssistant() {
 }
 
 // OpenAI Assistant API 處理
-async function processSearchRequest(question, user) {
+async function processSearchRequest(question, user, language = 'zh') {
     console.log('🔄 使用 OpenAI Assistant API 方法...');
     
     // 檢查快取
@@ -498,7 +534,8 @@ async function processSearchRequest(question, user) {
         // 處理註解並轉換為引用格式
         const { processedText, sourceMap } = await processAnnotationsInText(
             answer, 
-            lastMessage.content[0].text.annotations
+            lastMessage.content[0].text.annotations,
+            language
         );
 
         // 不清理 Assistant，保持重用
@@ -553,7 +590,7 @@ app.get('/api/mobile-check', (req, res) => {
 // 主要搜索 API 端點 - 需要認證
 app.post('/api/search', ensureAuthenticated, async (req, res) => {
   try {
-    const { question } = req.body;
+    const { question, language = 'zh' } = req.body;
 
     if (!question || !question.trim()) {
       return res.status(400).json({
@@ -563,14 +600,14 @@ app.post('/api/search', ensureAuthenticated, async (req, res) => {
     }
 
     const trimmedQuestion = question.trim();
-    console.log(`收到搜索請求: ${trimmedQuestion} (用戶: ${req.user.email})`);
+    console.log(`收到搜索請求: ${trimmedQuestion} (用戶: ${req.user.email}, 語言: ${language})`);
 
     // 設置響應頭，改善移動設備相容性
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
     // 使用 OpenAI Assistant API
-    const result = await processSearchRequest(trimmedQuestion, req.user);
+    const result = await processSearchRequest(trimmedQuestion, req.user, language);
 
     console.log('搜索處理完成，返回結果:', JSON.stringify(result, null, 2));
 
@@ -600,6 +637,22 @@ app.post('/api/search', ensureAuthenticated, async (req, res) => {
       details: process.env.NODE_ENV === 'development' ? error.message : undefined,
       retry: true // 建議前端重試
     });
+  }
+});
+
+// 作者對照表 API（必須在靜態文件服務之前）
+app.get('/config/author-translations.json', (req, res) => {
+  try {
+    const translationsPath = path.join(__dirname, 'config', 'author-translations.json');
+    if (fs.existsSync(translationsPath)) {
+      const data = fs.readFileSync(translationsPath, 'utf8');
+      res.setHeader('Content-Type', 'application/json');
+      res.send(data);
+    } else {
+      res.status(404).json({ success: false, error: '作者對照表不存在' });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, error: '無法讀取作者對照表' });
   }
 });
 
@@ -660,6 +713,9 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// 服務靜態文件
+app.use(express.static(path.join(__dirname, 'public')));
+
 // 錯誤處理中間件
 app.use((error, req, res, next) => {
   console.error('未處理的錯誤:', error);
@@ -697,6 +753,9 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`💡 向量資料庫 ID: ${VECTOR_STORE_ID ? '已設定' : '未設定'}`);
   console.log(`🔐 Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? '已設定' : '未設定'}`);
   console.log(`🤖 使用 OpenAI Assistant API 模式`);
+  
+  // 載入作者對照表
+  await loadAuthorTranslations();
   
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     console.log(`⚠️  注意: Google OAuth 未配置，登入功能將不可用`);

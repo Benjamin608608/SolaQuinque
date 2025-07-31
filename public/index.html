@@ -779,7 +779,10 @@
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ question }),
+                        body: JSON.stringify({ 
+                            question,
+                            language: window.currentLanguage || 'zh'
+                        }),
                         // 添加超時設置
                         signal: AbortSignal.timeout(120000) // 2分鐘超時
                     });
@@ -1015,6 +1018,32 @@
             updatePageLanguage(lang);
         }
 
+        // 載入作者對照表
+        let authorTranslations = {};
+        
+        async function loadAuthorTranslations() {
+            try {
+                const response = await fetch('/config/author-translations.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    authorTranslations = data.authors || {};
+                }
+            } catch (error) {
+                console.warn('無法載入作者對照表:', error);
+            }
+        }
+        
+        // 獲取作者名稱（根據當前語言）
+        function getAuthorName(englishName) {
+            if (!englishName) return '';
+            
+            const currentLang = window.currentLanguage || 'zh';
+            if (currentLang === 'zh' && authorTranslations[englishName]) {
+                return authorTranslations[englishName];
+            }
+            return englishName;
+        }
+        
         // 更新頁面語言
         function updatePageLanguage(lang) {
             const translations = {
@@ -1140,10 +1169,13 @@
             window.currentLanguage = lang;
             window.translations = currentLang;
             
-            // 如果當前在參考書目頁面，重新載入以更新翻譯
+            // 如果當前在參考書目頁面，重新載入以更新翻譯和作者名稱
             const catalogList = document.getElementById('catalogList');
             if (catalogList && catalogList.innerHTML.includes('catalog-letter')) {
-                loadCatalog();
+                // 重新載入作者對照表並更新參考書目
+                loadAuthorTranslations().then(() => {
+                    loadCatalog();
+                });
             }
             
             // 根據當前頁面狀態重新顯示以更新翻譯
@@ -1348,11 +1380,15 @@
             // 按字母分組
             const groupedData = {};
             data.forEach(author => {
-                const firstLetter = author.author.charAt(0).toUpperCase();
+                const displayName = getAuthorName(author.author);
+                const firstLetter = displayName.charAt(0).toUpperCase();
                 if (!groupedData[firstLetter]) {
                     groupedData[firstLetter] = [];
                 }
-                groupedData[firstLetter].push(author);
+                groupedData[firstLetter].push({
+                    ...author,
+                    displayName: displayName
+                });
             });
             
             const authorsCountText = window.translations ? window.translations['authors-count'] : '位作者';
@@ -1373,7 +1409,7 @@
                                 <div class="catalog-author">
                                     <div class="catalog-author-name" onclick="toggleAuthor('${authorId}')">
                                         <span class="arrow">▶</span>
-                                        <span class="author-name">${author.author}</span>
+                                        <span class="author-name">${author.displayName}</span>
                                         <span class="works-count">(${author.works.length} ${worksCountText})</span>
                                     </div>
                                     <ul id="works${authorId}" class="catalog-works" style="display:none;">
@@ -1526,11 +1562,14 @@
         }
 
         // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             // 初始化搜尋狀態
             window.isSearching = false;
             window.currentQuestion = null;
             window.currentPage = 'login'; // 默認為登入頁面
+            
+            // 載入作者對照表
+            await loadAuthorTranslations();
             
             checkAuthStatus();
             

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作者對照表測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .author-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 3px;
+        }
+        .language-toggle {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .zh { background: #4CAF50; color: white; }
+        .en { background: #2196F3; color: white; }
+        .active { opacity: 0.7; }
+    </style>
+</head>
+<body>
+    <h1>作者對照表測試</h1>
+    
+    <div class="language-toggle">
+        <button class="zh active" onclick="switchLanguage('zh')">中文</button>
+        <button class="en" onclick="switchLanguage('en')">English</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>測試作者名稱顯示</h2>
+        <div id="authorList"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>API 測試</h2>
+        <div id="apiTest"></div>
+    </div>
+
+    <script>
+        let authorTranslations = {};
+        let currentLanguage = 'zh';
+        
+        // 載入作者對照表
+        async function loadAuthorTranslations() {
+            try {
+                const response = await fetch('/config/author-translations.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    authorTranslations = data.authors || {};
+                    console.log('✅ 作者對照表載入成功');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ 載入作者對照表失敗:', error);
+                return false;
+            }
+        }
+        
+        // 獲取作者名稱
+        function getAuthorName(englishName) {
+            if (!englishName) return '';
+            
+            if (currentLanguage === 'zh' && authorTranslations[englishName]) {
+                return authorTranslations[englishName];
+            }
+            return englishName;
+        }
+        
+        // 切換語言
+        function switchLanguage(lang) {
+            currentLanguage = lang;
+            
+            // 更新按鈕狀態
+            document.querySelectorAll('.language-toggle button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 重新顯示作者列表
+            displayAuthors();
+        }
+        
+        // 顯示作者列表
+        function displayAuthors() {
+            const testAuthors = [
+                "Abraham Kuyper (1837-1920)",
+                "John Calvin (1509-1564)",
+                "Martin Luther (1483-1546)",
+                "Augustine, Saint (354-430)",
+                "Thomas Aquinas, Saint (1225?-1274)",
+                "Jonathan Edwards (1703-1758)",
+                "Charles Haddon Spurgeon (1834-1892)",
+                "Watchman Nee (1903-1972)"
+            ];
+            
+            const authorList = document.getElementById('authorList');
+            authorList.innerHTML = testAuthors.map(author => {
+                const displayName = getAuthorName(author);
+                return `
+                    <div class="author-item">
+                        <strong>英文原名:</strong> ${author}<br>
+                        <strong>顯示名稱 (${currentLanguage}):</strong> ${displayName}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 測試 API
+        async function testAPI() {
+            const apiTest = document.getElementById('apiTest');
+            apiTest.innerHTML = '<p>測試中...</p>';
+            
+            try {
+                // 測試作者對照表 API
+                const translationsResponse = await fetch('/config/author-translations.json');
+                const translationsData = await translationsResponse.json();
+                
+                // 測試參考書目 API
+                const catalogResponse = await fetch('/api/catalog');
+                const catalogData = await catalogResponse.json();
+                
+                apiTest.innerHTML = `
+                    <p><strong>✅ 作者對照表 API:</strong> 正常 (${Object.keys(translationsData.authors || {}).length} 個作者)</p>
+                    <p><strong>✅ 參考書目 API:</strong> 正常 (${catalogData.length} 個作者)</p>
+                    <p><strong>✅ 系統狀態:</strong> 所有 API 正常運行</p>
+                `;
+            } catch (error) {
+                apiTest.innerHTML = `<p><strong>❌ API 測試失敗:</strong> ${error.message}</p>`;
+            }
+        }
+        
+        // 初始化
+        async function init() {
+            await loadAuthorTranslations();
+            displayAuthors();
+            testAPI();
+        }
+        
+        // 頁面載入時初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html> 
