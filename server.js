@@ -359,7 +359,35 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
         
         const originalText = annotation.text;
         if (originalText) {
-          const replacement = `${originalText}[${citationIndex}]`;
+          // 嘗試翻譯註解文本中的作者名稱
+          let translatedText = originalText;
+          
+          // 檢查是否包含作者名稱格式 [Author Name (Year)]
+          const authorMatch = originalText.match(/\[([^(]+?)\s*\([^)]+\)\]/);
+          if (authorMatch) {
+            const fullAuthorName = authorMatch[1].trim();
+            
+            // 嘗試多種匹配方式來找到翻譯
+            let translatedAuthorName = null;
+            
+            // 1. 嘗試完整匹配（包含年份）
+            const fullNameWithYear = originalText.match(/\[([^(]+?\([^)]+\))\]/);
+            if (fullNameWithYear) {
+              translatedAuthorName = getAuthorName(fullNameWithYear[1], language);
+            }
+            
+            // 2. 如果沒有找到，嘗試只匹配作者名（不含年份）
+            if (!translatedAuthorName || translatedAuthorName === fullNameWithYear[1]) {
+              translatedAuthorName = getAuthorName(fullAuthorName, language);
+            }
+            
+            if (translatedAuthorName && translatedAuthorName !== fullAuthorName) {
+              // 替換作者名稱，保持年份和格式
+              translatedText = originalText.replace(fullAuthorName, translatedAuthorName);
+            }
+          }
+          
+          const replacement = `${translatedText}[${citationIndex}]`;
           processedText = processedText.replace(originalText, replacement);
         }
       }
