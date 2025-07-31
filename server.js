@@ -547,6 +547,51 @@ app.get('/auth/logout', function(req, res, next) {
   });
 });
 
+// Google One Tap 登入端點
+app.post('/auth/google-one-tap', async (req, res) => {
+  try {
+    const { credential } = req.body;
+    
+    if (!credential) {
+      return res.status(400).json({ success: false, error: '缺少憑證' });
+    }
+    
+    // 驗證 Google ID Token
+    const ticket = await oauth2Client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    
+    const payload = ticket.getPayload();
+    const user = {
+      id: payload.sub,
+      email: payload.email,
+      name: payload.name,
+      picture: payload.picture
+    };
+    
+    // 設置 session
+    req.session.user = user;
+    
+    console.log('✅ Google One Tap 登入成功:', user.email);
+    
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('❌ Google One Tap 登入失敗:', error.message);
+    res.status(500).json({ success: false, error: '登入失敗' });
+  }
+});
+
+// 獲取 Google Client ID 的端點
+app.get('/api/google-client-id', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (clientId) {
+    res.json({ success: true, clientId });
+  } else {
+    res.status(404).json({ success: false, error: 'Google Client ID 未設置' });
+  }
+});
+
 // 獲取用戶資訊
 app.get('/api/user', (req, res) => {
   if (req.isAuthenticated()) {

@@ -7,6 +7,9 @@
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+    
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style type="text/tailwindcss">
         :root {
             --primary: #6D4C41;
@@ -544,6 +547,9 @@
             </button>
         </div>
     </footer>
+
+    <!-- Google One Tap 容器 -->
+    <div id="google-one-tap-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;"></div>
 
     <script>
         // 檢查用戶認證狀態
@@ -1642,6 +1648,74 @@
           }
         }
 
+        // Google One Tap 處理函數
+        function handleCredentialResponse(response) {
+            console.log('Google One Tap 回應:', response);
+            
+            // 發送憑證到後端進行驗證
+            fetch('/auth/google-one-tap', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    credential: response.credential
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Google One Tap 登入成功');
+                    checkAuthStatus(); // 重新檢查認證狀態
+                } else {
+                    console.error('Google One Tap 登入失敗:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Google One Tap 請求失敗:', error);
+            });
+        }
+
+        // 初始化 Google One Tap
+        async function initializeGoogleOneTap() {
+            // 檢查是否已登入
+            if (window.currentPage === 'main') {
+                return; // 已登入，不需要顯示 One Tap
+            }
+            
+            try {
+                // 從後端獲取 Google Client ID
+                const response = await fetch('/api/google-client-id');
+                const data = await response.json();
+                
+                if (!data.success || !data.clientId) {
+                    console.log('Google Client ID 未設置，跳過 One Tap');
+                    return;
+                }
+                
+                // 延遲初始化，確保 Google Identity Services 已載入
+                setTimeout(() => {
+                    if (typeof google !== 'undefined' && google.accounts) {
+                        google.accounts.id.initialize({
+                            client_id: data.clientId,
+                            callback: handleCredentialResponse,
+                            auto_select: false,
+                            cancel_on_tap_outside: true,
+                            prompt_parent_id: 'google-one-tap-container'
+                        });
+                        
+                        google.accounts.id.prompt((notification) => {
+                            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                                console.log('Google One Tap 未顯示或已跳過');
+                            }
+                        });
+                    }
+                }, 1000);
+            } catch (error) {
+                console.log('無法初始化 Google One Tap:', error.message);
+            }
+        }
+
         // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
             // 初始化搜尋狀態
@@ -1667,6 +1741,9 @@
             setTimeout(() => {
               tryOpenExternalBrowser();
             }, 1000);
+            
+            // 初始化 Google One Tap
+            initializeGoogleOneTap();
         });
     </script>
 </body>
