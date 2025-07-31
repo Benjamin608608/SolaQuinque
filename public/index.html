@@ -199,24 +199,34 @@
         .citation {
             background: linear-gradient(135deg, var(--primary), #5D4037);
             color: white;
-            padding: 1px 3px;
-            border-radius: 8px;
+            padding: 2px 6px;
+            border-radius: 12px;
             font-size: 0.75rem;
             font-weight: 600;
             cursor: pointer;
             border: 1px solid var(--gold-leaf);
             transition: all 0.3s ease;
             display: inline-block;
-            margin: 0;
+            margin: 0 2px;
             box-shadow: 0 2px 4px rgba(109, 76, 65, 0.2);
-            min-width: auto;
+            min-width: 16px;
             text-align: center;
+            line-height: 1;
+            vertical-align: middle;
+            position: relative;
+            z-index: 1;
         }
         
         .citation:hover {
             background: linear-gradient(135deg, #5D4037, var(--primary));
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(109, 76, 65, 0.3);
+        }
+        
+        /* 確保引用標註不會與其他元素重疊 */
+        .citation::before,
+        .citation::after {
+            content: none;
         }
         
         /* 工具提示樣式 */
@@ -928,7 +938,8 @@
                         sourceText = '未知來源';
                     }
                     
-                    const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${sourceText}">${citationNumber}</span>`;
+                    // 改善引用標註的 HTML 結構
+                    const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${sourceText}" style="display: inline-block; margin: 0 2px;">${citationNumber}</span>`;
                     formatted = formatted.replace(citationRegex, citationHtml);
                 });
             }
