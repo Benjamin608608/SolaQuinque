@@ -293,8 +293,24 @@ async function getFileName(fileId, language = 'zh') {
     const authorMatch = fileName.match(/^([^(]+?)\s*\(/);
     if (authorMatch) {
       const englishAuthorName = authorMatch[1].trim();
-      const translatedAuthorName = getAuthorName(englishAuthorName, language);
-      if (translatedAuthorName !== englishAuthorName) {
+      
+      // 嘗試多種匹配方式來找到翻譯
+      let translatedAuthorName = null;
+      
+      // 1. 嘗試完整匹配（包含年份）
+      const fullNameWithYear = fileName.match(/^([^(]+?\([^)]+\))/);
+      if (fullNameWithYear) {
+        translatedAuthorName = getAuthorName(fullNameWithYear[1], language);
+      }
+      
+      // 2. 如果沒有找到，嘗試只匹配作者名（不含年份）
+      if (!translatedAuthorName || translatedAuthorName === fullNameWithYear[1]) {
+        translatedAuthorName = getAuthorName(englishAuthorName, language);
+      }
+      
+      // 3. 如果找到了翻譯，替換檔案名稱
+      if (translatedAuthorName && translatedAuthorName !== englishAuthorName) {
+        // 替換作者名部分（保持年份不變）
         fileName = fileName.replace(englishAuthorName, translatedAuthorName);
       }
     }
