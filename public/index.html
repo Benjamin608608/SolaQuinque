@@ -658,6 +658,7 @@
                 oldSubmitBtn.className = submitBtn.className;
                 oldSubmitBtn.id = submitBtn.id;
                 oldSubmitBtn.innerHTML = submitBtn.innerHTML;
+                oldSubmitBtn.style.cssText = submitBtn.style.cssText;
                 
                 input.parentNode.replaceChild(oldInput, input);
                 submitBtn.parentNode.replaceChild(oldSubmitBtn, submitBtn);
@@ -675,7 +676,19 @@
                     });
                     
                     // 處理提交按鈕點擊
-                    newSubmitBtnElement.addEventListener('click', handleSearch);
+                    newSubmitBtnElement.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('提交按鈕被點擊');
+                        handleSearch();
+                    });
+                    
+                    // 添加觸摸事件支援（移動設備）
+                    newSubmitBtnElement.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        console.log('提交按鈕被觸摸');
+                        handleSearch();
+                    });
                 }
             }
         }
@@ -717,8 +730,13 @@
 
         // 執行搜索
         async function performSearch(question) {
+            // 獲取輸入框元素
+            const input = document.getElementById('searchInput');
+            
             // 清空輸入框
-            input.value = '';
+            if (input) {
+                input.value = '';
+            }
             
             // 設置搜尋狀態
             window.isSearching = true;
