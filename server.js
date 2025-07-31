@@ -756,6 +756,33 @@ async function processSearchRequestInternal(question, user, language = 'zh') {
         let lastStatus = runStatus.status;
 
         while (runStatus.status !== 'completed' && runStatus.status !== 'failed' && attempts < maxAttempts) {
+            // 檢查是否需要處理工具調用
+            if (runStatus.status === 'requires_action') {
+                console.log('🔧 檢測到工具調用需求，立即處理...');
+                
+                // 處理工具調用
+                const toolOutputs = [];
+                for (const toolCall of runStatus.required_action.submit_tool_outputs.tool_calls) {
+                    if (toolCall.function.name === 'retrieval') {
+                        // 文件搜索工具調用
+                        toolOutputs.push({
+                            tool_call_id: toolCall.id,
+                            output: "文件搜索已完成"
+                        });
+                    }
+                }
+                
+                // 提交工具輸出
+                runStatus = await openai.beta.threads.runs.submitToolOutputs(
+                    thread.id,
+                    run.id,
+                    { tool_outputs: toolOutputs }
+                );
+                console.log('✅ 工具調用處理完成');
+                attempts++;
+                continue;
+            }
+            
             // 智能延遲策略
             let delay;
             if (attempts < 3) {
