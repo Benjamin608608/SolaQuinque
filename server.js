@@ -50,15 +50,18 @@ async function connectToMongoDB() {
 // 初始化 MongoDB 連線
 connectToMongoDB();
 
-// Session 配置（secure: true，適用於 https 雲端平台）
+// Session 配置（改良版，支援移動設備）
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true, // Railway/Render/Heroku 上必須 true
-    maxAge: 24 * 60 * 60 * 1000 // 24 小時
-  }
+    secure: process.env.NODE_ENV === 'production', // 只在生產環境使用 secure
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 小時
+    sameSite: 'lax' // 改善移動設備相容性
+  },
+  name: 'theologian.sid' // 自定義 session cookie 名稱
 }));
 
 // Passport 配置
@@ -100,7 +103,12 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 }
 
 // 中間件設置
-app.use(cors());
+app.use(cors({
+  origin: true, // 允許所有來源
+  credentials: true, // 允許攜帶憑證
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -531,6 +539,17 @@ async function processSearchRequest(question, user) {
     }
 }
 
+// 移動設備連線檢查端點
+app.get('/api/mobile-check', (req, res) => {
+  res.json({
+    success: true,
+    message: '移動設備連線正常',
+    timestamp: new Date().toISOString(),
+    userAgent: req.headers['user-agent'],
+    sessionId: req.sessionID
+  });
+});
+
 // 主要搜索 API 端點 - 需要認證
 app.post('/api/search', ensureAuthenticated, async (req, res) => {
   try {
@@ -545,6 +564,10 @@ app.post('/api/search', ensureAuthenticated, async (req, res) => {
 
     const trimmedQuestion = question.trim();
     console.log(`收到搜索請求: ${trimmedQuestion} (用戶: ${req.user.email})`);
+
+    // 設置響應頭，改善移動設備相容性
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
 
     // 使用 OpenAI Assistant API
     const result = await processSearchRequest(trimmedQuestion, req.user);
@@ -567,12 +590,15 @@ app.post('/api/search', ensureAuthenticated, async (req, res) => {
       errorMessage = '目前請求過多，請稍後再試。';
     } else if (error.message.includes('Assistant run failed')) {
       errorMessage = '系統處理問題，請稍後再試或聯繫管理員。';
+    } else if (error.message.includes('network') || error.message.includes('connection')) {
+      errorMessage = '網路連線不穩定，請檢查網路後重試。';
     }
     
     res.status(500).json({
       success: false,
       error: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      retry: true // 建議前端重試
     });
   }
 });

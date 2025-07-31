@@ -680,13 +680,43 @@
             }
         }
 
-        // 處理搜索
-        async function handleSearch() {
-            const input = document.getElementById('searchInput');
-            const question = input.value.trim();
-            
-            if (!question) return;
-            
+        // 頁面可見性檢測（改善移動設備體驗）
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && window.isSearching) {
+                // 用戶切換回頁面，檢查連線狀態
+                console.log('用戶切換回頁面，檢查連線狀態...');
+                checkConnectionStatus();
+            }
+        });
+
+        // 檢查連線狀態
+        async function checkConnectionStatus() {
+            try {
+                const response = await fetch('/api/mobile-check', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    console.log('連線狀態正常');
+                } else {
+                    console.log('連線狀態異常');
+                }
+            } catch (error) {
+                console.error('連線檢查失敗:', error);
+            }
+        }
+
+        // 清理搜索狀態
+        function clearSearchState() {
+            window.isSearching = false;
+            window.currentQuestion = null;
+        }
+
+        // 執行搜索
+        async function performSearch(question) {
             // 清空輸入框
             input.value = '';
             
@@ -697,32 +727,88 @@
             // 顯示載入狀態
             showLoadingState();
             
-            try {
-                const response = await fetch('/api/search', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ question })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showResult(data.data.answer, data.data.sources);
-                } else {
-                    const errorText = window.translations ? window.translations['search-error'] : '搜索失敗，請稍後再試';
-                    showError(data.error || errorText);
+            // 添加重試機制
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while (retryCount < maxRetries) {
+                try {
+                    // 首先檢查連線狀態
+                    const connectionCheck = await fetch('/api/mobile-check', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    if (!connectionCheck.ok) {
+                        throw new Error('連線檢查失敗');
+                    }
+                    
+                    const response = await fetch('/api/search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ question }),
+                        // 添加超時設置
+                        signal: AbortSignal.timeout(120000) // 2分鐘超時
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showResult(data.data.answer, data.data.sources);
+                        clearSearchState();
+                        return; // 成功，退出重試循環
+                    } else {
+                        // 如果服務器建議重試
+                        if (data.retry && retryCount < maxRetries - 1) {
+                            retryCount++;
+                            console.log(`重試第 ${retryCount} 次...`);
+                            await new Promise(resolve => setTimeout(resolve, 2000)); // 等待2秒
+                            continue;
+                        }
+                        
+                        const errorText = window.translations ? window.translations['search-error'] : '搜索失敗，請稍後再試';
+                        showError(data.error || errorText);
+                        clearSearchState();
+                        return;
+                    }
+                } catch (error) {
+                    console.error('搜索錯誤:', error);
+                    retryCount++;
+                    
+                    if (retryCount >= maxRetries) {
+                        let errorMessage = '網路錯誤，請檢查連線後再試';
+                        
+                        if (error.name === 'AbortError') {
+                            errorMessage = '請求超時，請稍後再試';
+                        } else if (error.message.includes('Failed to fetch')) {
+                            errorMessage = '網路連線不穩定，請檢查網路後重試';
+                        } else if (error.message.includes('network')) {
+                            errorMessage = '網路錯誤，請檢查連線後再試';
+                        }
+                        
+                        showError(errorMessage);
+                        clearSearchState();
+                        return;
+                    } else {
+                        console.log(`重試第 ${retryCount} 次...`);
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // 等待2秒
+                    }
                 }
-            } catch (error) {
-                console.error('搜索錯誤:', error);
-                const networkError = window.translations ? window.translations['network-error'] : '網路錯誤，請檢查連線後再試';
-                showError(networkError);
-            } finally {
-                // 清除搜尋狀態
-                window.isSearching = false;
-                window.currentQuestion = null;
             }
+        }
+
+        // 處理搜索
+        async function handleSearch() {
+            const input = document.getElementById('searchInput');
+            const question = input.value.trim();
+            
+            if (!question) return;
+            
+            await performSearch(question);
         }
 
         // 顯示載入狀態
@@ -833,13 +919,28 @@
         }
 
         // 顯示錯誤
-        function showError(message) {
+        function showError(message, canRetry = true) {
             const main = document.getElementById('mainContent');
             if (main) {
+                const retryButton = canRetry ? `
+                    <button onclick="retryLastSearch()" class="mt-4 bg-[var(--primary)] text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors">
+                        重試
+                    </button>
+                ` : '';
+                
                 main.innerHTML = `
                     <div class="text-center px-4 sm:px-6">
                         <div class="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 max-w-sm sm:max-w-md mx-auto">
-                            <p class="text-red-600 text-sm sm:text-base">${message}</p>
+                            <div class="text-red-600 text-sm sm:text-base mb-3">${message}</div>
+                            <div class="text-red-500 text-xs">
+                                💡 提示：如果您正在使用手機，請確保：
+                                <ul class="text-left mt-2 space-y-1">
+                                    <li>• 保持應用程式在前台運行</li>
+                                    <li>• 檢查網路連線是否穩定</li>
+                                    <li>• 避免在搜索過程中切換應用程式</li>
+                                </ul>
+                            </div>
+                            ${retryButton}
                         </div>
                     </div>
                 `;
@@ -849,6 +950,13 @@
             const footer = document.querySelector('footer');
             if (footer) {
                 footer.style.display = 'block';
+            }
+        }
+
+        // 重試上次搜索
+        function retryLastSearch() {
+            if (window.currentQuestion) {
+                performSearch(window.currentQuestion);
             }
         }
 
