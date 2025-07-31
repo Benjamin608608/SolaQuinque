@@ -332,6 +332,10 @@ async function getFileName(fileId, language = 'zh') {
 
 // 處理引用標記並轉換為網頁格式的函數
 async function processAnnotationsInText(text, annotations, language = 'zh') {
+  console.log(`🔍 processAnnotationsInText 被調用 - 語言: ${language}`);
+  console.log(`📝 原始文本長度: ${text.length}`);
+  console.log(`📝 註解數量: ${annotations ? annotations.length : 0}`);
+  
   let processedText = text;
   const sourceMap = new Map();
   const usedSources = new Map();
@@ -358,6 +362,8 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
         }
         
         const originalText = annotation.text;
+        console.log(`📄 處理註解 ${citationCounter}: "${originalText}"`);
+        
         if (originalText) {
           // 嘗試翻譯註解文本中的作者名稱
           let translatedText = originalText;
@@ -384,6 +390,7 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
             if (translatedAuthorName && translatedAuthorName !== fullAuthorName) {
               // 替換作者名稱，保持年份和格式
               translatedText = originalText.replace(fullAuthorName, translatedAuthorName);
+              console.log(`✅ 部分翻譯成功: "${originalText}" -> "${translatedText}"`);
             } else if (fullNameWithYear) {
               // 如果完整匹配有翻譯，使用完整匹配的翻譯
               const fullName = fullNameWithYear[1];
@@ -395,14 +402,17 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
                   const year = yearMatch[1];
                   const translatedWithYear = `${translatedFullName} (${year})`;
                   translatedText = originalText.replace(fullName, translatedWithYear);
+                  console.log(`✅ 完整翻譯成功: "${originalText}" -> "${translatedText}"`);
                 } else {
                   translatedText = originalText.replace(fullName, translatedFullName);
+                  console.log(`✅ 翻譯成功: "${originalText}" -> "${translatedText}"`);
                 }
               }
             }
           }
           
           const replacement = `${translatedText}[${citationIndex}]`;
+          console.log(`📄 最終替換: "${originalText}" -> "${replacement}"`);
           processedText = processedText.replace(originalText, replacement);
         }
       }
@@ -502,10 +512,31 @@ function setCachedResult(question, result) {
 async function getOrCreateAssistant() {
     if (!globalAssistant) {
         console.log('🔄 創建全局 Assistant...');
-        globalAssistant = await openai.beta.assistants.create({
-            model: 'gpt-4o-mini',
-            name: 'Theology RAG Assistant',
-            instructions: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
+        
+        // 檢查是否有向量資料庫 ID
+        const vectorStoreId = process.env.VECTOR_STORE_ID;
+        if (!vectorStoreId) {
+            console.log('⚠️ 未設置 VECTOR_STORE_ID，創建不帶文件搜索的 Assistant');
+            globalAssistant = await openai.beta.assistants.create({
+                model: 'gpt-4o-mini',
+                name: 'Theology Assistant (No File Search)',
+                instructions: `你是一個專業的神學助手。
+
+重要規則：
+1. 回答要準確、簡潔且有幫助
+2. 使用繁體中文回答
+3. 專注於提供基於神學知識的準確資訊
+4. 如果沒有相關資訊，請明確說明
+
+格式要求：
+- 直接回答問題內容
+- 不需要在回答中手動添加資料來源`
+            });
+        } else {
+            globalAssistant = await openai.beta.assistants.create({
+                model: 'gpt-4o-mini',
+                name: 'Theology RAG Assistant',
+                instructions: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
 
 重要規則：
 1. 只使用檢索到的資料來回答問題
@@ -519,13 +550,14 @@ async function getOrCreateAssistant() {
 - 直接回答問題內容
 - 引用相關的資料片段（如果有的話）
 - 不需要在回答中手動添加資料來源，系統會自動處理`,
-            tools: [{ type: 'file_search' }],
-            tool_resources: {
-                file_search: {
-                    vector_store_ids: [process.env.VECTOR_STORE_ID]
+                tools: [{ type: 'file_search' }],
+                tool_resources: {
+                    file_search: {
+                        vector_store_ids: [vectorStoreId]
+                    }
                 }
-            }
-        });
+            });
+        }
         console.log('✅ 全局 Assistant 創建成功');
     }
     return globalAssistant;
@@ -653,6 +685,60 @@ app.get('/api/mobile-check', (req, res) => {
     sessionId: req.sessionID
   });
 });
+
+// 測試搜索 API 端點 - 不需要認證（僅用於調試）
+app.post('/api/test-search', async (req, res) => {
+  try {
+    const { question, language = 'zh' } = req.body;
+
+    if (!question || !question.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: '請提供有效的問題'
+      });
+    }
+
+    const trimmedQuestion = question.trim();
+    console.log(`收到測試搜索請求: ${trimmedQuestion} (語言: ${language})`);
+
+    // 模擬用戶對象
+    const mockUser = { email: 'test@example.com' };
+
+    // 使用 OpenAI Assistant API
+    const result = await processSearchRequest(trimmedQuestion, mockUser, language);
+
+    console.log('測試搜索處理完成，返回結果:', JSON.stringify(result, null, 2));
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('測試搜索錯誤:', error);
+    
+    let errorMessage = '很抱歉，處理您的問題時發生錯誤，請稍後再試。';
+    
+    if (error.message.includes('查詢時間過長') || error.message.includes('timeout')) {
+      errorMessage = '查詢時間過長，請嘗試簡化您的問題或稍後再試。';
+    } else if (error.message.includes('rate limit')) {
+      errorMessage = '目前請求過多，請稍後再試。';
+    } else if (error.message.includes('Assistant run failed')) {
+      errorMessage = '系統處理問題，請稍後再試或聯繫管理員。';
+    } else if (error.message.includes('network') || error.message.includes('connection')) {
+      errorMessage = '網路連線不穩定，請檢查網路後重試。';
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      retry: true
+    });
+  }
+});
+
+
 
 // 主要搜索 API 端點 - 需要認證
 app.post('/api/search', ensureAuthenticated, async (req, res) => {
