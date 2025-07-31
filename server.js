@@ -222,11 +222,135 @@ function ensureAuthenticated(req, res, next) {
   });
 }
 
+// 檢測是否為 LINE 瀏覽器
+function isLineBrowser(userAgent) {
+  return userAgent && (
+    userAgent.includes('Line') || 
+    userAgent.includes('LINE') ||
+    userAgent.includes('line')
+  );
+}
+
+// 檢測是否為內建瀏覽器
+function isEmbeddedBrowser(userAgent) {
+  return userAgent && (
+    userAgent.includes('Line') ||
+    userAgent.includes('Instagram') ||
+    userAgent.includes('Facebook') ||
+    userAgent.includes('Twitter') ||
+    userAgent.includes('WhatsApp')
+  );
+}
+
 // 認證路由 - 僅在 Google OAuth 已配置時啟用
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  app.get('/auth/google',
-    passport.authenticate('google', { scope: ['profile', 'email'] })
-  );
+  app.get('/auth/google', (req, res) => {
+    const userAgent = req.get('User-Agent');
+    
+    // 檢測是否為內建瀏覽器
+    if (isEmbeddedBrowser(userAgent)) {
+      return res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>請使用外部瀏覽器登入</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              margin: 0;
+              padding: 20px;
+              min-height: 100vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .container {
+              background: white;
+              padding: 40px;
+              border-radius: 12px;
+              box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+              text-align: center;
+              max-width: 500px;
+            }
+            .icon {
+              font-size: 48px;
+              margin-bottom: 20px;
+            }
+            h1 {
+              color: #333;
+              margin-bottom: 20px;
+            }
+            p {
+              color: #666;
+              line-height: 1.6;
+              margin-bottom: 20px;
+            }
+            .btn {
+              background: #4285f4;
+              color: white;
+              padding: 12px 24px;
+              border: none;
+              border-radius: 6px;
+              text-decoration: none;
+              display: inline-block;
+              margin: 10px;
+              font-size: 16px;
+            }
+            .btn:hover {
+              background: #3367d6;
+            }
+            .steps {
+              text-align: left;
+              background: #f8f9fa;
+              padding: 20px;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+            .steps ol {
+              margin: 0;
+              padding-left: 20px;
+            }
+            .steps li {
+              margin-bottom: 10px;
+              color: #555;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="icon">🌐</div>
+            <h1>請使用外部瀏覽器登入</h1>
+            <p>由於 Google 安全政策，無法在當前瀏覽器中完成登入。</p>
+            
+            <div class="steps">
+              <h3>解決步驟：</h3>
+              <ol>
+                <li>點擊右上角的「...」或「更多選項」</li>
+                <li>選擇「在瀏覽器中開啟」或「複製連結」</li>
+                <li>在 Chrome、Safari 等外部瀏覽器中開啟</li>
+                <li>完成 Google 登入</li>
+              </ol>
+            </div>
+            
+            <a href="/" class="btn">返回首頁</a>
+            <a href="javascript:window.open('/auth/google', '_blank')" class="btn">在新視窗開啟</a>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+    
+    // 正常流程
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'],
+      prompt: 'select_account',
+      access_type: 'offline',
+      include_granted_scopes: true
+    })(req, res);
+  });
 
   app.get('/auth/google/callback', 
     passport.authenticate('google', { failureRedirect: '/login' }),
