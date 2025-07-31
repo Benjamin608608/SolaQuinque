@@ -663,12 +663,16 @@ async function getOrCreateAssistant() {
         
         // 檢查是否有向量資料庫 ID
         const vectorStoreId = process.env.VECTOR_STORE_ID;
-        if (!vectorStoreId) {
-            console.log('⚠️ 未設置 VECTOR_STORE_ID，創建不帶文件搜索的 Assistant');
-            globalAssistant = await openai.beta.assistants.create({
-                model: 'gpt-4o-mini',
-                name: 'Theology Assistant (No File Search)',
-                instructions: `你是一個專業的神學助手。
+        
+        // 重試機制 - 最多重試 3 次
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                if (!vectorStoreId) {
+                    console.log('⚠️ 未設置 VECTOR_STORE_ID，創建不帶文件搜索的 Assistant');
+                    globalAssistant = await openai.beta.assistants.create({
+                        model: 'gpt-4o-mini',
+                        name: 'Theology Assistant (No File Search)',
+                        instructions: `你是一個專業的神學助手。
 
 重要規則：
 1. 回答要準確、簡潔且有幫助
@@ -679,12 +683,12 @@ async function getOrCreateAssistant() {
 格式要求：
 - 直接回答問題內容
 - 不需要在回答中手動添加資料來源`
-            });
-        } else {
-            globalAssistant = await openai.beta.assistants.create({
-                model: 'gpt-4o-mini',
-                name: 'Theology RAG Assistant',
-                instructions: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
+                    });
+                } else {
+                    globalAssistant = await openai.beta.assistants.create({
+                        model: 'gpt-4o-mini',
+                        name: 'Theology RAG Assistant',
+                        instructions: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
 
 重要規則：
 1. 只使用檢索到的資料來回答問題
@@ -698,17 +702,44 @@ async function getOrCreateAssistant() {
 - 直接回答問題內容
 - 引用相關的資料片段（如果有的話）
 - 不需要在回答中手動添加資料來源，系統會自動處理`,
-                tools: [{ type: 'file_search' }],
-                tool_resources: {
-                    file_search: {
-                        vector_store_ids: [vectorStoreId]
-                    }
+                        tools: [{ type: 'file_search' }],
+                        tool_resources: {
+                            file_search: {
+                                vector_store_ids: [vectorStoreId]
+                            }
+                        }
+                    });
                 }
-            });
+                
+                console.log(`✅ 全局 Assistant 創建成功 (嘗試 ${attempt}/3)`);
+                break; // 成功創建，跳出重試循環
+                
+            } catch (error) {
+                console.warn(`⚠️ Assistant 創建失敗 (嘗試 ${attempt}/3):`, error.message);
+                
+                if (attempt === 3) {
+                    // 最後一次嘗試失敗，拋出錯誤
+                    console.error('❌ Assistant 創建最終失敗，將使用備用方案');
+                    throw new Error(`Assistant 創建失敗: ${error.message}`);
+                }
+                
+                // 等待後重試
+                const delay = Math.min(1000 * attempt, 3000); // 指數退避，最大 3 秒
+                console.log(`⏳ 等待 ${delay}ms 後重試...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
         }
-        console.log('✅ 全局 Assistant 創建成功');
     }
-    return globalAssistant;
+    
+    // 驗證 Assistant 是否可用（額外的穩定性檢查）
+    try {
+        await openai.beta.assistants.retrieve(globalAssistant.id);
+        return globalAssistant;
+    } catch (error) {
+        console.warn('⚠️ Assistant 驗證失敗，重新創建:', error.message);
+        globalAssistant = null; // 重置，強制重新創建
+        return await getOrCreateAssistant(); // 遞歸調用重新創建
+    }
 }
 
 // OpenAI Assistant API 處理
@@ -1142,8 +1173,27 @@ app.listen(PORT, '0.0.0.0', async () => {
   setTimeout(async () => {
     try {
       console.log('🔥 預熱 Assistant...');
-      await getOrCreateAssistant();
-      console.log('✅ Assistant 預熱完成');
+      
+      // 預熱重試機制 - 最多重試 3 次
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await getOrCreateAssistant();
+          console.log(`✅ Assistant 預熱完成 (嘗試 ${attempt}/3)`);
+          break; // 成功預熱，跳出重試循環
+        } catch (error) {
+          console.warn(`⚠️ Assistant 預熱失敗 (嘗試 ${attempt}/3):`, error.message);
+          
+          if (attempt === 3) {
+            console.error('❌ Assistant 預熱最終失敗');
+            break;
+          }
+          
+          // 等待後重試
+          const delay = Math.min(2000 * attempt, 5000); // 指數退避，最大 5 秒
+          console.log(`⏳ 等待 ${delay}ms 後重試預熱...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     } catch (error) {
       console.warn('⚠️ Assistant 預熱失敗:', error.message);
     }
