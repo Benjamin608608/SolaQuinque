@@ -11,19 +11,32 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 載入作者對照表
+// 全局變數
+let globalAssistant = null;
+let processingRequests = new Map();
+const CACHE_DURATION = 30 * 60 * 1000; // 30 分鐘
+let assistantWarmupInterval = null; // 定期保溫計時器
+
+// 作者對照表
 let authorTranslations = {};
+
+// 載入作者對照表
 async function loadAuthorTranslations() {
-  try {
-    const translationsPath = path.join(__dirname, 'config', 'author-translations.json');
-    if (fs.existsSync(translationsPath)) {
-      const data = JSON.parse(fs.readFileSync(translationsPath, 'utf8'));
-      authorTranslations = data.authors || {};
-      console.log('✅ 已載入作者對照表');
+    try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const filePath = path.join(process.cwd(), 'config', 'author-translations.json');
+        
+        if (fs.existsSync(filePath)) {
+            const data = fs.readFileSync(filePath, 'utf8');
+            authorTranslations = JSON.parse(data);
+            console.log(`✅ 已載入作者對照表 (${Object.keys(authorTranslations).length} 位作者)`);
+        } else {
+            console.warn('⚠️ 作者對照表文件不存在');
+        }
+    } catch (error) {
+        console.error('❌ 載入作者對照表失敗:', error.message);
     }
-  } catch (error) {
-    console.warn('⚠️ 無法載入作者對照表:', error.message);
-  }
 }
 
 // 獲取作者名稱（根據語言）
@@ -616,13 +629,8 @@ function createSourceList(sourceMap) {
   return sourceList;
 }
 
-// 全局 Assistant 實例
-let globalAssistant = null;
-
 // 簡單的快取機制
 const searchCache = new Map();
-const CACHE_DURATION = 30 * 60 * 1000; // 30分鐘快取
-const processingRequests = new Map(); // 追蹤正在處理的請求
 
 // 獲取快取結果
 function getCachedResult(question) {
@@ -1156,6 +1164,94 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
+// 優雅關閉處理
+process.on('SIGTERM', () => {
+  console.log('🛑 收到 SIGTERM 信號，開始優雅關閉...');
+  stopPeriodicWarmup();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 收到 SIGINT 信號，開始優雅關閉...');
+  stopPeriodicWarmup();
+  process.exit(0);
+});
+
+// 積極的 Assistant 預熱功能
+async function performActiveWarmup() {
+    try {
+        console.log('🔥 執行積極預熱 - 發送測試問題...');
+        
+        // 獲取或創建 Assistant
+        const assistant = await getOrCreateAssistant();
+        
+        // 創建 Thread
+        const thread = await openai.beta.threads.create();
+        
+        // 發送一個簡單的測試問題
+        await openai.beta.threads.messages.create(thread.id, {
+            role: "user",
+            content: "你好，請簡單介紹一下神學"
+        });
+        
+        // 創建 Run
+        const run = await openai.beta.threads.runs.create(thread.id, {
+            assistant_id: assistant.id
+        });
+        
+        // 等待完成
+        let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+        let attempts = 0;
+        const maxAttempts = 30; // 30 秒超時
+        
+        while (runStatus.status !== 'completed' && runStatus.status !== 'failed' && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+            attempts++;
+        }
+        
+        if (runStatus.status === 'completed') {
+            console.log('✅ 積極預熱完成 - Assistant 已完全初始化');
+        } else {
+            console.warn('⚠️ 積極預熱未完全完成，但 Assistant 已可用');
+        }
+        
+    } catch (error) {
+        console.warn('⚠️ 積極預熱失敗:', error.message);
+    }
+}
+
+// 定期保溫機制
+function startPeriodicWarmup() {
+    // 每 10 分鐘執行一次保溫
+    const WARMUP_INTERVAL = 10 * 60 * 1000; // 10 分鐘
+    
+    assistantWarmupInterval = setInterval(async () => {
+        try {
+            console.log('🔥 執行定期保溫...');
+            
+            // 簡單的 ping 操作
+            const assistant = await getOrCreateAssistant();
+            await openai.beta.assistants.retrieve(assistant.id);
+            
+            console.log('✅ 定期保溫完成');
+        } catch (error) {
+            console.warn('⚠️ 定期保溫失敗:', error.message);
+        }
+    }, WARMUP_INTERVAL);
+    
+    console.log(`🔄 定期保溫已啟動 (每 ${WARMUP_INTERVAL / 60000} 分鐘)`);
+}
+
+// 停止定期保溫
+function stopPeriodicWarmup() {
+    if (assistantWarmupInterval) {
+        clearInterval(assistantWarmupInterval);
+        assistantWarmupInterval = null;
+        console.log('🛑 定期保溫已停止');
+    }
+}
+
 // 啟動服務器
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 神學知識庫服務器已啟動`);
@@ -1169,35 +1265,21 @@ app.listen(PORT, '0.0.0.0', async () => {
   // 載入作者對照表
   await loadAuthorTranslations();
   
-  // 預熱 Assistant（在背景中進行）
+  // 積極預熱 Assistant（冷啟動改善）
   setTimeout(async () => {
     try {
-      console.log('🔥 預熱 Assistant...');
+      console.log('🔥 開始積極預熱 Assistant...');
       
-      // 預熱重試機制 - 最多重試 3 次
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          await getOrCreateAssistant();
-          console.log(`✅ Assistant 預熱完成 (嘗試 ${attempt}/3)`);
-          break; // 成功預熱，跳出重試循環
-        } catch (error) {
-          console.warn(`⚠️ Assistant 預熱失敗 (嘗試 ${attempt}/3):`, error.message);
-          
-          if (attempt === 3) {
-            console.error('❌ Assistant 預熱最終失敗');
-            break;
-          }
-          
-          // 等待後重試
-          const delay = Math.min(2000 * attempt, 5000); // 指數退避，最大 5 秒
-          console.log(`⏳ 等待 ${delay}ms 後重試預熱...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
+      // 執行積極預熱（發送測試問題）
+      await performActiveWarmup();
+      
+      // 啟動定期保溫機制
+      startPeriodicWarmup();
+      
     } catch (error) {
-      console.warn('⚠️ Assistant 預熱失敗:', error.message);
+      console.warn('⚠️ Assistant 積極預熱失敗:', error.message);
     }
-  }, 2000); // 2秒後開始預熱
+  }, 2000); // 2秒後開始積極預熱
   
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     console.log(`⚠️  注意: Google OAuth 未配置，登入功能將不可用`);
