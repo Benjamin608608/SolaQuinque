@@ -312,6 +312,14 @@ async function getFileName(fileId, language = 'zh') {
       if (translatedAuthorName && translatedAuthorName !== englishAuthorName) {
         // 替換作者名部分（保持年份不變）
         fileName = fileName.replace(englishAuthorName, translatedAuthorName);
+      } else if (fullNameWithYear) {
+        // 如果完整匹配有翻譯，使用完整匹配的翻譯
+        const fullName = fullNameWithYear[1];
+        const translatedFullName = getAuthorName(fullName, language);
+        if (translatedFullName && translatedFullName !== fullName) {
+          // 替換整個完整名稱
+          fileName = fileName.replace(fullName, translatedFullName);
+        }
       }
     }
     
