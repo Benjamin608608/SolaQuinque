@@ -356,32 +356,54 @@ async function getFileName(fileId, language = 'zh') {
     
     let translatedAuthorName = null;
     
-    // 檢查方括號格式 [Author Name (Year)]
-    const bracketMatch = fileName.match(/\[([^(]+?)\s*\([^)]+\)\]/);
+    // 檢查方括號格式 [Author Name (Year)] 或 [Author Name]
+    const bracketMatch = fileName.match(/\[([^\]\n]+?)\]/);
     if (bracketMatch) {
-      const englishAuthorName = bracketMatch[1].trim();
-      console.log(`🔍 方括號格式 - 提取到作者名稱: "${englishAuthorName}"`);
+      const bracketContent = bracketMatch[1].trim();
+      console.log(`🔍 方括號格式 - 提取到內容: "${bracketContent}"`);
       
-      // 嘗試完整匹配（包含年份）
-      const fullNameWithYear = fileName.match(/\[([^(]+?\([^)]+\))\]/);
-      if (fullNameWithYear) {
-        translatedAuthorName = getAuthorName(fullNameWithYear[1], language);
-        console.log(`🔍 方括號完整匹配: "${fullNameWithYear[1]}" -> "${translatedAuthorName}"`);
-      }
-      
-      // 如果沒有找到，嘗試只匹配作者名（不含年份）
-      if (!translatedAuthorName || translatedAuthorName === fullNameWithYear[1]) {
-        translatedAuthorName = getAuthorName(englishAuthorName, language);
-        console.log(`🔍 方括號部分匹配: "${englishAuthorName}" -> "${translatedAuthorName}"`);
-      }
-      
-      // 如果找到了翻譯，替換檔案名稱
-      if (translatedAuthorName && translatedAuthorName !== englishAuthorName) {
-        // 替換方括號內的作者名稱
-        const originalBracket = `[${englishAuthorName} (${fullNameWithYear[1].match(/\(([^)]+)\)/)[1]})]`;
-        const translatedBracket = `[${translatedAuthorName} (${fullNameWithYear[1].match(/\(([^)]+)\)/)[1]})]`;
-        fileName = fileName.replace(originalBracket, translatedBracket);
-        console.log(`✅ 方括號翻譯成功: "${originalBracket}" -> "${translatedBracket}"`);
+      // 檢查是否包含年份格式 (Year)
+      const yearMatch = bracketContent.match(/\(([^)]+)\)/);
+      if (yearMatch) {
+        // 有年份的格式：[Author Name (Year)]
+        const englishAuthorName = bracketContent.replace(/\([^)]+\)/, '').trim();
+        console.log(`🔍 方括號格式（有年份）- 提取到作者名稱: "${englishAuthorName}"`);
+        
+        // 嘗試完整匹配（包含年份）
+        const fullNameWithYear = bracketContent;
+        let translatedAuthorName = getAuthorName(fullNameWithYear, language);
+        console.log(`🔍 方括號完整匹配: "${fullNameWithYear}" -> "${translatedAuthorName}"`);
+        
+        // 如果完整匹配沒有翻譯，嘗試只匹配作者名（不含年份）
+        if (!translatedAuthorName || translatedAuthorName === fullNameWithYear) {
+          translatedAuthorName = getAuthorName(englishAuthorName, language);
+          console.log(`🔍 方括號部分匹配: "${englishAuthorName}" -> "${translatedAuthorName}"`);
+        }
+        
+        // 如果找到了翻譯，替換檔案名稱
+        if (translatedAuthorName && translatedAuthorName !== englishAuthorName) {
+          // 替換方括號內的作者名稱，保持年份
+          const year = yearMatch[1];
+          const originalBracket = `[${bracketContent}]`;
+          const translatedBracket = `[${translatedAuthorName} (${year})]`;
+          fileName = fileName.replace(originalBracket, translatedBracket);
+          console.log(`✅ 方括號翻譯成功: "${originalBracket}" -> "${translatedBracket}"`);
+        }
+      } else {
+        // 沒有年份的格式：[Author Name]
+        const englishAuthorName = bracketContent;
+        console.log(`🔍 方括號格式（無年份）- 提取到作者名稱: "${englishAuthorName}"`);
+        
+        const translatedAuthorName = getAuthorName(englishAuthorName, language);
+        console.log(`🔍 方括號無年份匹配: "${englishAuthorName}" -> "${translatedAuthorName}"`);
+        
+        // 如果找到了翻譯，替換檔案名稱
+        if (translatedAuthorName && translatedAuthorName !== englishAuthorName) {
+          const originalBracket = `[${englishAuthorName}]`;
+          const translatedBracket = `[${translatedAuthorName}]`;
+          fileName = fileName.replace(originalBracket, translatedBracket);
+          console.log(`✅ 方括號翻譯成功: "${originalBracket}" -> "${translatedBracket}"`);
+        }
       }
     } else {
       // 檢查開頭格式 Author Name (Year)
