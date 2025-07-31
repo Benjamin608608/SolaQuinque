@@ -238,14 +238,24 @@ function isEmbeddedBrowser(userAgent) {
     userAgent.includes('Instagram') ||
     userAgent.includes('Facebook') ||
     userAgent.includes('Twitter') ||
-    userAgent.includes('WhatsApp')
+    userAgent.includes('WhatsApp') ||
+    userAgent.includes('Telegram') ||
+    userAgent.includes('WeChat')
   );
+}
+
+// 獲取當前完整 URL
+function getCurrentUrl(req) {
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  return `${protocol}://${host}${req.originalUrl}`;
 }
 
 // 認證路由 - 僅在 Google OAuth 已配置時啟用
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   app.get('/auth/google', (req, res) => {
     const userAgent = req.get('User-Agent');
+    const currentUrl = getCurrentUrl(req);
     
     // 檢測是否為內建瀏覽器
     if (isEmbeddedBrowser(userAgent)) {
@@ -298,9 +308,16 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
               display: inline-block;
               margin: 10px;
               font-size: 16px;
+              cursor: pointer;
             }
             .btn:hover {
               background: #3367d6;
+            }
+            .btn-secondary {
+              background: #6c757d;
+            }
+            .btn-secondary:hover {
+              background: #545b62;
             }
             .steps {
               text-align: left;
@@ -316,6 +333,33 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             .steps li {
               margin-bottom: 10px;
               color: #555;
+            }
+            .url-box {
+              background: #e9ecef;
+              padding: 10px;
+              border-radius: 6px;
+              margin: 15px 0;
+              word-break: break-all;
+              font-family: monospace;
+              font-size: 12px;
+            }
+            .copy-btn {
+              background: #28a745;
+              color: white;
+              padding: 8px 16px;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+              font-size: 14px;
+              margin-top: 10px;
+            }
+            .copy-btn:hover {
+              background: #218838;
+            }
+            .success {
+              color: #28a745;
+              font-weight: bold;
+              margin-top: 10px;
             }
           </style>
         </head>
@@ -335,9 +379,53 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
               </ol>
             </div>
             
-            <a href="/" class="btn">返回首頁</a>
-            <a href="javascript:window.open('/auth/google', '_blank')" class="btn">在新視窗開啟</a>
+            <div class="url-box" id="urlBox">${currentUrl}</div>
+            <button class="copy-btn" onclick="copyUrl()">複製連結</button>
+            <div id="copyStatus"></div>
+            
+            <div style="margin-top: 20px;">
+              <a href="/" class="btn btn-secondary">返回首頁</a>
+              <button class="btn" onclick="openInNewWindow()">在新視窗開啟</button>
+            </div>
           </div>
+          
+          <script>
+            function copyUrl() {
+              const url = '${currentUrl}';
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                  document.getElementById('copyStatus').innerHTML = '<div class="success">✅ 連結已複製到剪貼簿</div>';
+                });
+              } else {
+                // 降級方案
+                const textArea = document.createElement('textarea');
+                textArea.value = url;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                document.getElementById('copyStatus').innerHTML = '<div class="success">✅ 連結已複製到剪貼簿</div>';
+              }
+            }
+            
+            function openInNewWindow() {
+              const url = '${currentUrl}';
+              try {
+                window.open(url, '_blank');
+              } catch (e) {
+                alert('無法開啟新視窗，請手動複製連結到外部瀏覽器');
+              }
+            }
+            
+            // 自動嘗試開啟新視窗（如果可能）
+            setTimeout(() => {
+              try {
+                window.open('${currentUrl}', '_blank');
+              } catch (e) {
+                // 靜默失敗
+              }
+            }, 1000);
+          </script>
         </body>
         </html>
       `);
