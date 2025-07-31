@@ -49,13 +49,13 @@ function getAuthorName(englishName, language = 'zh') {
   return englishName;
 }
 
-// 文本監聽翻譯函數 - 掃描整個文本並替換作者名稱
-function translateTextContent(text, language = 'zh') {
+// 文本掃描翻譯函數 - 當沒有註解時使用
+function scanAndTranslateText(text, language = 'zh') {
     if (!text || language !== 'zh') {
         return text;
     }
     
-    console.log('🔍 開始文本監聽翻譯...');
+    console.log('🔍 開始文本掃描翻譯...');
     let translatedText = text;
     let translationCount = 0;
     
@@ -66,7 +66,8 @@ function translateTextContent(text, language = 'zh') {
             // 方括號模式：[Herman Bavinck (1854-1921)] - 最高優先級
             {
                 pattern: new RegExp(`\\[${englishName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`, 'gi'),
-                replacement: (match, yearMatch) => {
+                replacement: (match) => {
+                    const yearMatch = englishName.match(/\(([^)]+)\)/);
                     const year = yearMatch ? yearMatch[1] : '';
                     return year ? `[${chineseName} (${year})]` : `[${chineseName}]`;
                 }
@@ -74,7 +75,8 @@ function translateTextContent(text, language = 'zh') {
             // 完整名稱模式：Herman Bavinck (1854-1921) - 中等優先級
             {
                 pattern: new RegExp(`\\b${englishName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'),
-                replacement: (match, yearMatch) => {
+                replacement: (match) => {
+                    const yearMatch = englishName.match(/\(([^)]+)\)/);
                     const year = yearMatch ? yearMatch[1] : '';
                     return year ? `${chineseName} (${year})` : chineseName;
                 }
@@ -88,14 +90,11 @@ function translateTextContent(text, language = 'zh') {
         
         for (const { pattern, replacement } of patterns) {
             if (pattern.test(translatedText)) {
-                // 提取年份信息
-                const yearMatch = englishName.match(/\(([^)]+)\)/);
-                
                 // 執行替換
                 translatedText = translatedText.replace(pattern, (match) => {
-                    const result = replacement(match, yearMatch);
+                    const result = replacement(match);
                     translationCount++;
-                    console.log(`✅ 翻譯: "${match}" -> "${result}"`);
+                    console.log(`✅ 文本掃描翻譯: "${match}" -> "${result}"`);
                     return result;
                 });
                 
@@ -105,7 +104,7 @@ function translateTextContent(text, language = 'zh') {
         }
     }
     
-    console.log(`📊 文本監聽翻譯完成，共翻譯 ${translationCount} 處`);
+    console.log(`📊 文本掃描翻譯完成，共翻譯 ${translationCount} 處`);
     return translatedText;
 }
 
@@ -1155,11 +1154,17 @@ async function processSearchRequestInternal(question, user, language = 'zh') {
 
         // 並行處理註解和翻譯
         const annotations = lastMessage.content[0].text.annotations;
-        const { processedText, sourceMap } = await processAnnotationsInText(
+        let { processedText, sourceMap } = await processAnnotationsInText(
             answer, 
             annotations,
             language
         );
+        
+        // 如果沒有註解，進行文本掃描翻譯
+        if (!annotations || annotations.length === 0) {
+            console.log('🔍 沒有註解，進行文本掃描翻譯...');
+            processedText = scanAndTranslateText(answer, language);
+        }
 
         // 不清理 Assistant，保持重用
         console.log('✅ Assistant 重用完成');
