@@ -690,12 +690,9 @@ async function processSearchRequest(question, user, language = 'zh') {
         const answer = lastMessage.content[0].text.value;
         console.log('✅ 成功獲取 Assistant 回答');
 
-        // 應用文本監聽翻譯
-        let translatedAnswer = translateTextContent(answer, language);
-        
         // 處理註解並轉換為引用格式
         const { processedText, sourceMap } = await processAnnotationsInText(
-            translatedAnswer, 
+            answer, 
             lastMessage.content[0].text.annotations,
             language
         );
