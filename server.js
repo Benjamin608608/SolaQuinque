@@ -471,6 +471,14 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
             }
           }
           
+          // 檢查 Railway 格式的註解 【4:7†source】
+          const railwayMatch = originalText.match(/【([^】]+?)】/);
+          if (railwayMatch) {
+            console.log(`🔍 發現 Railway 格式註解: "${railwayMatch[1]}"`);
+            // Railway 格式的註解不需要翻譯，直接使用
+            translatedText = originalText;
+          }
+          
           const replacement = `${translatedText}[${citationIndex}]`;
           console.log(`📄 最終替換: "${originalText}" -> "${replacement}"`);
           processedText = processedText.replace(originalText, replacement);
