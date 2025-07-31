@@ -581,6 +581,7 @@ let globalAssistant = null;
 // 簡單的快取機制
 const searchCache = new Map();
 const CACHE_DURATION = 30 * 60 * 1000; // 30分鐘快取
+const processingRequests = new Map(); // 追蹤正在處理的請求
 
 // 獲取快取結果
 function getCachedResult(question) {
@@ -679,6 +680,33 @@ async function processSearchRequest(question, user, language = 'zh') {
         return cachedResult;
     }
     
+    // 檢查是否已有相同請求正在處理
+    const requestKey = question.toLowerCase().trim();
+    if (processingRequests.has(requestKey)) {
+        console.log('⏳ 相同請求正在處理中，等待結果...');
+        return processingRequests.get(requestKey);
+    }
+    
+    // 創建 Promise 來處理並發請求
+    const processingPromise = (async () => {
+        try {
+            // 實際的處理邏輯
+            return await processSearchRequestInternal(question, user, language);
+        } finally {
+            // 清理處理狀態
+            processingRequests.delete(requestKey);
+        }
+    })();
+    
+    // 儲存 Promise 供其他並發請求使用
+    processingRequests.set(requestKey, processingPromise);
+    
+    return processingPromise;
+}
+
+// 實際的搜索處理邏輯
+async function processSearchRequestInternal(question, user, language = 'zh') {
+    
     try {
         // 使用全局 Assistant（重用機制）
         const assistant = await getOrCreateAssistant();
@@ -700,17 +728,25 @@ async function processSearchRequest(question, user, language = 'zh') {
         });
         console.log('✅ Run 創建成功，等待處理...');
 
-        // 等待完成 - 改良版等待機制
+        // 等待完成 - 優化版等待機制
         let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
         let attempts = 0;
-        const maxAttempts = 60; // 增加到 60 秒
+        const maxAttempts = 60; // 60 秒超時
+        const initialDelay = 500; // 初始延遲 500ms
+        const maxDelay = 3000; // 最大延遲 3 秒
 
         while (runStatus.status !== 'completed' && runStatus.status !== 'failed' && attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // 動態調整延遲時間
+            const delay = Math.min(initialDelay * Math.pow(1.2, attempts), maxDelay);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
             runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
             attempts++;
             
-            console.log(`⏳ 處理中... 嘗試次數: ${attempts}, 狀態: ${runStatus.status}`);
+            // 只在狀態變化或每 5 次嘗試時記錄
+            if (attempts % 5 === 0 || runStatus.status !== 'in_progress') {
+                console.log(`⏳ 處理中... 嘗試次數: ${attempts}, 狀態: ${runStatus.status}`);
+            }
         }
 
         if (runStatus.status === 'failed') {
