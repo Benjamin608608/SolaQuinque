@@ -440,11 +440,30 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
   let citationCounter = 1;
   
   if (annotations && annotations.length > 0) {
+    // 並行預處理所有檔案名稱
+    const fileProcessingPromises = [];
+    const annotationMap = new Map();
+    
     for (const annotation of annotations) {
       if (annotation.type === 'file_citation' && annotation.file_citation) {
         const fileId = annotation.file_citation.file_id;
-        const fileName = await getFileName(fileId, language);
         const quote = annotation.file_citation.quote || '';
+        
+        // 並行處理檔案名稱
+        const fileNamePromise = getFileName(fileId, language);
+        fileProcessingPromises.push(fileNamePromise);
+        annotationMap.set(annotation, { fileId, quote, fileNamePromise });
+      }
+    }
+    
+    // 等待所有檔案名稱處理完成
+    const fileNames = await Promise.all(fileProcessingPromises);
+    let fileNameIndex = 0;
+    
+    for (const annotation of annotations) {
+      if (annotation.type === 'file_citation' && annotation.file_citation) {
+        const { fileId, quote } = annotationMap.get(annotation);
+        const fileName = fileNames[fileNameIndex++];
         
         let citationIndex;
         if (usedSources.has(fileId)) {
@@ -728,24 +747,37 @@ async function processSearchRequestInternal(question, user, language = 'zh') {
         });
         console.log('✅ Run 創建成功，等待處理...');
 
-        // 等待完成 - 優化版等待機制
+        // 等待完成 - 超優化版等待機制
         let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
         let attempts = 0;
         const maxAttempts = 60; // 60 秒超時
-        const initialDelay = 500; // 初始延遲 500ms
-        const maxDelay = 3000; // 最大延遲 3 秒
+        const initialDelay = 200; // 更激進的初始延遲 200ms
+        const maxDelay = 2000; // 降低最大延遲到 2 秒
+        let lastStatus = runStatus.status;
 
         while (runStatus.status !== 'completed' && runStatus.status !== 'failed' && attempts < maxAttempts) {
-            // 動態調整延遲時間
-            const delay = Math.min(initialDelay * Math.pow(1.2, attempts), maxDelay);
+            // 智能延遲策略
+            let delay;
+            if (attempts < 3) {
+                // 前 3 次快速檢查
+                delay = 200;
+            } else if (attempts < 10) {
+                // 中等頻率檢查
+                delay = Math.min(initialDelay * Math.pow(1.1, attempts - 3), 1000);
+            } else {
+                // 後期較慢檢查
+                delay = Math.min(initialDelay * Math.pow(1.2, attempts), maxDelay);
+            }
+            
             await new Promise(resolve => setTimeout(resolve, delay));
             
             runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
             attempts++;
             
-            // 只在狀態變化或每 5 次嘗試時記錄
-            if (attempts % 5 === 0 || runStatus.status !== 'in_progress') {
+            // 智能日誌：只在狀態變化或關鍵時刻記錄
+            if (runStatus.status !== lastStatus || attempts % 8 === 0 || attempts <= 3) {
                 console.log(`⏳ 處理中... 嘗試次數: ${attempts}, 狀態: ${runStatus.status}`);
+                lastStatus = runStatus.status;
             }
         }
 
@@ -772,10 +804,11 @@ async function processSearchRequestInternal(question, user, language = 'zh') {
         const answer = lastMessage.content[0].text.value;
         console.log('✅ 成功獲取 Assistant 回答');
 
-        // 處理註解並轉換為引用格式
+        // 並行處理註解和翻譯
+        const annotations = lastMessage.content[0].text.annotations;
         const { processedText, sourceMap } = await processAnnotationsInText(
             answer, 
-            lastMessage.content[0].text.annotations,
+            annotations,
             language
         );
 
@@ -1051,6 +1084,17 @@ app.listen(PORT, '0.0.0.0', async () => {
   
   // 載入作者對照表
   await loadAuthorTranslations();
+  
+  // 預熱 Assistant（在背景中進行）
+  setTimeout(async () => {
+    try {
+      console.log('🔥 預熱 Assistant...');
+      await getOrCreateAssistant();
+      console.log('✅ Assistant 預熱完成');
+    } catch (error) {
+      console.warn('⚠️ Assistant 預熱失敗:', error.message);
+    }
+  }, 2000); // 2秒後開始預熱
   
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     console.log(`⚠️  注意: Google OAuth 未配置，登入功能將不可用`);
