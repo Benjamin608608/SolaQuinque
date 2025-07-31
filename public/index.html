@@ -1377,11 +1377,12 @@
                 return;
             }
             
-            // 按字母分組
+            // 按字母分組（使用英文原名的首字母）
             const groupedData = {};
             data.forEach(author => {
                 const displayName = getAuthorName(author.author);
-                const firstLetter = displayName.charAt(0).toUpperCase();
+                // 使用英文原名的首字母進行分組
+                const firstLetter = author.author.charAt(0).toUpperCase();
                 if (!groupedData[firstLetter]) {
                     groupedData[firstLetter] = [];
                 }
