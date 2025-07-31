@@ -206,13 +206,13 @@
             cursor: pointer;
             border: 1px solid var(--gold-leaf);
             transition: all 0.3s ease;
-            display: inline-block;
+            display: inline;
             margin: 0;
             box-shadow: 0 2px 4px rgba(109, 76, 65, 0.2);
             min-width: 16px;
             text-align: center;
             line-height: 1;
-            vertical-align: middle;
+            vertical-align: baseline;
             position: relative;
             z-index: 1;
         }
@@ -938,8 +938,8 @@
                         sourceText = '未知來源';
                     }
                     
-                    // 改善引用標註的 HTML 結構，移除左邊間距
-                    const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${sourceText}" style="display: inline-block; margin: 0;">${citationNumber}</span>`;
+                    // 改善引用標註的 HTML 結構，使用 inline 顯示
+                    const citationHtml = `<span class="citation" data-citation="${citationNumber}" title="${sourceText}" style="display: inline; margin: 0;">${citationNumber}</span>`;
                     formatted = formatted.replace(citationRegex, citationHtml);
                 });
             }
