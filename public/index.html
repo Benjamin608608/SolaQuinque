@@ -1445,7 +1445,7 @@
             const bookGrid = document.getElementById('bookGrid');
  
             function renderBooks(list) {
-                bookGrid.innerHTML = list.map(b => `<div class=\"space-y-2\"><button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm w-full text-left\" data-engs=\"${b.engs}\" data-id=\"${b.id}\" data-zh=\"${b.zh}\" data-chapters=\"${b.chapters}\">${b.zh}</button><div class=\"ml-2 space-y-2 hidden\" id=\"chapters_${b.id}\"></div></div>`).join('');
+                bookGrid.innerHTML = list.map(b => `<div class=\"space-y-2\"><button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm w-full text-left\" data-engs=\"${b.engs}\" data-id=\"${b.id}\" data-zh=\"${b.zh}\" data-chapters=\"${b.chapters}\">${b.zh}</button><div class=\"ml-1 hidden\" id=\"chapters_${b.id}\"></div></div>`).join('');
                 bookGrid.querySelectorAll('button').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const engs = btn.getAttribute('data-engs');
@@ -1453,10 +1453,15 @@
                         const chapters = parseInt(btn.getAttribute('data-chapters'), 10);
                         const id = parseInt(btn.getAttribute('data-id'), 10);
                         document.getElementById('bibleBookEngs').value = engs;
-                        // 展開/收合章
+                        // 收起其他書卷的章面板
+                        document.querySelectorAll("[id^='chapters_']").forEach(p => {
+                            if (p.id !== `chapters_${id}`) { p.classList.add('hidden'); p.innerHTML = ''; }
+                        });
+                        // 展開/收合本書卷章面板（grid排列）
                         const panel = document.getElementById(`chapters_${id}`);
                         if (panel.classList.contains('hidden')) {
                             panel.classList.remove('hidden');
+                            panel.className = 'ml-1 grid grid-cols-6 sm:grid-cols-10 md:grid-cols-12 gap-2';
                             renderChapters(panel, id, zh, chapters);
                         } else {
                             panel.classList.add('hidden');
@@ -1468,7 +1473,7 @@
             function renderChapters(container, bookId, zh, count) {
                 const items = [];
                 for (let i = 1; i <= count; i++) {
-                    items.push(`<div><button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${zh} ${i}</button><div class=\"ml-2 mt-1 space-y-2 hidden\" id=\"verses_${bookId}_${i}\"></div></div>`);
+                    items.push(`<div class=\"relative\"><button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm w-full\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${zh} ${i}</button><div class=\"mt-1 hidden\" id=\"verses_${bookId}_${i}\"></div></div>`);
                 }
                 container.innerHTML = items.join('');
                 container.querySelectorAll('button').forEach(btn => {
@@ -1476,10 +1481,15 @@
                         const chap = parseInt(btn.getAttribute('data-chap'), 10);
                         const bId = parseInt(btn.getAttribute('data-bookid'), 10);
                         document.getElementById('bibleChapter').value = chap;
-                        // 展開節按鈕（並在展開時預取整章，供點節顯示更快）
+                        // 收起同一書卷下其他章的節面板
+                        container.querySelectorAll("[id^='verses_']").forEach(v => {
+                            if (v.id !== `verses_${bId}_${chap}`) { v.classList.add('hidden'); v.innerHTML = ''; }
+                        });
+                        // 展開節按鈕（並在展開時預取整章，供點節顯示更快），以 grid 排列
                         const vpanel = document.getElementById(`verses_${bId}_${chap}`);
                         if (vpanel.classList.contains('hidden')) {
                             vpanel.classList.remove('hidden');
+                            vpanel.className = 'mt-1 grid grid-cols-8 sm:grid-cols-12 md:grid-cols-16 gap-1';
                             await preloadChapter(bId, chap, vpanel);
                         } else {
                             vpanel.classList.add('hidden');
