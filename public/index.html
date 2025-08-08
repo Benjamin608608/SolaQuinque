@@ -1677,10 +1677,10 @@
                       }).catch(() => { box.innerHTML = '載入經文失敗'; });
                 }
                 // 直接生成解釋
-                fetch('/api/search', {
+                fetch('/api/bible/explain', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: `請解釋並詮釋 ${ref}（版本：${translation || 'CUV'}），僅使用資料庫來源並附上引用標註`, language: window.currentLanguage || 'zh' })
+                    body: JSON.stringify({ bookEn: displayBook.en, ref, translation, language: window.currentLanguage || 'zh' })
                 })
                 .then(r => r.json())
                 .then(j => {
@@ -1740,7 +1740,7 @@
                 const resp = await fetch('/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: `請解釋並詮釋 ${ref}（版本：${version}），僅使用資料庫來源並附上引用標註`, language: 'zh' })
+                    body: JSON.stringify({ bookEn: engsToEnglish(engs), ref: `${engs} ${chapter}:${vFrom || vTo || ''}`.trim(), translation: version, language: window.currentLanguage || 'zh' })
                 });
                 const json = await resp.json();
                 if (!json.success) {
@@ -2097,7 +2097,13 @@
           }
         }
 
-
+        // ... existing code ...
+        function engsToEnglish(engs) {
+            const all = [...booksOT, ...booksNT];
+            const f = all.find(b => b.engs === engs);
+            return f ? f.en : engs;
+        }
+        // ... existing code ...
 
         // 初始化
         document.addEventListener('DOMContentLoaded', async () => {

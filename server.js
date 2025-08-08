@@ -1225,6 +1225,136 @@ app.post('/api/search', ensureAuthenticated, async (req, res) => {
   }
 });
 
+// 幫助方法：依名稱尋找向量庫 ID（不區分大小寫）
+async function findVectorStoreIdByName(name) {
+  try {
+    let after = undefined;
+    while (true) {
+      const resp = await openai.vectorStores.list({ limit: 100, after });
+      const found = resp.data.find(vs => (vs.name || '').toLowerCase() === name.toLowerCase());
+      if (found) return found.id;
+      if (!resp.has_more) return null;
+      after = resp.last_id;
+    }
+  } catch (e) {
+    console.warn('findVectorStoreIdByName error:', e.message);
+    return null;
+  }
+}
+
+// 特製：基於指定向量庫執行檢索（僅用於聖經解釋）
+async function processBibleExplainRequest(question, targetVectorStoreId, user, language = 'zh') {
+  try {
+    // 建立 thread 與訊息
+    const thread = await openai.beta.threads.create();
+
+    await openai.beta.threads.messages.create(thread.id, {
+      role: 'user',
+      content: question
+    });
+
+    // 使用全局 Assistant，但在 run 時覆寫 tool_resources.vector_store_ids
+    const assistant = await getOrCreateAssistant();
+
+    const run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: assistant.id,
+      tool_resources: {
+        file_search: { vector_store_ids: [targetVectorStoreId] }
+      }
+    });
+
+    // 等待完成（複用現有輪詢策略的簡化版）
+    let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    let attempts = 0;
+    const maxAttempts = 60;
+    while (runStatus.status !== 'completed' && runStatus.status !== 'failed' && attempts < maxAttempts) {
+      if (runStatus.status === 'requires_action') {
+        const toolOutputs = [];
+        for (const toolCall of runStatus.required_action.submit_tool_outputs.tool_calls) {
+          if (toolCall.function.name === 'retrieval') {
+            toolOutputs.push({ tool_call_id: toolCall.id, output: 'ok' });
+          }
+        }
+        runStatus = await openai.beta.threads.runs.submitToolOutputs(
+          thread.id,
+          run.id,
+          { tool_outputs: toolOutputs }
+        );
+        attempts++;
+        continue;
+      }
+      await new Promise(r => setTimeout(r, 500));
+      runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+      attempts++;
+    }
+
+    if (runStatus.status === 'failed') {
+      throw new Error(runStatus.last_error?.message || 'Assistant run failed');
+    }
+    if (attempts >= maxAttempts) {
+      throw new Error('查詢時間過長，請稍後再試');
+    }
+
+    const messages = await openai.beta.threads.messages.list(thread.id);
+    const lastMessage = messages.data[0];
+    if (!lastMessage || lastMessage.role !== 'assistant') {
+      throw new Error('無法獲取 Assistant 回答');
+    }
+
+    const answer = lastMessage.content[0].text.value || '';
+    const annotations = lastMessage.content[0].text.annotations || [];
+    const { processedText, sourceMap } = await processAnnotationsInText(answer, annotations, language);
+
+    return {
+      question,
+      answer: processedText && processedText.trim() ? processedText : '很抱歉，我在資料庫中找不到相關資訊來回答這個問題。',
+      sources: Array.from(sourceMap.entries()).map(([index, source]) => ({
+        index,
+        fileName: source.fileName,
+        quote: source.quote && source.quote.length > 120 ? source.quote.substring(0, 120) + '...' : source.quote,
+        fileId: source.fileId
+      })),
+      timestamp: new Date().toISOString(),
+      user,
+      method: 'Assistant API (per-book)'
+    };
+  } catch (e) {
+    console.error('processBibleExplainRequest error:', e.message);
+    throw e;
+  }
+}
+
+// 聖經經文解釋（依卷限定向量庫）
+app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
+  try {
+    const { bookEn, ref, translation, language = 'zh' } = req.body || {};
+
+    if (!bookEn || !ref) {
+      return res.status(400).json({ success: false, error: '缺少必要參數 bookEn 或 ref' });
+    }
+
+    const storePrefix = process.env.BIBLE_STORE_PREFIX || 'Bible-';
+    const targetName = `${storePrefix}${bookEn}`;
+    const vsId = await findVectorStoreIdByName(targetName);
+    if (!vsId) {
+      return res.status(404).json({ success: false, error: `找不到向量庫：${targetName}` });
+    }
+
+    // 讓回答格式列出「每位作者」對指定經文的解釋，並附註來源（交由檔案引用處理）
+    const zhPrompt = `請僅根據資料庫內容，列出本卷向量庫中針對「${ref}」有評論/詮釋的作者，每位作者各自以條列格式簡述重點，並在各段落末尾附上資料庫引用註記（和首頁相同的數字方括號格式）。若無資料，請明確告知找不到相關資料。`;
+    const enPrompt = `Using only the provided vector store, list the authors in this book who comment on "${ref}". For each author, provide a concise bullet explanation and include numeric file citations at the end of each bullet (same bracketed numbers as the homepage). If nothing is found, say so explicitly.`;
+
+    const q = (language === 'en' ? enPrompt : zhPrompt) + (translation ? `\n（版本：${translation}）` : '');
+
+    const result = await processBibleExplainRequest(q, vsId, req.user, language);
+
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('聖經經文解釋錯誤:', error.message);
+    res.status(500).json({ success: false, error: '處理失敗，請稍後再試' });
+  }
+});
+
 // 作者對照表 API（必須在靜態文件服務之前）
 app.get('/config/author-translations.json', (req, res) => {
   try {
