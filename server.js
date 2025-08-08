@@ -1364,7 +1364,7 @@ app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
     const targetName = `${storePrefix}${bookEn}`;
     const vsId = await findVectorStoreIdByName(targetName);
     if (!vsId) {
-      return res.status(404).json({ success: false, error: `找不到向量庫：${targetName}` });
+      return res.status(503).json({ success: false, error: `該卷資料庫尚未建立完成，請稍後再試（${targetName}）` });
     }
 
     // 讓回答格式列出「每位作者」對指定經文的解釋，並附註來源（交由檔案引用處理）
