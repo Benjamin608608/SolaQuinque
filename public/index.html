@@ -1425,6 +1425,8 @@
                             <button id="tabNT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">新約</button>
                         </div>
                         <div id="bookGrid" class="bible-grid-books"></div>
+                        <div id="chaptersGlobal" class="bible-grid-chapters bible-gap"></div>
+                        <div id="versesGlobal" class="bible-grid-verses bible-gap"></div>
                     </div>
                     <input type="hidden" id="bibleBookEngs"/>
                     <input type="hidden" id="bibleChapter"/>
@@ -1463,35 +1465,27 @@
             const bookGrid = document.getElementById('bookGrid');
  
             function renderBooks(list) {
-                bookGrid.innerHTML = list.map(b => `<div class=\"space-y-2\"><button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm w-full text-left\" data-engs=\"${b.engs}\" data-id=\"${b.id}\" data-zh=\"${b.zh}\" data-chapters=\"${b.chapters}\">${b.zh}</button><div class=\"ml-1 hidden\" id=\"chapters_${b.id}\"></div></div>`).join('');
+                bookGrid.innerHTML = list.map(b => `<div class=\"space-y-2\"><button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm w-full text-left\" data-engs=\"${b.engs}\" data-id=\"${b.id}\" data-zh=\"${b.zh}\" data-chapters=\"${b.chapters}\">${b.zh}</button></div>`).join('');
                 bookGrid.querySelectorAll('button').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const engs = btn.getAttribute('data-engs');
                         const zh = btn.getAttribute('data-zh');
                         const chapters = parseInt(btn.getAttribute('data-chapters'), 10);
-                        const id = parseInt(btn.getAttribute('data-id'), 10);
                         document.getElementById('bibleBookEngs').value = engs;
-                        // 收起其他書卷的章面板
-                        document.querySelectorAll("[id^='chapters_']").forEach(p => {
-                            if (p.id !== `chapters_${id}`) { p.classList.add('hidden'); p.innerHTML = ''; }
-                        });
-                        // 展開/收合本書卷章面板（grid排列）
-                        const panel = document.getElementById(`chapters_${id}`);
-                        if (panel.classList.contains('hidden')) {
-                            panel.classList.remove('hidden');
-                            panel.className = 'ml-1 bible-grid-chapters';
-                            renderChapters(panel, id, zh, chapters);
-                        } else {
-                            panel.classList.add('hidden');
-                            panel.innerHTML = '';
-                        }
+                        // 在全局章容器渲染，從最左開始排列
+                        const panel = document.getElementById('chaptersGlobal');
+                        panel.className = 'bible-grid-chapters bible-gap';
+                        renderChapters(panel, /*bookId*/ parseInt(btn.getAttribute('data-id'),10), zh, chapters);
+                        // 清空節容器
+                        const vpanel = document.getElementById('versesGlobal');
+                        vpanel.innerHTML = '';
                     });
                 });
             }
             function renderChapters(container, bookId, zh, count) {
                 const items = [];
                 for (let i = 1; i <= count; i++) {
-                    items.push(`<div class=\"relative\"><button class=\"bible-btn bible-btn-chapter bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${zh} ${i}</button><div class=\"mt-1 hidden\" id=\"verses_${bookId}_${i}\"></div></div>`);
+                    items.push(`<div><button class=\"bible-btn bible-btn-chapter bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${zh} ${i}</button></div>`);
                 }
                 container.innerHTML = items.join('');
                 container.querySelectorAll('button').forEach(btn => {
@@ -1499,20 +1493,10 @@
                         const chap = parseInt(btn.getAttribute('data-chap'), 10);
                         const bId = parseInt(btn.getAttribute('data-bookid'), 10);
                         document.getElementById('bibleChapter').value = chap;
-                        // 收起同一書卷下其他章的節面板
-                        container.querySelectorAll("[id^='verses_']").forEach(v => {
-                            if (v.id !== `verses_${bId}_${chap}`) { v.classList.add('hidden'); v.innerHTML = ''; }
-                        });
-                        // 展開節按鈕（並在展開時預取整章，供點節顯示更快），以 grid 排列
-                        const vpanel = document.getElementById(`verses_${bId}_${chap}`);
-                        if (vpanel.classList.contains('hidden')) {
-                            vpanel.classList.remove('hidden');
-                            vpanel.className = 'mt-1 bible-grid-verses';
-                            await preloadChapter(bId, chap, vpanel);
-                        } else {
-                            vpanel.classList.add('hidden');
-                            vpanel.innerHTML = '';
-                        }
+                        // 在全局節容器渲染，固定自左至右排列
+                        const vpanel = document.getElementById('versesGlobal');
+                        vpanel.className = 'bible-grid-verses bible-gap';
+                        await preloadChapter(bId, chap, vpanel);
                     });
                 });
             }
