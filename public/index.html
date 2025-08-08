@@ -1737,10 +1737,10 @@
                 if (vFrom) { ref += `:${vFrom}`; if (vTo) ref += `-${vTo}`; }
  
                 container.innerHTML = `<div class="text-sm text-[var(--text-secondary)]">正在生成解釋...</div>`;
-                const resp = await fetch('/api/search', {
+                const resp = await fetch('/api/bible/explain', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ bookEn: engsToEnglish(engs), ref: `${engs} ${chapter}:${vFrom || vTo || ''}`.trim(), translation: version, language: window.currentLanguage || 'zh' })
+                    body: JSON.stringify({ bookEn: engsToEnglish(engs), ref: `${engsToEnglish(engs)} ${chapter}:${vFrom || vTo || ''}`.trim(), translation: version, language: window.currentLanguage || 'zh' })
                 });
                 const json = await resp.json();
                 if (!json.success) {

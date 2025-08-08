@@ -1228,14 +1228,41 @@ app.post('/api/search', ensureAuthenticated, async (req, res) => {
 // 幫助方法：依名稱尋找向量庫 ID（不區分大小寫）
 async function findVectorStoreIdByName(name) {
   try {
+    // Normalize helper
+    const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const targetNorm = norm(name);
+
+    // Known synonyms mapping for book names
+    const synonyms = new Map([
+      ['bible-songofsolomon', ['bible-songofsongs', 'bible-canticles']],
+      ['bible-songofsongs', ['bible-songofsolomon', 'bible-canticles']],
+    ]);
+
     let after = undefined;
+    let bestMatch = null;
     while (true) {
       const resp = await openai.vectorStores.list({ limit: 100, after });
-      const found = resp.data.find(vs => (vs.name || '').toLowerCase() === name.toLowerCase());
-      if (found) return found.id;
-      if (!resp.has_more) return null;
+      // 1) exact (case-insensitive)
+      const exact = resp.data.find(vs => (vs.name || '').toLowerCase() === name.toLowerCase());
+      if (exact) return exact.id;
+
+      // 2) normalized exact
+      const normHit = resp.data.find(vs => norm(vs.name) === targetNorm);
+      if (normHit) return normHit.id;
+
+      // 3) synonyms
+      const synKeys = synonyms.get(targetNorm) || [];
+      const synHit = resp.data.find(vs => synKeys.includes(norm(vs.name)));
+      if (synHit) return synHit.id;
+
+      // 4) relaxed contains (prefix + book)
+      const containsHit = resp.data.find(vs => norm(vs.name).includes(targetNorm));
+      if (containsHit && !bestMatch) bestMatch = containsHit.id;
+
+      if (!resp.has_more) break;
       after = resp.last_id;
     }
+    return bestMatch; // may be null
   } catch (e) {
     console.warn('findVectorStoreIdByName error:', e.message);
     return null;
