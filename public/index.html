@@ -1784,25 +1784,32 @@
             
             if (!window.catalogData) return;
             
-            const authorFilter = authorSearchInput ? authorSearchInput.value.toLowerCase() : '';
-            const workFilter = workSearchInput ? workSearchInput.value.toLowerCase() : '';
+            const authorFilter = authorSearchInput ? authorSearchInput.value.trim().toLowerCase() : '';
+            const workFilter = workSearchInput ? workSearchInput.value.trim().toLowerCase() : '';
             
             let filteredData = [...window.catalogData]; // 創建副本避免修改原始數據
             
             // 過濾作者
             if (authorFilter) {
-                filteredData = filteredData.filter(author => 
-                    author.author.toLowerCase().includes(authorFilter)
-                );
+                filteredData = filteredData.filter(author => {
+                    const englishName = author.author || '';
+                    const translatedName = getAuthorName(englishName) || '';
+                    return (
+                        englishName.toLowerCase().includes(authorFilter) ||
+                        translatedName.toLowerCase().includes(authorFilter)
+                    );
+                });
             }
             
             // 過濾作品
             if (workFilter) {
                 filteredData = filteredData.filter(author => {
                     // 檢查作者的作品是否包含搜尋關鍵字
-                    return author.works.some(work => 
-                        work.toLowerCase().includes(workFilter)
-                    );
+                    return author.works.some(work => {
+                        const en = work || '';
+                        const zh = (window.workTranslations && window.workTranslations[en]) || '';
+                        return en.toLowerCase().includes(workFilter) || zh.toLowerCase().includes(workFilter);
+                    });
                 });
             }
             
