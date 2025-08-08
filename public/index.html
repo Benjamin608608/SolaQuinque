@@ -563,17 +563,17 @@
 </head>
 <body class="flex flex-col min-h-screen antialiased">
     <header class="p-3 flex justify-between items-center w-full header-bg sticky top-0 z-10 overflow-hidden">
-        <div class="flex items-center space-x-1" id="navLinks" style="display: none; font-size: 0.9rem;">
+        <div class="flex items-center space-x-1" id="navLinks" style="display: none; font-size: 0.9rem; gap: 0.25rem;">
             <a class="nav-link active" href="#" id="homeLink">
                 <span class="material-icons-outlined text-lg">cottage</span>
                 <span class="label" style="font-size: 0.9rem;">首頁</span>
             </a>
             <a class="nav-link" href="#" id="catalogLink">
-                <span class="material-icons-outlined text-lg">auto_stories</span>
+                <span class="material-icons-outlined" style="font-size: 1rem;">auto_stories</span>
                 <span class="label" style="font-size: 0.9rem;">參考</span>
             </a>
             <a class="nav-link" href="#" id="bibleLink">
-                <span class="material-icons-outlined text-lg">menu_book</span>
+                <span class="material-icons-outlined" style="font-size: 1rem;">menu_book</span>
                 <span class="label" style="font-size: 0.9rem;">聖經</span>
             </a>
         </div>
@@ -1188,7 +1188,7 @@
             // 更新導航按鈕
             const homeLink = document.getElementById('homeLink');
             if (homeLink) {
-                const homeText = homeLink.querySelector('span:not(.material-icons-outlined)');
+                const homeText = homeLink.querySelector('span.label');
                 if (homeText) {
                     homeText.textContent = currentLang.home;
                 }
@@ -1196,7 +1196,7 @@
             
             const catalogLink = document.getElementById('catalogLink');
             if (catalogLink) {
-                const catalogText = catalogLink.querySelector('span:not(.material-icons-outlined)');
+                const catalogText = catalogLink.querySelector('span.label');
                 if (catalogText) {
                     catalogText.textContent = currentLang.catalog;
                 }
@@ -1273,7 +1273,7 @@
             
             const bibleLinkEl = document.getElementById('bibleLink');
             if (bibleLinkEl) {
-                const bibleText = bibleLinkEl.querySelector('span:not(.material-icons-outlined)');
+                const bibleText = bibleLinkEl.querySelector('span.label');
                 if (bibleText) {
                     bibleText.textContent = lang === 'en' ? 'Bible' : currentLang.bible;
                 }
