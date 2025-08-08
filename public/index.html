@@ -555,15 +555,15 @@
         <div class="flex items-center space-x-1" id="navLinks" style="display: none;">
             <a class="nav-link active" href="#" id="homeLink">
                 <span class="material-icons-outlined text-lg">cottage</span>
-                <span class="text-base">首頁</span>
+                <span class="text-base nav-label">首頁</span>
             </a>
             <a class="nav-link" href="#" id="catalogLink">
                 <span class="material-icons-outlined text-lg">auto_stories</span>
-                <span class="text-base">參考</span>
+                <span class="text-base nav-label">參考</span>
             </a>
             <a class="nav-link" href="#" id="bibleLink">
                 <span class="material-icons-outlined text-lg">menu_book</span>
-                <span class="text-base">聖經</span>
+                <span class="text-base nav-label">聖經</span>
             </a>
         </div>
         <div class="flex items-center space-x-2">
@@ -1169,17 +1169,17 @@
             // 更新導航按鈕
             const homeLink = document.getElementById('homeLink');
             if (homeLink) {
-                const homeText = homeLink.querySelector('span:not(.material-icons-outlined)');
+                const homeText = homeLink.querySelector('.nav-label');
                 if (homeText) {
-                    homeText.textContent = currentLang.home;
+                    homeText.textContent = lang === 'en' ? 'Home' : currentLang.home;
                 }
             }
             
             const catalogLink = document.getElementById('catalogLink');
             if (catalogLink) {
-                const catalogText = catalogLink.querySelector('span:not(.material-icons-outlined)');
+                const catalogText = catalogLink.querySelector('.nav-label');
                 if (catalogText) {
-                    catalogText.textContent = currentLang.catalog;
+                    catalogText.textContent = lang === 'en' ? 'Cat.' : currentLang.catalog;
                 }
             }
             
