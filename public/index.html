@@ -1461,7 +1461,8 @@
                         const panel = document.getElementById(`chapters_${id}`);
                         if (panel.classList.contains('hidden')) {
                             panel.classList.remove('hidden');
-                            panel.className = 'ml-1 grid grid-cols-6 sm:grid-cols-10 md:grid-cols-12 gap-2';
+                            panel.className = 'ml-1 grid gap-2';
+                            setResponsiveGridColumns(panel, 4, 8, 12);
                             renderChapters(panel, id, zh, chapters);
                         } else {
                             panel.classList.add('hidden');
@@ -1473,7 +1474,7 @@
             function renderChapters(container, bookId, zh, count) {
                 const items = [];
                 for (let i = 1; i <= count; i++) {
-                    items.push(`<div class=\"relative\"><button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm w-full\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${zh} ${i}</button><div class=\"mt-1 hidden\" id=\"verses_${bookId}_${i}\"></div></div>`);
+                    items.push(`<div class=\"relative\"><button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm w-full\" style=\"min-width:2.5rem\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${zh} ${i}</button><div class=\"mt-1 hidden\" id=\"verses_${bookId}_${i}\"></div></div>`);
                 }
                 container.innerHTML = items.join('');
                 container.querySelectorAll('button').forEach(btn => {
@@ -1489,7 +1490,8 @@
                         const vpanel = document.getElementById(`verses_${bId}_${chap}`);
                         if (vpanel.classList.contains('hidden')) {
                             vpanel.classList.remove('hidden');
-                            vpanel.className = 'mt-1 grid grid-cols-8 sm:grid-cols-12 md:grid-cols-16 gap-1';
+                            vpanel.className = 'mt-1 grid gap-2';
+                            setResponsiveGridColumns(vpanel, 6, 10, 16);
                             await preloadChapter(bId, chap, vpanel);
                         } else {
                             vpanel.classList.add('hidden');
@@ -1512,16 +1514,14 @@
                 const maxVerse = verses.reduce((m, v) => Math.max(m, v.verse || 0), 0) || 40;
                 const items = [];
                 for (let i = 1; i <= maxVerse; i++) {
-                    items.push(`<button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-xs\" data-verse=\"${i}\">${i}</button>`);
+                    items.push(`<button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-xs\" style=\"min-width:2rem\" data-verse=\"${i}\">${i}</button>`);
                 }
                 container.innerHTML = items.join('');
                 container.querySelectorAll('button[data-verse]').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const v = parseInt(btn.getAttribute('data-verse'), 10);
-                        document.getElementById('bibleVerseFrom').value = String(v);
-                        document.getElementById('bibleVerseTo').value = '';
-                        // 使用預取資料渲染對應節
-                        renderPreloadedVerses(verses, v, v);
+                        const engs = document.getElementById('bibleBookEngs').value;
+                        showBibleExplanationPage(engs, bookId, chap, v, version);
                     });
                 });
                 // 載入整章按鈕也可依預取資料呈現
@@ -1551,6 +1551,68 @@
                 }).join('');
                 container.innerHTML = html;
                 bibleResult.classList.remove('hidden');
+            }
+
+            function setResponsiveGridColumns(el, mobileCols, smCols, mdCols) {
+                const w = window.innerWidth;
+                let cols = mobileCols;
+                if (w >= 768) cols = mdCols;
+                else if (w >= 640) cols = smCols;
+                el.style.display = 'grid';
+                el.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+            }
+
+            function showBibleExplanationPage(engs, bookId, chapter, verse, translation) {
+                window.currentPage = 'bibleExplain';
+                const main = document.getElementById('mainContent');
+                if (!main) return;
+                const ref = `${engs}${chapter}:${verse}`;
+                main.innerHTML = `
+                    <div class=\"w-full max-w-3xl mx-auto px-3\">
+                        <div class=\"flex items-center justify-between mt-6 mb-3\">
+                            <button id=\"backToBibleBtn\" class=\"px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm\">返回聖經</button>
+                            <div class=\"text-sm text-[var(--text-secondary)]\">${translation || ''}</div>
+                        </div>
+                        <h2 class=\"text-xl font-serif font-bold text-[var(--text-primary)] mb-2\">${ref}</h2>
+                        <div id=\"exVerse\" class=\"mb-3 text-[var(--text-primary)]\">載入經文中...</div>
+                        <div id=\"explanation\" class=\"\">正在生成解釋...</div>
+                    </div>
+                `;
+                document.getElementById('backToBibleBtn').addEventListener('click', () => showBiblePage());
+                // 載入單節經文
+                fetch(`/api/bible/chapter?translation=${encodeURIComponent(translation || 'CUV')}&bookId=${bookId}&chapter=${chapter}`)
+                  .then(r => r.json())
+                  .then(j => {
+                      const box = document.getElementById('exVerse');
+                      const list = Array.isArray(j.data) ? j.data : [];
+                      const found = list.find(v => v.verse === verse);
+                      if (found) box.innerHTML = `${found.text || ''}`;
+                      else box.innerHTML = '查無經文';
+                  }).catch(() => {
+                      const box = document.getElementById('exVerse');
+                      if (box) box.innerHTML = '載入經文失敗';
+                  });
+                // 直接生成解釋
+                fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: `請解釋並詮釋 ${ref}（版本：${translation || 'CUV'}），僅使用資料庫來源並附上引用標註`, language: 'zh' })
+                })
+                .then(r => r.json())
+                .then(j => {
+                    const box = document.getElementById('explanation');
+                    if (j && j.success) {
+                        const html = formatAnswer(j.data.answer, j.data.sources);
+                        box.innerHTML = `<div class=\"chat-messages\">${html}</div>`;
+                        bindCitationEvents();
+                    } else {
+                        box.innerHTML = `<div class=\"text-red-600 text-sm\">生成解釋失敗</div>`;
+                    }
+                })
+                .catch(() => {
+                    const box = document.getElementById('explanation');
+                    if (box) box.innerHTML = `<div class=\"text-red-600 text-sm\">生成解釋失敗</div>`;
+                });
             }
 
             // 預設顯示舊約
