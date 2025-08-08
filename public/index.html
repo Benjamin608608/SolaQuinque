@@ -510,6 +510,14 @@
 +        /* 手機上頂部導航可水平滾動，避免英文過長換行擠壓 */
 +        .nav-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; gap: 0.25rem; }
 +        .nav-scroll .nav-link { display: inline-flex; }
++        /* 讓頂部導航在小螢幕也能塞進一頁：縮小字距與在極小寬度隱藏文字僅留圖示 */
++        @media (max-width: 480px) {
++          #navLinks .nav-link { padding: 0.25rem 0.5rem; }
++          #navLinks .nav-link .label { font-size: 0.8rem; }
++        }
++        @media (max-width: 380px) {
++          #navLinks .nav-link .label { display: none; }
++        }
     </style>
     <style>
         body {
@@ -555,18 +563,18 @@
 </head>
 <body class="flex flex-col min-h-screen antialiased">
     <header class="p-3 flex justify-between items-center w-full header-bg sticky top-0 z-10">
-        <div class="flex items-center space-x-1 nav-scroll" id="navLinks" style="display: none;">
+        <div class="flex items-center space-x-1" id="navLinks" style="display: none;">
             <a class="nav-link active" href="#" id="homeLink">
                 <span class="material-icons-outlined text-lg">cottage</span>
-                <span class="text-base">首頁</span>
+                <span class="text-base label">首頁</span>
             </a>
             <a class="nav-link" href="#" id="catalogLink">
                 <span class="material-icons-outlined text-lg">auto_stories</span>
-                <span class="text-base">參考</span>
+                <span class="text-base label">參考</span>
             </a>
             <a class="nav-link" href="#" id="bibleLink">
                 <span class="material-icons-outlined text-lg">menu_book</span>
-                <span class="text-base">聖經</span>
+                <span class="text-base label">聖經</span>
             </a>
         </div>
         <div class="flex items-center space-x-2">
@@ -1117,6 +1125,10 @@
                     'home': '首頁',
                     'catalog': '參考',
                     'bible': '聖經',
+                    'bible-version': '版本',
+                    'bible-ot': '舊約',
+                    'bible-nt': '新約',
+                    'back': '返回聖經',
                     'logout': '登出',
                     'title': '神學知識庫',
                     'subtitle': '探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。',
@@ -1143,10 +1155,14 @@
                     'home': 'Home',
                     'catalog': 'Catalog',
                     'bible': 'Bible',
+                    'bible-version': 'Version',
+                    'bible-ot': 'OT',
+                    'bible-nt': 'NT',
+                    'back': 'Back',
                     'logout': 'Logout',
                     'title': 'Theology Knowledge Base',
-                    'subtitle': 'Explore the wisdom of theologians throughout history, find solid foundations for your faith.',
-                    'placeholder': 'Ask any question...',
+                    'subtitle': 'Explore the wisdom of theologians throughout history, finding solid foundations for your faith.',
+                    'placeholder': 'Ask anything...',
                     'catalog-title': 'Bibliography',
                     'catalog-subtitle': 'Explore a rich theological literature database',
                     'author-search': 'Search authors...',
@@ -1424,7 +1440,7 @@
                         <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)]">${title}</h2>
                     </div>
                     <div class="flex items-center gap-2 justify-end mb-3">
-                        <label class="text-sm text-[var(--text-secondary)]">版本</label>
+                        <label class="text-sm text-[var(--text-secondary)]">${(window.translations && window.translations['bible-version']) || '版本'}</label>
                         <select id="bibleVersion" class="border rounded px-2 py-1 text-sm">
                             <option value="CUV">和合本(CUV)</option>
                             <option value="KJV">KJV</option>
@@ -1432,8 +1448,8 @@
                     </div>
                     <div class="mb-3">
                         <div class="flex gap-2 mb-2">
-                            <button id="tabOT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">舊約</button>
-                            <button id="tabNT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">新約</button>
+                            <button id="tabOT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">${(window.translations && window.translations['bible-ot']) || '舊約'}</button>
+                            <button id="tabNT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">${(window.translations && window.translations['bible-nt']) || '新約'}</button>
                         </div>
                         <div id="bookGrid" class="bible-grid-books"></div>
                     </div>
@@ -1639,11 +1655,11 @@
                 if (!main) return;
                 const lang = window.currentLanguage || 'zh';
                 const displayBook = [...booksOT, ...booksNT].find(b => b.engs === engs);
-                const ref = `${lang === 'en' ? displayBook.en : displayBook.zh} ${chapter}:${verse}`;
+                const ref = `${lang === 'en' ? (displayBook?.en || engs) : (displayBook?.zh || engs)} ${chapter}:${verse}`;
                 main.innerHTML = `
                     <div class=\"w-full max-w-3xl mx-auto px-3\">
                         <div class=\"flex items-center justify-between mt-6 mb-3\">
-                            <button id=\"backToBibleBtn\" class=\"px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm\">返回聖經</button>
+                            <button id=\"backToBibleBtn\" class=\"px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm\">${(window.translations && window.translations['back']) || '返回聖經'}</button>
                             <div class=\"text-sm text-[var(--text-secondary)]\">${translation || ''}</div>
                         </div>
                         <h2 class=\"text-xl font-serif font-bold text-[var(--text-primary)] mb-2\">${ref}</h2>
