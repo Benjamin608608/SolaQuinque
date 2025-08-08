@@ -1461,8 +1461,7 @@
                         const panel = document.getElementById(`chapters_${id}`);
                         if (panel.classList.contains('hidden')) {
                             panel.classList.remove('hidden');
-                            panel.className = 'ml-1 grid gap-2';
-                            setResponsiveGridColumns(panel, 4, 8, 12);
+                            panel.className = 'ml-1 grid grid-cols-4 sm:grid-cols-8 md:grid-cols-12 gap-2';
                             renderChapters(panel, id, zh, chapters);
                         } else {
                             panel.classList.add('hidden');
@@ -1490,8 +1489,7 @@
                         const vpanel = document.getElementById(`verses_${bId}_${chap}`);
                         if (vpanel.classList.contains('hidden')) {
                             vpanel.classList.remove('hidden');
-                            vpanel.className = 'mt-1 grid gap-2';
-                            setResponsiveGridColumns(vpanel, 6, 10, 16);
+                            vpanel.className = 'mt-1 grid grid-cols-5 sm:grid-cols-10 md:grid-cols-16 gap-1';
                             await preloadChapter(bId, chap, vpanel);
                         } else {
                             vpanel.classList.add('hidden');
@@ -1514,7 +1512,7 @@
                 const maxVerse = verses.reduce((m, v) => Math.max(m, v.verse || 0), 0) || 40;
                 const items = [];
                 for (let i = 1; i <= maxVerse; i++) {
-                    items.push(`<button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-xs\" style=\"min-width:2rem\" data-verse=\"${i}\">${i}</button>`);
+                    items.push(`<button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-xs w-full\" style=\"min-width:2.25rem\" data-verse=\"${i}\">${i}</button>`);
                 }
                 container.innerHTML = items.join('');
                 container.querySelectorAll('button[data-verse]').forEach(btn => {
