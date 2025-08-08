@@ -560,11 +560,11 @@
       /* 導覽標籤一律單行顯示，避免上下換行 */
       #navLinks .nav-label { white-space: nowrap; }
       /* 頭像圖示固定尺寸且不縮小 */
-      #userAvatar { flex-shrink: 0; width: 32px; height: 32px; display: none; }
-      #userAvatar .material-icons-outlined { font-size: 22px; line-height: 32px; }
+      #userAvatar { flex: 0 0 auto; width: 32px; height: 32px; aspect-ratio: 1 / 1; padding: 0 !important; display: none; align-items: center; justify-content: center; border-radius: 9999px; }
+      #userAvatar .material-icons-outlined { font-size: 20px; line-height: 1; display: block; }
       @media (max-width: 480px) {
-        #userAvatar { width: 28px; height: 28px; }
-        #userAvatar .material-icons-outlined { font-size: 20px; line-height: 28px; }
+        #userAvatar { width: 24px; height: 24px; }
+        #userAvatar .material-icons-outlined { font-size: 18px; }
       }
     </style>
 </head>
