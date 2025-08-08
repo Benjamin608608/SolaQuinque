@@ -1229,8 +1229,17 @@
                 const homeTitle = window.translations ? window.translations['home-title'] : '神學知識庫';
                 const homeSubtitle = window.translations ? window.translations['home-subtitle'] : '探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。';
                 
+                // 內容轉場
+                const old = main.firstElementChild;
+                if (old) {
+                    old.classList.remove('page-enter','page-enter-active');
+                    old.classList.add('page-exit');
+                    // 非阻塞：淡出後移除
+                    setTimeout(() => old && old.remove(), 240);
+                }
+
                 main.innerHTML = `
-                    <section class="ec-hero ec-enter">
+                    <section class="ec-hero ec-enter page-enter">
                         <div class="ec-hero-bg"></div>
                         <div class="ec-rays" aria-hidden="true"></div>
                         <div class="ec-hero-frame" aria-hidden="true"></div>
@@ -1241,6 +1250,10 @@
                         </div>
                     </section>
                 `;
+
+                // 新內容淡入
+                const section = main.querySelector('.page-enter');
+                if (section) requestAnimationFrame(() => section.classList.add('page-enter-active'));
             }
             
             // 顯示輸入區域
@@ -1457,8 +1470,9 @@
         // 綁定引用標註事件
         function bindCitationEvents() {
             document.addEventListener('click', (e) => {
-                if (e.target.classList.contains('citation')) {
-                    showCitationTooltip(e.target);
+                const target = e.target.closest('.citation');
+                if (target) {
+                    showCitationTooltip(target);
                 }
             });
         }
@@ -1660,6 +1674,13 @@
             
             // 初始化引用標註事件
             bindCitationEvents();
+
+            // 頁面轉場：初次載入給主內容一個淡入
+            const main = document.getElementById('mainContent');
+            if (main) {
+                main.classList.add('page-enter');
+                requestAnimationFrame(() => main.classList.add('page-enter-active'));
+            }
             
             // 初始化語言為中文
             switchLanguage('zh');
