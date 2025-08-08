@@ -1276,6 +1276,25 @@
                 showHomePage();
             } else if (window.currentPage === 'catalog') {
                 showCatalogPage();
+            } else if (window.currentPage === 'bible') {
+                const sel = window.currentBibleSelection;
+                showBiblePage();
+                if (sel && sel.bookId) {
+                    // 重新套用選擇：打開書卷與章
+                    requestAnimationFrame(() => {
+                        const bookBtn = document.querySelector(`#bookGrid button[data-id='${sel.bookId}']`);
+                        if (bookBtn) {
+                            bookBtn.click();
+                            setTimeout(() => {
+                                const chapBtn = document.querySelector(`.chapters-inline-row [data-bookid='${sel.bookId}'][data-chap='${sel.chapter}']`);
+                                if (chapBtn) chapBtn.click();
+                            }, 0);
+                        }
+                    });
+                }
+            } else if (window.currentPage === 'bibleExplain' && window.currentBibleSelection) {
+                const s = window.currentBibleSelection;
+                showBibleExplanationPage(s.engs, s.bookId, s.chapter, s.verse || 1, document.getElementById('bibleVersion')?.value || 'CUV');
             }
         }
 
