@@ -1252,6 +1252,55 @@ app.get('/api/catalog', (req, res) => {
   }
 });
 
+// 新增：FHL 聖經 JSON 代理端點（qb.php）
+app.get('/api/bible/qb', async (req, res) => {
+  try {
+    const upstreamBase = 'https://bible.fhl.net/json/qb.php';
+
+    // 保留所有查詢參數並轉發
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(req.query)) {
+      if (value !== undefined && value !== null) {
+        params.append(key, String(value));
+      }
+    }
+
+    // 若無參考字串，回覆錯誤
+    if (!params.has('chineses') && !params.has('engs')) {
+      return res.status(400).json({ success: false, error: '缺少經文參考（chineses 或 engs）' });
+    }
+
+    // 給定預設版本（和合本）
+    if (!params.has('version')) {
+      params.set('version', 'unv');
+    }
+
+    // 預設限制避免過大回應
+    if (!params.has('limit')) {
+      params.set('limit', '200');
+    }
+
+    const upstreamUrl = `${upstreamBase}?${params.toString()}`;
+
+    const response = await fetch(upstreamUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      return res.status(response.status).json({ success: false, error: '上游服務錯誤', details: text.slice(0, 500) });
+    }
+
+    const data = await response.json();
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('FHL 代理錯誤:', err);
+    res.status(500).json({ success: false, error: 'FHL 代理請求失敗' });
+  }
+});
+
 // 健康檢查端點
 app.get('/api/health', (req, res) => {
   const healthStatus = {

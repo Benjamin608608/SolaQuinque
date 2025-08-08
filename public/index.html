@@ -1335,6 +1335,43 @@
                                 <input type="text" placeholder="${authorSearch}" class="search-input" id="authorSearchInput">
                                 <input type="text" placeholder="${workSearch}" class="search-input" id="workSearchInput">
                             </div>
+                            <div class="mt-3 text-right">
+                                <button id="openBiblePickerBtn" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-[var(--primary)] text-white text-sm hover:bg-opacity-90">
+                                    <span class="material-icons-outlined text-sm">menu_book</span>
+                                    <span>聖經</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="biblePicker" class="hidden border border-[var(--border)] rounded-md p-3 mt-3 bg-[var(--card-bg)]">
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                                <select id="bibleVersion" class="border rounded px-2 py-1 text-sm">
+                                    <option value="unv">和合本(UNV)</option>
+                                    <option value="kjv">KJV</option>
+                                    <option value="cunv">和合本修訂</option>
+                                </select>
+                                <select id="bibleBook" class="border rounded px-2 py-1 text-sm col-span-2">
+                                    <option value="創">創世記</option>
+                                    <option value="出">出埃及記</option>
+                                    <option value="太">馬太福音</option>
+                                    <option value="約">約翰福音</option>
+                                    <option value="羅">羅馬書</option>
+                                </select>
+                                <div class="flex gap-2">
+                                    <input id="bibleChapter" class="border rounded px-2 py-1 w-20 text-sm" type="number" min="1" placeholder="章">
+                                    <input id="bibleVerseFrom" class="border rounded px-2 py-1 w-20 text-sm" type="number" min="1" placeholder="節起">
+                                    <input id="bibleVerseTo" class="border rounded px-2 py-1 w-20 text-sm" type="number" min="1" placeholder="節迄">
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-end gap-2">
+                                <button id="fetchBibleBtn" class="px-3 py-1.5 rounded-md bg-[var(--primary)] text-white text-sm hover:bg-opacity-90">載入經文</button>
+                            </div>
+                        </div>
+                        <div id="bibleResult" class="mt-4 hidden">
+                            <div id="bibleText" class="prose prose-sm max-w-none text-[var(--text-primary)]"></div>
+                            <div class="mt-3 text-right">
+                                <button id="explainBibleBtn" class="px-3 py-1.5 rounded-md bg-[var(--accent)] text-white text-sm hover:bg-opacity-90">產生解釋（附出處）</button>
+                            </div>
+                            <div id="bibleExplanation" class="mt-4"></div>
                         </div>
                         <div class="catalog-list" id="catalogList">
                             <div class="text-center p-4 sm:p-8">
@@ -1359,6 +1396,23 @@
                     if (workSearchInput) {
                         workSearchInput.addEventListener('input', filterCatalog);
                     }
+
+                    // 綁定聖經面板事件
+                    const openBiblePickerBtn = document.getElementById('openBiblePickerBtn');
+                    const biblePicker = document.getElementById('biblePicker');
+                    const fetchBibleBtn = document.getElementById('fetchBibleBtn');
+                    const explainBibleBtn = document.getElementById('explainBibleBtn');
+                    if (openBiblePickerBtn && biblePicker) {
+                        openBiblePickerBtn.addEventListener('click', () => {
+                            biblePicker.classList.toggle('hidden');
+                        });
+                    }
+                    if (fetchBibleBtn) {
+                        fetchBibleBtn.addEventListener('click', fetchBiblePassage);
+                    }
+                    if (explainBibleBtn) {
+                        explainBibleBtn.addEventListener('click', explainBiblePassage);
+                    }
                 }, 100);
             }
             
@@ -1366,6 +1420,110 @@
             const footer = document.querySelector('footer');
             if (footer) {
                 footer.style.display = 'none';
+            }
+        }
+
+        // 以 FHL 代理取得經文
+        async function fetchBiblePassage() {
+            try {
+                const version = document.getElementById('bibleVersion').value;
+                const bookZh = document.getElementById('bibleBook').value;
+                const chapter = document.getElementById('bibleChapter').value;
+                const vFrom = document.getElementById('bibleVerseFrom').value;
+                const vTo = document.getElementById('bibleVerseTo').value;
+                if (!bookZh || !chapter) return;
+
+                // 中英書卷對照（常見示例；可擴充）
+                const zhToEngs = {
+                    '創': 'Gen', '出': 'Exo', '利': 'Lev', '民': 'Num', '申': 'Deu',
+                    '書': 'Jos', '士': 'Jdg', '得': 'Rth', '撒上': '1Sa', '撒下': '2Sa',
+                    '王上': '1Ki', '王下': '2Ki', '代上': '1Ch', '代下': '2Ch', '拉': 'Ezr',
+                    '尼': 'Neh', '斯': 'Est', '伯': 'Job', '詩': 'Psa', '箴': 'Pro',
+                    '傳': 'Ecc', '歌': 'Son', '賽': 'Isa', '耶': 'Jer', '哀': 'Lam',
+                    '結': 'Eze', '但': 'Dan', '何': 'Hos', '珥': 'Joe', '摩': 'Amo',
+                    '俄': 'Oba', '拿': 'Jon', '彌': 'Mic', '鴻': 'Nah', '哈': 'Hab',
+                    '番': 'Zep', '該': 'Hag', '亞': 'Zec', '瑪': 'Mal',
+                    '太': 'Mat', '可': 'Mar', '路': 'Luk', '約': 'Joh', '徒': 'Act',
+                    '羅': 'Rom', '林前': '1Co', '林後': '2Co', '加': 'Gal', '弗': 'Eph',
+                    '腓': 'Php', '西': 'Col', '帖前': '1Th', '帖後': '2Th', '提前': '1Ti',
+                    '提後': '2Ti', '多': 'Tit', '門': 'Phm', '來': 'Heb', '雅': 'Jas',
+                    '彼前': '1Pe', '彼後': '2Pe', '約一': '1Jo', '約二': '2Jo', '約三': '3Jo',
+                    '猶': 'Jud', '啟': 'Rev'
+                };
+                const engs = zhToEngs[bookZh] || bookZh;
+
+                let sec = '';
+                if (vFrom && vTo) sec = `${vFrom}-${vTo}`;
+                else if (vFrom) sec = `${vFrom}`;
+
+                const params = new URLSearchParams({ version, engs, chap: String(chapter) });
+                if (sec) params.set('sec', sec);
+
+                const url = `/api/bible/qb?${params.toString()}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                const container = document.getElementById('bibleText');
+                const bibleResult = document.getElementById('bibleResult');
+                const explain = document.getElementById('bibleExplanation');
+                if (explain) explain.innerHTML = '';
+                if (!json.success) {
+                    container.innerHTML = `<div class="text-red-600 text-sm">載入失敗：${json.error || '未知錯誤'}</div>`;
+                    bibleResult.classList.remove('hidden');
+                    return;
+                }
+                const data = json.data;
+                const records = Array.isArray(data.record) ? data.record : [];
+                if (records.length === 0) {
+                    container.innerHTML = `<div class="text-[var(--text-secondary)] text-sm">沒有找到經文</div>`;
+                    bibleResult.classList.remove('hidden');
+                    return;
+                }
+                const header = `<div class=\"mb-2 text-sm text-[var(--text-secondary)]\">版本：${data.v_name || version}</div>`;
+                const html = header + records.map(r => {
+                    const ref = `${r.chineses || r.engs || ''}${r.chap || ''}:${r.sec || ''}`;
+                    const text = r.bible_text || r.cht || r.text || '';
+                    return `<div class=\"mb-1\"><span class=\"text-[var(--text-secondary)] mr-2\">${ref}</span>${text}</div>`;
+                }).join('');
+                container.innerHTML = html;
+                bibleResult.classList.remove('hidden');
+            } catch (e) {
+                const container = document.getElementById('bibleText');
+                const bibleResult = document.getElementById('bibleResult');
+                container.innerHTML = `<div class=\"text-red-600 text-sm\">載入失敗</div>`;
+                bibleResult.classList.remove('hidden');
+            }
+        }
+
+        // 以首頁搜尋邏輯產生解釋與出處
+        async function explainBiblePassage() {
+            const container = document.getElementById('bibleExplanation');
+            if (!container) return;
+            try {
+                const version = document.getElementById('bibleVersion').value;
+                const book = document.getElementById('bibleBook').value;
+                const chapter = document.getElementById('bibleChapter').value;
+                const vFrom = document.getElementById('bibleVerseFrom').value;
+                const vTo = document.getElementById('bibleVerseTo').value;
+                let ref = `${book}${chapter}`;
+                if (vFrom) { ref += `:${vFrom}`; if (vTo) ref += `-${vTo}`; }
+
+                container.innerHTML = `<div class="text-sm text-[var(--text-secondary)]">正在生成解釋...</div>`;
+                const resp = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: `請解釋並詮釋 ${ref}（版本：${version}），僅使用資料庫來源並附上引用標註`, language: 'zh' })
+                });
+                const json = await resp.json();
+                if (!json.success) {
+                    container.innerHTML = `<div class="text-red-600 text-sm">生成解釋失敗：${json.error || '未知錯誤'}</div>`;
+                    return;
+                }
+                // 重用首頁渲染邏輯
+                const answerHtml = formatAnswer(json.data.answer, json.data.sources);
+                container.innerHTML = `<div class="chat-messages">${answerHtml}</div>`;
+                bindCitationEvents();
+            } catch (e) {
+                container.innerHTML = `<div class="text-red-600 text-sm">生成解釋時發生錯誤</div>`;
             }
         }
 
