@@ -1230,19 +1230,16 @@
                 const homeSubtitle = window.translations ? window.translations['home-subtitle'] : '探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。';
                 
                 main.innerHTML = `
-                    <div class="text-center px-2 sm:px-4">
-                        <div class="relative">
-                            <div class="w-24 h-24 mb-4 flex items-center justify-center rounded-full cross-container shadow-inner mx-auto">
-                                <span class="text-5xl text-[var(--primary)] font-light" style="text-shadow: 1px 1px 3px rgba(109, 76, 65, 0.1);">†</span>
-                            </div>
-                            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-serif font-bold tracking-wider text-[var(--text-primary)]" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.05);">
-                                ${homeTitle}
-                            </h1>
+                    <section class="ec-hero ec-enter">
+                        <div class="ec-hero-bg"></div>
+                        <div class="ec-rays" aria-hidden="true"></div>
+                        <div class="ec-hero-frame" aria-hidden="true"></div>
+                        <div class="ec-hero-content illuminated">
+                            <div class="ec-mark">†</div>
+                            <h1 class="ec-title gold-text">${homeTitle}</h1>
+                            <p class="ec-subtitle">${homeSubtitle}</p>
                         </div>
-                        <p class="text-[var(--text-secondary)] mt-2 sm:mt-4 px-2 sm:px-4 text-sm sm:text-base md:text-lg lg:text-xl font-light leading-relaxed max-w-md">
-                            ${homeSubtitle}
-                        </p>
-                    </div>
+                    </section>
                 `;
             }
             
