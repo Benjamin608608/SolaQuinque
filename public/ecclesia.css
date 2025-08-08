@@ -189,3 +189,46 @@ body.theme-ecclesia.theme-candle .footer-bg {
 /* Candlelight adjustments */
 body.theme-ecclesia.theme-candle .ec-hero-bg { filter: saturate(0.85) brightness(0.9) contrast(0.95); }
 body.theme-ecclesia.theme-candle .ec-rays { opacity: 0.5; }
+
+/* Candle sweep transition */
+.ec-sweep {
+  position: fixed; inset: 0; pointer-events: none; z-index: 60; display: none;
+}
+.ec-sweep.active { display: block; }
+.ec-sweep::before {
+  content: ""; position: absolute; inset: 0; 
+  background: radial-gradient(120% 80% at -10% 0%, rgba(255,226,170,0.0), rgba(255,226,170,0.22) 40%, rgba(0,0,0,0) 70%),
+              linear-gradient(90deg, rgba(0,0,0,0), rgba(255,240,205,0.28) 35%, rgba(0,0,0,0) 70%);
+  filter: blur(2px) saturate(1.05);
+  transform: translateX(-100%);
+  animation: ec-sweep 620ms ease;
+}
+@keyframes ec-sweep { to { transform: translateX(120%); } }
+
+/* Gold fade mask for section entrances */
+.gold-fade { position: relative; overflow: hidden; }
+.gold-fade::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(120deg, rgba(244,226,181,0.35), rgba(0,0,0,0) 35%);
+  transform: translateX(-20%);
+  opacity: 0; transition: opacity 420ms ease, transform 420ms ease;
+}
+.gold-fade.gold-in::after { opacity: 1; transform: translateX(0); }
+
+/* Elegant blockquote */
+blockquote.ec-quote {
+  position: relative; margin: 20px auto; padding: 18px 18px 18px 22px; max-width: 780px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.35));
+  border: 1px solid rgba(198,161,91,0.45);
+  border-radius: 14px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.12);
+}
+blockquote.ec-quote::before {
+  content: "\201C"; position: absolute; left: 12px; top: -6px; font-size: 44px; color: rgba(198,161,91,0.8);
+}
+blockquote.ec-quote footer { margin-top: 10px; color: var(--text-secondary); font-size: 0.9em; }
+
+/* Iconic divider */
+.ec-divider { display: grid; place-items: center; margin: 18px auto; }
+.ec-divider .line { height: 1px; width: 100%; max-width: 760px; background: linear-gradient(90deg, transparent, rgba(198,161,91,0.8), transparent); }
+.ec-divider .icon { margin-top: -10px; background: var(--background); padding: 0 8px; color: var(--primary); }

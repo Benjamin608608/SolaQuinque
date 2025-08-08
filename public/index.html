@@ -524,6 +524,7 @@
         </div>
     </header>
     
+    <div class="ec-sweep" id="candleSweep"></div>
     <main class="flex-grow flex flex-col items-center justify-center text-center px-6 -mt-8" id="mainContent">
         <div class="relative">
             <div class="w-24 h-24 mb-4 flex items-center justify-center rounded-full cross-container shadow-inner mx-auto">
@@ -1213,6 +1214,25 @@
             }
         }
 
+        // 啟用燭光掠過轉場
+        function candleSweep() {
+            const sweep = document.getElementById('candleSweep');
+            if (!sweep) return;
+            sweep.classList.remove('active');
+            // 重新觸發動畫
+            // eslint-disable-next-line no-unused-expressions
+            sweep.offsetHeight;
+            sweep.classList.add('active');
+            setTimeout(() => sweep.classList.remove('active'), 640);
+        }
+
+        // 為元素添加金箔淡入
+        function applyGoldFade(element) {
+            if (!element) return;
+            element.classList.add('gold-fade');
+            requestAnimationFrame(() => element.classList.add('gold-in'));
+        }
+
         // 顯示首頁
         function showHomePage() {
             // 設置當前頁面狀態
@@ -1220,26 +1240,20 @@
             
             const main = document.getElementById('mainContent');
             if (main) {
-                // 如果有正在進行的搜尋，顯示載入狀態
                 if (window.isSearching) {
                     showLoadingState();
                     return;
                 }
-                
                 const homeTitle = window.translations ? window.translations['home-title'] : '神學知識庫';
                 const homeSubtitle = window.translations ? window.translations['home-subtitle'] : '探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。';
-                
-                // 內容轉場
                 const old = main.firstElementChild;
                 if (old) {
                     old.classList.remove('page-enter','page-enter-active');
                     old.classList.add('page-exit');
-                    // 非阻塞：淡出後移除
                     setTimeout(() => old && old.remove(), 240);
                 }
-
                 main.innerHTML = `
-                    <section class="ec-hero ec-enter page-enter">
+                    <section class="ec-hero ec-enter page-enter" id="homeHero">
                         <div class="ec-hero-bg"></div>
                         <div class="ec-rays" aria-hidden="true"></div>
                         <div class="ec-hero-frame" aria-hidden="true"></div>
@@ -1250,19 +1264,15 @@
                         </div>
                     </section>
                 `;
-
-                // 新內容淡入
-                const section = main.querySelector('.page-enter');
-                if (section) requestAnimationFrame(() => section.classList.add('page-enter-active'));
+                const section = document.getElementById('homeHero');
+                if (section) {
+                    requestAnimationFrame(() => section.classList.add('page-enter-active'));
+                    applyGoldFade(section);
+                }
+                candleSweep();
             }
-            
-            // 顯示輸入區域
             const footer = document.querySelector('footer');
-            if (footer) {
-                footer.style.display = 'block';
-            }
-            
-            // 重新綁定搜尋功能
+            if (footer) { footer.style.display = 'block'; }
             showSearchUI();
         }
 
