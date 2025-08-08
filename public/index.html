@@ -1425,8 +1425,6 @@
                             <button id="tabNT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">新約</button>
                         </div>
                         <div id="bookGrid" class="bible-grid-books"></div>
-                        <div id="chaptersGlobal" class="bible-grid-chapters bible-gap"></div>
-                        <div id="versesGlobal" class="bible-grid-verses bible-gap"></div>
                     </div>
                     <input type="hidden" id="bibleBookEngs"/>
                     <input type="hidden" id="bibleChapter"/>
@@ -1471,14 +1469,17 @@
                         const engs = btn.getAttribute('data-engs');
                         const zh = btn.getAttribute('data-zh');
                         const chapters = parseInt(btn.getAttribute('data-chapters'), 10);
+                        const id = parseInt(btn.getAttribute('data-id'), 10);
                         document.getElementById('bibleBookEngs').value = engs;
-                        // 在全局章容器渲染，從最左開始排列
-                        const panel = document.getElementById('chaptersGlobal');
-                        panel.className = 'bible-grid-chapters bible-gap';
-                        renderChapters(panel, /*bookId*/ parseInt(btn.getAttribute('data-id'),10), zh, chapters);
-                        // 清空節容器
-                        const vpanel = document.getElementById('versesGlobal');
-                        vpanel.innerHTML = '';
+                        // 收起其他書卷的章/節展開容器
+                        document.querySelectorAll('.chapters-inline').forEach(n => n.remove());
+                        document.querySelectorAll('.verses-inline').forEach(n => n.remove());
+                        // 在點擊的書卷元素之後插入章容器（下一排位置）
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'chapters-inline bible-grid-chapters';
+                        wrapper.setAttribute('data-parent-book', String(id));
+                        btn.parentElement.insertAdjacentElement('afterend', wrapper);
+                        renderChapters(wrapper, id, zh, chapters);
                     });
                 });
             }
@@ -1493,9 +1494,13 @@
                         const chap = parseInt(btn.getAttribute('data-chap'), 10);
                         const bId = parseInt(btn.getAttribute('data-bookid'), 10);
                         document.getElementById('bibleChapter').value = chap;
-                        // 在全局節容器渲染，固定自左至右排列
-                        const vpanel = document.getElementById('versesGlobal');
-                        vpanel.className = 'bible-grid-verses bible-gap';
+                        // 移除同書卷下其他章的節容器
+                        document.querySelectorAll(`.verses-inline[data-parent-book='${bId}']`).forEach(n => n.remove());
+                        // 在當前章按鈕之後插入節容器（下一排位置）
+                        const vpanel = document.createElement('div');
+                        vpanel.className = 'verses-inline bible-grid-verses';
+                        vpanel.setAttribute('data-parent-book', String(bId));
+                        btn.parentElement.insertAdjacentElement('afterend', vpanel);
                         await preloadChapter(bId, chap, vpanel);
                     });
                 });
