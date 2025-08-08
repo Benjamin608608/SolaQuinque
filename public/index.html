@@ -562,19 +562,19 @@
     </script>
 </head>
 <body class="flex flex-col min-h-screen antialiased">
-    <header class="p-3 flex justify-between items-center w-full header-bg sticky top-0 z-10">
-        <div class="flex items-center space-x-1" id="navLinks" style="display: none;">
+    <header class="p-3 flex justify-between items-center w-full header-bg sticky top-0 z-10 overflow-hidden">
+        <div class="flex items-center space-x-1" id="navLinks" style="display: none; font-size: 0.9rem;">
             <a class="nav-link active" href="#" id="homeLink">
                 <span class="material-icons-outlined text-lg">cottage</span>
-                <span class="text-base label">首頁</span>
+                <span class="label" style="font-size: 0.9rem;">首頁</span>
             </a>
             <a class="nav-link" href="#" id="catalogLink">
                 <span class="material-icons-outlined text-lg">auto_stories</span>
-                <span class="text-base label">參考</span>
+                <span class="label" style="font-size: 0.9rem;">參考</span>
             </a>
             <a class="nav-link" href="#" id="bibleLink">
                 <span class="material-icons-outlined text-lg">menu_book</span>
-                <span class="text-base label">聖經</span>
+                <span class="label" style="font-size: 0.9rem;">聖經</span>
             </a>
         </div>
         <div class="flex items-center space-x-2">
@@ -1275,7 +1275,7 @@
             if (bibleLinkEl) {
                 const bibleText = bibleLinkEl.querySelector('span:not(.material-icons-outlined)');
                 if (bibleText) {
-                    bibleText.textContent = currentLang.bible || (lang === 'en' ? 'Bible' : '聖經');
+                    bibleText.textContent = lang === 'en' ? 'Bible' : currentLang.bible;
                 }
             }
         }
