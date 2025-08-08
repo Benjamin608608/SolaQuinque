@@ -1458,16 +1458,16 @@
                         <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)]">${title}</h2>
                     </div>
                     <div class="flex items-center gap-2 justify-end mb-3">
-                        <label class="text-sm text-[var(--text-secondary)]">版本</label>
+                        <label class="text-sm text-[var(--text-secondary)]">${(window.translations && window.translations['bible-version']) || (window.currentLanguage==='en'?'Version':'版本')}</label>
                         <select id="bibleVersion" class="border rounded px-2 py-1 text-sm">
-                            <option value="CUV">和合本(CUV)</option>
+                            <option value="CUV">${window.currentLanguage==='en'?'CUV':'和合本(CUV)'}</option>
                             <option value="KJV">KJV</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <div class="flex gap-2 mb-2">
-                            <button id="tabOT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">舊約</button>
-                            <button id="tabNT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">新約</button>
+                            <button id="tabOT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">${window.currentLanguage==='en'?'OT':'舊約'}</button>
+                            <button id="tabNT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">${window.currentLanguage==='en'?'NT':'新約'}</button>
                         </div>
                         <div id="bookGrid" class="bible-grid-books"></div>
                     </div>
