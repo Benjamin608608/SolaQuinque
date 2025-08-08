@@ -531,6 +531,24 @@
       }
     }
     </script>
+    <style>
+        /* 強化手機排版：統一格線與間距，避免擠在一起 */
+        .bible-grid-books { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        @media (min-width: 640px) { .bible-grid-books { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+        @media (min-width: 768px) { .bible-grid-books { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+
+        .bible-grid-chapters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+        @media (min-width: 640px) { .bible-grid-chapters { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+        @media (min-width: 768px) { .bible-grid-chapters { grid-template-columns: repeat(12, minmax(0, 1fr)); } }
+
+        .bible-grid-verses { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+        @media (min-width: 640px) { .bible-grid-verses { grid-template-columns: repeat(10, minmax(0, 1fr)); } }
+        @media (min-width: 768px) { .bible-grid-verses { grid-template-columns: repeat(16, minmax(0, 1fr)); } }
+
+        .bible-btn { width: 100%; min-width: 2.5rem; padding: 0.375rem 0.5rem; border-radius: 0.375rem; }
+        .bible-btn-chapter { min-width: 2.75rem; }
+        .bible-btn-verse { min-width: 2.25rem; font-size: 0.75rem; }
+    </style>
 </head>
 <body class="flex flex-col min-h-screen antialiased">
     <header class="p-3 flex justify-between items-center w-full header-bg sticky top-0 z-10 overflow-hidden">
@@ -1406,7 +1424,7 @@
                             <button id="tabOT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">舊約</button>
                             <button id="tabNT" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">新約</button>
                         </div>
-                        <div id="bookGrid" class="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-8 gap-2"></div>
+                        <div id="bookGrid" class="bible-grid-books"></div>
                     </div>
                     <input type="hidden" id="bibleBookEngs"/>
                     <input type="hidden" id="bibleChapter"/>
@@ -1461,7 +1479,7 @@
                         const panel = document.getElementById(`chapters_${id}`);
                         if (panel.classList.contains('hidden')) {
                             panel.classList.remove('hidden');
-                            panel.className = 'ml-1 grid grid-cols-4 sm:grid-cols-8 md:grid-cols-12 gap-2';
+                            panel.className = 'ml-1 bible-grid-chapters';
                             renderChapters(panel, id, zh, chapters);
                         } else {
                             panel.classList.add('hidden');
@@ -1473,7 +1491,7 @@
             function renderChapters(container, bookId, zh, count) {
                 const items = [];
                 for (let i = 1; i <= count; i++) {
-                    items.push(`<div class=\"relative\"><button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm w-full\" style=\"min-width:2.5rem\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${zh} ${i}</button><div class=\"mt-1 hidden\" id=\"verses_${bookId}_${i}\"></div></div>`);
+                    items.push(`<div class=\"relative\"><button class=\"bible-btn bible-btn-chapter bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${zh} ${i}</button><div class=\"mt-1 hidden\" id=\"verses_${bookId}_${i}\"></div></div>`);
                 }
                 container.innerHTML = items.join('');
                 container.querySelectorAll('button').forEach(btn => {
@@ -1489,7 +1507,7 @@
                         const vpanel = document.getElementById(`verses_${bId}_${chap}`);
                         if (vpanel.classList.contains('hidden')) {
                             vpanel.classList.remove('hidden');
-                            vpanel.className = 'mt-1 grid grid-cols-5 sm:grid-cols-10 md:grid-cols-16 gap-1';
+                            vpanel.className = 'mt-1 bible-grid-verses';
                             await preloadChapter(bId, chap, vpanel);
                         } else {
                             vpanel.classList.add('hidden');
@@ -1512,7 +1530,7 @@
                 const maxVerse = verses.reduce((m, v) => Math.max(m, v.verse || 0), 0) || 40;
                 const items = [];
                 for (let i = 1; i <= maxVerse; i++) {
-                    items.push(`<button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-xs w-full\" style=\"min-width:2.25rem\" data-verse=\"${i}\">${i}</button>`);
+                    items.push(`<button class=\"bible-btn bible-btn-verse bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white\" data-verse=\"${i}\">${i}</button>`);
                 }
                 container.innerHTML = items.join('');
                 container.querySelectorAll('button[data-verse]').forEach(btn => {
