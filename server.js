@@ -1287,9 +1287,34 @@ app.get('/api/info', (req, res) => {
   });
 });
 
-// 服務靜態文件（前端）
+// Robots.txt and sitemap.xml
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+  res.send(`User-agent: *\nAllow: /\n\nSitemap: ${base.replace(/\/$/, '')}/sitemap.xml\n`);
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml');
+  const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${base.replace(/\/$/, '')}/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n</urlset>`;
+  res.send(xml);
+});
+
+// Serve index.html with dynamic canonical and OG url if env provided
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const filePath = path.join(__dirname, 'public', 'index.html');
+  try {
+    let html = fs.readFileSync(filePath, 'utf8');
+    const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    if (base) {
+      html = html.replace(/https:\/\/your-domain\.example/g, base.replace(/\/$/, ''));
+    }
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (e) {
+    res.sendFile(filePath);
+  }
 });
 
 // 服務靜態文件
