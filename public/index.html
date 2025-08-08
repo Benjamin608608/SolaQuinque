@@ -554,7 +554,7 @@
     </script>
 </head>
 <body class="flex flex-col min-h-screen antialiased">
-    <header class="p-3 flex justify-between items-center w-full header-bg sticky top-0 z-10 overflow-hidden">
+    <header class="p-3 flex justify-between items-center w-full header-bg sticky top-0 z-10">
         <div class="flex items-center space-x-1 nav-scroll" id="navLinks" style="display: none;">
             <a class="nav-link active" href="#" id="homeLink">
                 <span class="material-icons-outlined text-lg">cottage</span>
@@ -1253,6 +1253,14 @@
                 showHomePage();
             } else if (window.currentPage === 'catalog') {
                 showCatalogPage();
+            }
+            
+            const bibleLinkEl = document.getElementById('bibleLink');
+            if (bibleLinkEl) {
+                const bibleText = bibleLinkEl.querySelector('span:not(.material-icons-outlined)');
+                if (bibleText) {
+                    bibleText.textContent = currentLang.bible || (lang === 'en' ? 'Bible' : '聖經');
+                }
             }
         }
 
