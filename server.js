@@ -1301,6 +1301,32 @@ app.get('/api/bible/qb', async (req, res) => {
   }
 });
 
+// 新增：bolls.life 聖經章節代理端點
+app.get('/api/bible/chapter', async (req, res) => {
+  try {
+    const translation = (req.query.translation || 'CUV').toString().toUpperCase();
+    const bookId = parseInt(req.query.bookId, 10);
+    const chapter = parseInt(req.query.chapter, 10);
+    if (!bookId || !chapter) {
+      return res.status(400).json({ success: false, error: '缺少必要參數 bookId 或 chapter' });
+    }
+
+    const upstreamUrl = `https://bolls.life/get-text/${encodeURIComponent(translation)}/${bookId}/${chapter}/`;
+    const response = await fetch(upstreamUrl, { headers: { 'Accept': 'application/json' } });
+    if (!response.ok) {
+      const text = await response.text();
+      return res.status(response.status).json({ success: false, error: '上游服務錯誤', details: text.slice(0, 500) });
+    }
+    const data = await response.json();
+    // 期待 data 為 verses 陣列
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('bolls 代理錯誤:', err);
+    res.status(500).json({ success: false, error: 'bolls 代理請求失敗' });
+  }
+});
+
 // 健康檢查端點
 app.get('/api/health', (req, res) => {
   const healthStatus = {
