@@ -489,6 +489,24 @@
                 margin-bottom: 1rem;
             }
         }
+
+        /* 強化手機排版：統一格線與間距，避免擠在一起 */
+        .bible-grid-books { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+ 
+         .bible-grid-chapters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+         @media (min-width: 640px) { .bible-grid-chapters { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+         @media (min-width: 768px) { .bible-grid-chapters { grid-template-columns: repeat(12, minmax(0, 1fr)); } }
+ 
+         .bible-grid-verses { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+         @media (min-width: 640px) { .bible-grid-verses { grid-template-columns: repeat(10, minmax(0, 1fr)); } }
+         @media (min-width: 768px) { .bible-grid-verses { grid-template-columns: repeat(16, minmax(0, 1fr)); } }
+ 
+         .bible-btn { width: 100%; min-width: 2.5rem; padding: 0.375rem 0.5rem; border-radius: 0.375rem; }
+         .bible-btn-chapter { min-width: 2.75rem; }
+         .bible-btn-verse { min-width: 2.25rem; font-size: 0.75rem; }
+ 
+         /* 讓插入列占满整排，始于最左側 */
+         .grid-full-row { grid-column: 1 / -1; width: 100%; }
     </style>
     <style>
         body {
@@ -531,24 +549,6 @@
       }
     }
     </script>
-    <style>
-        /* 強化手機排版：統一格線與間距，避免擠在一起 */
-        .bible-grid-books { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-        @media (min-width: 640px) { .bible-grid-books { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-        @media (min-width: 768px) { .bible-grid-books { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
-
-        .bible-grid-chapters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-        @media (min-width: 640px) { .bible-grid-chapters { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
-        @media (min-width: 768px) { .bible-grid-chapters { grid-template-columns: repeat(12, minmax(0, 1fr)); } }
-
-        .bible-grid-verses { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
-        @media (min-width: 640px) { .bible-grid-verses { grid-template-columns: repeat(10, minmax(0, 1fr)); } }
-        @media (min-width: 768px) { .bible-grid-verses { grid-template-columns: repeat(16, minmax(0, 1fr)); } }
-
-        .bible-btn { width: 100%; min-width: 2.5rem; padding: 0.375rem 0.5rem; border-radius: 0.375rem; }
-        .bible-btn-chapter { min-width: 2.75rem; }
-        .bible-btn-verse { min-width: 2.25rem; font-size: 0.75rem; }
-    </style>
 </head>
 <body class="flex flex-col min-h-screen antialiased">
     <header class="p-3 flex justify-between items-center w-full header-bg sticky top-0 z-10 overflow-hidden">
@@ -1471,15 +1471,24 @@
                         const chapters = parseInt(btn.getAttribute('data-chapters'), 10);
                         const id = parseInt(btn.getAttribute('data-id'), 10);
                         document.getElementById('bibleBookEngs').value = engs;
-                        // 收起其他書卷的章/節展開容器
-                        document.querySelectorAll('.chapters-inline').forEach(n => n.remove());
-                        document.querySelectorAll('.verses-inline').forEach(n => n.remove());
-                        // 在點擊的書卷元素之後插入章容器（下一排位置）
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'chapters-inline bible-grid-chapters';
-                        wrapper.setAttribute('data-parent-book', String(id));
-                        btn.parentElement.insertAdjacentElement('afterend', wrapper);
-                        renderChapters(wrapper, id, zh, chapters);
+                        // 收起其他展開列
+                        document.querySelectorAll('.chapters-inline-row').forEach(n => n.remove());
+                        document.querySelectorAll('.verses-inline-row').forEach(n => n.remove());
+                        // 計算被點書卷所在列的最後一個元素，將展開列插在其後並橫跨全列
+                        const grid = bookGrid;
+                        const cells = Array.from(grid.children);
+                        const wrapperCell = btn.parentElement;
+                        const idx = cells.indexOf(wrapperCell);
+                        const cols = 3;
+                        const rowEndIdx = Math.min(Math.floor(idx / cols) * cols + (cols - 1), cells.length - 1);
+                        const anchor = cells[rowEndIdx];
+                        const row = document.createElement('div');
+                        row.className = 'chapters-inline-row grid-full-row';
+                        const inner = document.createElement('div');
+                        inner.className = 'bible-grid-chapters';
+                        row.appendChild(inner);
+                        anchor.insertAdjacentElement('afterend', row);
+                        renderChapters(inner, id, zh, chapters);
                     });
                 });
             }
@@ -1494,14 +1503,17 @@
                         const chap = parseInt(btn.getAttribute('data-chap'), 10);
                         const bId = parseInt(btn.getAttribute('data-bookid'), 10);
                         document.getElementById('bibleChapter').value = chap;
-                        // 移除同書卷下其他章的節容器
-                        document.querySelectorAll(`.verses-inline[data-parent-book='${bId}']`).forEach(n => n.remove());
-                        // 在當前章按鈕之後插入節容器（下一排位置）
-                        const vpanel = document.createElement('div');
-                        vpanel.className = 'verses-inline bible-grid-verses';
-                        vpanel.setAttribute('data-parent-book', String(bId));
-                        btn.parentElement.insertAdjacentElement('afterend', vpanel);
-                        await preloadChapter(bId, chap, vpanel);
+                        // 移除舊的節展開列
+                        document.querySelectorAll('.verses-inline-row').forEach(n => n.remove());
+                        // 把節展開列放在章展開列之後，且橫跨全列，起於最左邊
+                        const chaptersRow = container.closest('.chapters-inline-row');
+                        const versesRow = document.createElement('div');
+                        versesRow.className = 'verses-inline-row grid-full-row';
+                        const inner = document.createElement('div');
+                        inner.className = 'bible-grid-verses';
+                        versesRow.appendChild(inner);
+                        chaptersRow.insertAdjacentElement('afterend', versesRow);
+                        await preloadChapter(bId, chap, inner);
                     });
                 });
             }
