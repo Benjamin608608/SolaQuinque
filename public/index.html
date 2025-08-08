@@ -560,10 +560,10 @@
       /* 導覽標籤一律單行顯示，避免上下換行 */
       #navLinks .nav-label { white-space: nowrap; }
       /* 頭像圖示固定尺寸且不縮小 */
-      #userAvatar { flex: 0 0 auto; width: 32px; height: 32px; aspect-ratio: 1 / 1; padding: 0 !important; display: none; align-items: center; justify-content: center; border-radius: 9999px; }
-      #userAvatar .material-icons-outlined { font-size: 20px; line-height: 1; display: block; }
+      #userAvatar { flex: 0 0 auto; width: 32px !important; height: 32px !important; min-width: 32px; max-width: 32px; padding: 0 !important; margin: 0; display: none; align-items: center; justify-content: center; border-radius: 9999px; overflow: hidden; box-sizing: content-box; }
+      #userAvatar .material-icons-outlined { font-size: 20px; line-height: 1; width: 1em; height: 1em; display: block; }
       @media (max-width: 480px) {
-        #userAvatar { width: 24px; height: 24px; }
+        #userAvatar { width: 24px !important; height: 24px !important; min-width: 24px; max-width: 24px; }
         #userAvatar .material-icons-outlined { font-size: 18px; }
       }
     </style>
