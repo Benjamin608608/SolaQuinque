@@ -7,6 +7,7 @@ const passport = require('passport');
 require('dotenv').config();
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
+const { google } = require('googleapis');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -909,35 +910,40 @@ async function getOrCreateAssistant() {
     }
 }
 
-// OpenAI Assistant API 處理
+// OpenAI Assistant API 處理（加入 Google Sheets 紀錄）
 async function processSearchRequest(question, user, language = 'zh') {
     console.log('🔄 使用 OpenAI Assistant API 方法...');
     
-    // 檢查快取
     const cachedResult = getCachedResult(question);
     if (cachedResult) {
         return cachedResult;
     }
     
-    // 檢查是否已有相同請求正在處理
     const requestKey = question.toLowerCase().trim();
     if (processingRequests.has(requestKey)) {
         console.log('⏳ 相同請求正在處理中，等待結果...');
         return processingRequests.get(requestKey);
     }
     
-    // 創建 Promise 來處理並發請求
     const processingPromise = (async () => {
         try {
-            // 實際的處理邏輯
-            return await processSearchRequestInternal(question, user, language);
+            const result = await processSearchRequestInternal(question, user, language);
+            try {
+                const userName = user?.name || '';
+                const userEmail = user?.email || '';
+                const timestamp = new Date().toISOString();
+                const q = question;
+                const a = result?.answer || '';
+                await appendToGoogleSheet([timestamp, language, userName, userEmail, q, a]);
+            } catch (e) {
+                console.warn('⚠️ 問答寫入表單失敗（不影響回應）:', e.message);
+            }
+            return result;
         } finally {
-            // 清理處理狀態
             processingRequests.delete(requestKey);
         }
     })();
     
-    // 儲存 Promise 供其他並發請求使用
     processingRequests.set(requestKey, processingPromise);
     
     return processingPromise;
@@ -1301,7 +1307,7 @@ app.get('/sitemap.xml', (req, res) => {
   res.send(xml);
 });
 
-// Serve index.html with dynamic canonical and OG url if env provided
+// Serve index.html with dynamic canonical, OG url, GA4 and GSC meta
 app.get('/', (req, res) => {
   const filePath = path.join(__dirname, 'public', 'index.html');
   try {
@@ -1309,6 +1315,15 @@ app.get('/', (req, res) => {
     const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
     if (base) {
       html = html.replace(/https:\/\/your-domain\.example/g, base.replace(/\/$/, ''));
+    }
+    // Inject GSC verification if present
+    if (process.env.GOOGLE_SITE_VERIFICATION) {
+      html = html.replace('</head>', `  <meta name="google-site-verification" content="${process.env.GOOGLE_SITE_VERIFICATION}">\n</head>`);
+    }
+    // Inject GA4 if present
+    if (process.env.GA_MEASUREMENT_ID) {
+      const gtag = `\n<script async src="https://www.googletagmanager.com/gtag/js?id=${process.env.GA_MEASUREMENT_ID}"></script>\n<script>\nwindow.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config','${process.env.GA_MEASUREMENT_ID}');\n</script>\n`;
+      html = html.replace('</head>', `${gtag}</head>`);
     }
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
@@ -1434,6 +1449,38 @@ function stopPeriodicWarmup() {
         assistantWarmupInterval = null;
         console.log('🛑 定期保溫已停止');
     }
+}
+
+async function appendToGoogleSheet(rowValues) {
+  try {
+    const { GOOGLE_SHEETS_SPREADSHEET_ID, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY } = process.env;
+    if (!GOOGLE_SHEETS_SPREADSHEET_ID || !GOOGLE_CLIENT_EMAIL || !GOOGLE_PRIVATE_KEY) {
+      console.warn('⚠️ Google Sheets 環境變數未完整，略過寫入');
+      return;
+    }
+    const jwt = new google.auth.JWT(
+      GOOGLE_CLIENT_EMAIL,
+      null,
+      GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive.file'
+      ]
+    );
+    await jwt.authorize();
+    const sheets = google.sheets({ version: 'v4', auth: jwt });
+    const now = new Date();
+    const values = [rowValues];
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: GOOGLE_SHEETS_SPREADSHEET_ID,
+      range: 'A:Z',
+      valueInputOption: 'RAW',
+      requestBody: { values }
+    });
+    console.log('✅ 已寫入 Google Sheet');
+  } catch (err) {
+    console.error('❌ 寫入 Google Sheet 失敗:', err.message);
+  }
 }
 
 // 啟動服務器

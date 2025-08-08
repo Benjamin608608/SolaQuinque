@@ -41,7 +41,8 @@
     "node-fetch": "^3.3.2",
     "openai": "^4.20.1",
     "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0"
+    "passport-google-oauth20": "^2.0.0",
+    "googleapis": "^118.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
