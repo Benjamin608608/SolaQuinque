@@ -1754,3 +1754,26 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.log(`   請設置 VECTOR_STORE_ID 環境變數`);
   }
 });
+
+// 向量庫狀態查詢（僅供驗證 Bible-* 是否建立完成）
+app.get('/api/bible/vector-status', ensureAuthenticated, async (req, res) => {
+  try {
+    const prefix = (process.env.BIBLE_STORE_PREFIX || 'Bible-').toLowerCase();
+    let after;
+    const stores = [];
+    while (true) {
+      const r = await openai.vectorStores.list({ limit: 100, after });
+      for (const vs of r.data) {
+        const name = (vs.name || '').toLowerCase();
+        if (name.startsWith(prefix)) {
+          stores.push({ id: vs.id, name: vs.name });
+        }
+      }
+      if (!r.has_more) break;
+      after = r.last_id;
+    }
+    res.json({ success: true, count: stores.length, stores });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
