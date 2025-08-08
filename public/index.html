@@ -557,6 +557,15 @@
         #navLinks .nav-label { font-size: 0.5rem !important; }
         #navLinks .material-icons-outlined { font-size: 0.75rem !important; }
       }
+      /* 導覽標籤一律單行顯示，避免上下換行 */
+      #navLinks .nav-label { white-space: nowrap; }
+      /* 頭像圖示固定尺寸且不縮小 */
+      #userAvatar { flex-shrink: 0; width: 32px; height: 32px; display: none; }
+      #userAvatar .material-icons-outlined { font-size: 22px; line-height: 32px; }
+      @media (max-width: 480px) {
+        #userAvatar { width: 28px; height: 28px; }
+        #userAvatar .material-icons-outlined { font-size: 20px; line-height: 28px; }
+      }
     </style>
 </head>
 <body class="flex flex-col min-h-screen antialiased">
@@ -1189,6 +1198,14 @@
                 const catalogText = catalogLink.querySelector('.nav-label');
                 if (catalogText) {
                     catalogText.textContent = lang === 'en' ? 'Cat.' : currentLang.catalog;
+                }
+            }
+            
+            const bibleLink = document.getElementById('bibleLink');
+            if (bibleLink) {
+                const bibleText = bibleLink.querySelector('.nav-label');
+                if (bibleText) {
+                    bibleText.textContent = lang === 'en' ? 'Bible' : currentLang.bible;
                 }
             }
             
