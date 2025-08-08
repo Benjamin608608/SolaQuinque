@@ -507,6 +507,9 @@
  
          /* 讓插入列占满整排，始于最左側 */
          .grid-full-row { grid-column: 1 / -1; width: 100%; }
++        /* 手機上頂部導航可水平滾動，避免英文過長換行擠壓 */
++        .nav-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; gap: 0.25rem; }
++        .nav-scroll .nav-link { display: inline-flex; }
     </style>
     <style>
         body {
@@ -552,7 +555,7 @@
 </head>
 <body class="flex flex-col min-h-screen antialiased">
     <header class="p-3 flex justify-between items-center w-full header-bg sticky top-0 z-10 overflow-hidden">
-        <div class="flex items-center space-x-1" id="navLinks" style="display: none;">
+        <div class="flex items-center space-x-1 nav-scroll" id="navLinks" style="display: none;">
             <a class="nav-link active" href="#" id="homeLink">
                 <span class="material-icons-outlined text-lg">cottage</span>
                 <span class="text-base">首頁</span>
@@ -1500,10 +1503,18 @@
                     });
                 });
             }
-            function renderChapters(container, bookId, zh, count) {
+            function renderChapters(container, bookId, displayName, count) {
+                // 根據語言使用章標籤：中文用常見縮寫（創/出/利...），英文用 engs 縮寫
+                const allBooks = [...booksOT, ...booksNT];
+                const book = allBooks.find(b => b.id === bookId) || {};
+                const lang = window.currentLanguage || 'zh';
+                const abbrZhMap = {
+                    Gen: '創', Exo: '出', Lev: '利', Num: '民', Deu: '申', Jos: '書', Jdg: '士', Rth: '得', '1Sa': '撒上', '2Sa': '撒下', '1Ki': '王上', '2Ki': '王下', '1Ch': '代上', '2Ch': '代下', Ezr: '拉', Neh: '尼', Est: '斯', Job: '伯', Psa: '詩', Pro: '箴', Ecc: '傳', Son: '歌', Isa: '賽', Jer: '耶', Lam: '哀', Eze: '結', Dan: '但', Hos: '何', Joe: '珥', Amo: '摩', Oba: '俄', Jon: '拿', Mic: '彌', Nah: '鴻', Hab: '哈', Zep: '番', Hag: '該', Zec: '亞', Mal: '瑪', Mat: '太', Mar: '可', Luk: '路', Joh: '約', Act: '徒', Rom: '羅', '1Co': '林前', '2Co': '林後', Gal: '加', Eph: '弗', Php: '腓', Col: '西', '1Th': '帖前', '2Th': '帖後', '1Ti': '提前', '2Ti': '提後', Tit: '多', Phm: '門', Heb: '來', Jas: '雅', '1Pe': '彼前', '2Pe': '彼後', '1Jo': '約一', '2Jo': '約二', '3Jo': '約三', Jud: '猶', Rev: '啟'
+                };
+                const chapterLabelBase = lang === 'en' ? (book.engs || '') : (abbrZhMap[book.engs] || displayName);
                 const items = [];
                 for (let i = 1; i <= count; i++) {
-                    items.push(`<div><button class=\"bible-btn bible-btn-chapter bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${zh} ${i}</button></div>`);
+                    items.push(`<div><button class=\"bible-btn bible-btn-chapter bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${chapterLabelBase}${i}</button></div>`);
                 }
                 container.innerHTML = items.join('');
                 container.querySelectorAll('button').forEach(btn => {
@@ -1530,20 +1541,41 @@
                         versesRow.appendChild(inner);
                         anchor.insertAdjacentElement('afterend', versesRow);
                         await preloadChapter(bId, chap, inner);
+                        // 更新當前選擇（供版本切換/語言切換時使用）
+                        window.currentBibleSelection = {
+                            bookId: bId,
+                            chapter: chap,
+                            engs: document.getElementById('bibleBookEngs').value,
+                            translation: document.getElementById('bibleVersion').value
+                        };
                     });
                 });
             }
 
             async function preloadChapter(bookId, chap, container) {
                 const version = document.getElementById('bibleVersion').value || 'CUV';
-                const res = await fetch(`/api/bible/chapter?translation=${encodeURIComponent(version)}&bookId=${bookId}&chapter=${chap}`);
-                const json = await res.json();
-                if (!json.success) {
-                    container.innerHTML = `<div class=\"text-red-600 text-xs\">載入章節失敗</div>`;
-                    return;
+                // 先用快取立即顯示按鈕，再異步更新
+                window.bibleCache = window.bibleCache || {};
+                const cacheKey = `${version}:${bookId}:${chap}`;
+                let verses = window.bibleCache[cacheKey];
+                if (verses) {
+                    renderVerseButtons(verses, container, bookId, chap, version);
                 }
-                // 以返回的節數計算按鈕
-                const verses = Array.isArray(json.data) ? json.data : [];
+                try {
+                    const res = await fetch(`/api/bible/chapter?translation=${encodeURIComponent(version)}&bookId=${bookId}&chapter=${chap}`);
+                    const json = await res.json();
+                    if (!json.success) throw new Error('fetch failed');
+                    verses = Array.isArray(json.data) ? json.data : [];
+                    window.bibleCache[cacheKey] = verses;
+                    renderVerseButtons(verses, container, bookId, chap, version);
+                } catch (e) {
+                    if (!verses) container.innerHTML = `<div class=\"text-red-600 text-xs\">載入章節失敗</div>`;
+                }
+                // 載入整章按鈕也可依預取資料呈現
+                if (verses) document.getElementById('loadWholeChapterBtn')?.addEventListener('click', () => renderPreloadedVerses(verses));
+            }
+
+            function renderVerseButtons(verses, container, bookId, chap, version) {
                 const maxVerse = verses.reduce((m, v) => Math.max(m, v.verse || 0), 0) || 40;
                 const items = [];
                 for (let i = 1; i <= maxVerse; i++) {
@@ -1557,8 +1589,6 @@
                         showBibleExplanationPage(engs, bookId, chap, v, version);
                     });
                 });
-                // 載入整章按鈕也可依預取資料呈現
-                document.getElementById('loadWholeChapterBtn')?.addEventListener('click', () => renderPreloadedVerses(verses));
             }
 
             function renderPreloadedVerses(verses, from, to) {
