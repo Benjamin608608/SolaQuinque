@@ -490,6 +490,13 @@
             }
         }
 
+        // 控制底部搜尋輸入欄顯示：僅首頁顯示
+        function setFooterVisibility() {
+            const footer = document.querySelector('footer');
+            if (!footer) return;
+            footer.style.display = (window.currentPage === 'home') ? 'block' : 'none';
+        }
+
         /* 強化手機排版：統一格線與間距，避免擠在一起 */
         .bible-grid-books { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
  
@@ -722,20 +729,12 @@
                 `;
             }
             
-            // 隱藏搜尋輸入框，只在首頁顯示
-            const footer = document.querySelector('footer');
-            if (footer) {
-                footer.style.display = 'none';
-            }
+            setFooterVisibility();
         }
 
         // 顯示搜索 UI
         function showSearchUI() {
-            // 恢復 footer 顯示
-            const footer = document.querySelector('footer');
-            if (footer) {
-                footer.style.display = 'block';
-            }
+            setFooterVisibility();
             
             // 添加搜索功能
             const input = document.getElementById('searchInput');
@@ -939,11 +938,7 @@
                 `;
             }
             
-            // 確保 footer 顯示
-            const footer = document.querySelector('footer');
-            if (footer) {
-                footer.style.display = 'block';
-            }
+            setFooterVisibility();
         }
 
         // 顯示結果
@@ -966,11 +961,7 @@
                 // 重新綁定引用標註事件
                 bindCitationEvents();
                 
-                // 確保 footer 顯示
-                const footer = document.querySelector('footer');
-                if (footer) {
-                    footer.style.display = 'block';
-                }
+                setFooterVisibility();
             }
         }
 
@@ -1383,8 +1374,7 @@
                 }
                 candleSweep();
             }
-            const footer = document.querySelector('footer');
-            if (footer) { footer.style.display = 'block'; }
+            setFooterVisibility();
             showSearchUI();
         }
 
@@ -1680,9 +1670,7 @@
                         <div id=\"explanation\" class=\"text-left\">正在生成解釋...</div>
                     </div>
                 `;
-                // 聖經經文解釋頁面隱藏底部搜尋輸入欄位
-                const footer = document.querySelector('footer');
-                if (footer) { footer.style.display = 'none'; }
+                setFooterVisibility();
                 document.getElementById('backToBibleBtn').addEventListener('click', () => showBiblePage());
                 // 載入單節經文（先用快取即時顯示）
                 const cacheKey = `${translation || 'CUV'}:${bookId}:${chapter}`;
@@ -1746,6 +1734,7 @@
                     }
                 }
             });
+            setFooterVisibility();
         }
 
         // 以首頁搜尋邏輯產生解釋與出處
