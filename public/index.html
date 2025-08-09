@@ -1534,15 +1534,22 @@
                         const chapters = parseInt(btn.getAttribute('data-chapters'), 10);
                         const id = parseInt(btn.getAttribute('data-id'), 10);
                         document.getElementById('bibleBookEngs').value = engs;
+                        // 若同一本已展開，則收起並返回（切換）
+                        const existingForThisBook = document.querySelector(`.chapters-inline-row[data-parent-book='${id}']`);
+                        if (existingForThisBook) {
+                            existingForThisBook.remove();
+                            document.querySelectorAll(`.verses-inline-row[data-parent-book='${id}']`).forEach(n => n.remove());
+                            return;
+                        }
                         // 收起其他展開列
                         document.querySelectorAll('.chapters-inline-row').forEach(n => n.remove());
                         document.querySelectorAll('.verses-inline-row').forEach(n => n.remove());
                         // 計算被點書卷所在列的最後一個元素，將展開列插在其後並橫跨全列
                         const grid = bookGrid;
                         const cells = Array.from(grid.children);
-                        const wrapperCell = btn.parentElement;
-                        const idx = cells.indexOf(wrapperCell);
-                        const cols = 3;
+                        const w = window.innerWidth;
+                        const cols = w >= 768 ? 12 : (w >= 640 ? 8 : 3);
+                        const idx = cells.indexOf(btn.closest('div'));
                         const rowEndIdx = Math.min(Math.floor(idx / cols) * cols + (cols - 1), cells.length - 1);
                         const anchor = cells[rowEndIdx];
                         const row = document.createElement('div');
@@ -1552,42 +1559,46 @@
                         inner.className = 'bible-grid-chapters';
                         row.appendChild(inner);
                         anchor.insertAdjacentElement('afterend', row);
-                        const lang = window.currentLanguage || 'zh';
-                        const display = lang === 'en' ? enName : getZhAbbrByEn(enName);
-                        renderChapters(inner, id, display, chapters);
-                    });
-                });
-            }
-            function renderChapters(container, bookId, label, count) {
-                const items = [];
-                for (let i = 1; i <= count; i++) {
-                    items.push(`<div><button class=\"bible-btn bible-btn-chapter bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${label}${i}</button></div>`);
-                }
-                container.innerHTML = items.join('');
-                container.querySelectorAll('button').forEach(btn => {
-                    btn.addEventListener('click', async () => {
-                        const chap = parseInt(btn.getAttribute('data-chap'), 10);
-                        const bId = parseInt(btn.getAttribute('data-bookid'), 10);
-                        document.getElementById('bibleChapter').value = chap;
-                        // 移除同一本展開列下先前的節展開列
-                        const chaptersRow = container.closest('.chapters-inline-row');
-                        const parentBook = chaptersRow?.getAttribute('data-parent-book') || '';
-                        document.querySelectorAll(`.verses-inline-row[data-parent-book='${parentBook}']`).forEach(n => n.remove());
-                        // 在章 grid 內，找到被點擊的章所在列的最後一個 cell，於其後插入一個跨整列的 verses row
-                        const cells = Array.from(container.children);
-                        const chapCell = btn.parentElement;
-                        const idx = cells.indexOf(chapCell);
-                        const cols = (window.innerWidth >= 768) ? 12 : (window.innerWidth >= 640 ? 8 : 4);
-                        const rowEndIdx = Math.min(Math.floor(idx / cols) * cols + (cols - 1), cells.length - 1);
-                        const anchor = cells[rowEndIdx] || chapCell;
-                        const versesRow = document.createElement('div');
-                        versesRow.className = 'verses-inline-row grid-full-row';
-                        versesRow.setAttribute('data-parent-book', parentBook);
-                        const inner = document.createElement('div');
-                        inner.className = 'bible-grid-verses';
-                        versesRow.appendChild(inner);
-                        anchor.insertAdjacentElement('afterend', versesRow);
-                        await preloadChapter(bId, chap, inner);
+                        // 渲染章按鈕
+                        const chapters = parseInt(btn.getAttribute('data-chapters'), 10) || 50;
+                        const arr = [];
+                        for (let i = 1; i <= chapters; i++) {
+                            arr.push(`<button class=\"bible-btn bible-btn-chapter bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white\" data-bookid=\"${id}\" data-chap=\"${i}\">${i}</button>`);
+                        }
+                        inner.innerHTML = arr.join('');
+                        inner.querySelectorAll('button[data-chap]').forEach(btn => {
+                            btn.addEventListener('click', async () => {
+                                const chap = parseInt(btn.getAttribute('data-chap'), 10);
+                                const bId = parseInt(btn.getAttribute('data-bookid'), 10);
+                                document.getElementById('bibleChapter').value = chap;
+                                // 移除同一本展開列下先前的節展開列（若點擊相同章則視為收起）
+                                const chaptersRow = container.closest('.chapters-inline-row');
+                                const parentBook = chaptersRow?.getAttribute('data-parent-book') || '';
+                                const existed = document.querySelector(`.verses-inline-row[data-parent-book='${parentBook}']`);
+                                if (existed && existed.getAttribute('data-chapter') === String(chap)) {
+                                    existed.remove();
+                                    return;
+                                }
+                                document.querySelectorAll(`.verses-inline-row[data-parent-book='${parentBook}']`).forEach(n => n.remove());
+                                // 在章 grid 內，找到被點擊的章所在列的最後一個 cell，於其後插入一個跨整列的 verses row
+                                const cells = Array.from(container.children);
+                                const chapCell = btn.parentElement;
+                                const w = window.innerWidth;
+                                const cols = w >= 768 ? 12 : (w >= 640 ? 8 : 4);
+                                const idx = cells.indexOf(chapCell);
+                                const rowEndIdx = Math.min(Math.floor(idx / cols) * cols + (cols - 1), cells.length - 1);
+                                const anchor = cells[rowEndIdx] || chapCell;
+                                const versesRow = document.createElement('div');
+                                versesRow.className = 'verses-inline-row grid-full-row';
+                                versesRow.setAttribute('data-chapter', String(chap));
+                                versesRow.setAttribute('data-parent-book', parentBook);
+                                const inner = document.createElement('div');
+                                inner.className = 'bible-grid-verses';
+                                versesRow.appendChild(inner);
+                                anchor.insertAdjacentElement('afterend', versesRow);
+                                await preloadChapter(bId, chap, inner);
+                            });
+                        });
                     });
                 });
             }
@@ -1635,8 +1646,13 @@
                     return;
                 }
                 const header = `<div class=\"mb-2 text-sm text-[var(--text-secondary)]\">版本：${version}</div>`;
+                const lang = window.currentLanguage || 'zh';
+                const engs = document.getElementById('bibleBookEngs').value || '';
+                const bookEn = typeof engsToEnglish === 'function' ? engsToEnglish(engs) : '';
+                const bookLabel = lang === 'en' ? (bookEn || '') : (typeof getZhAbbrByEn === 'function' ? getZhAbbrByEn(bookEn) : (r => r.book || ''));
                 const html = header + filtered.map(r => {
-                    const ref = `${r.translation || ''} ${r.book || ''} ${r.chapter || ''}:${r.verse || ''}`;
+                    const label = (typeof bookLabel === 'function') ? bookLabel(r) : bookLabel;
+                    const ref = `${label}${r.chapter || ''}:${r.verse || ''}`;
                     const text = r.text || '';
                     return `<div class=\"mb-1\"><span class=\"text-[var(--text-secondary)] mr-2\">${ref}</span>${text}</div>`;
                 }).join('');
