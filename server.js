@@ -60,6 +60,36 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// 簡易 LRU/TTL 快取：聖經經文解釋 & 每卷向量庫 ID
+const bibleExplainCache = new Map(); // key => { data, ts }
+const BIBLE_EXPLAIN_TTL_MS = 1000 * 60 * 30; // 30 分鐘
+
+const vectorStoreIdCache = new Map(); // name(lowercased) => { id, ts }
+const VECTOR_STORE_ID_TTL_MS = 1000 * 60 * 60 * 6; // 6 小時
+
+function getBibleExplainCached(key) {
+  const item = bibleExplainCache.get(key);
+  if (!item) return null;
+  if (Date.now() - item.ts > BIBLE_EXPLAIN_TTL_MS) {
+    bibleExplainCache.delete(key);
+    return null;
+  }
+  return item.data;
+}
+
+function setBibleExplainCached(key, data) {
+  bibleExplainCache.set(key, { data, ts: Date.now() });
+}
+
+async function getVectorStoreIdCachedByName(name) {
+  const k = (name || '').toLowerCase();
+  const hit = vectorStoreIdCache.get(k);
+  if (hit && Date.now() - hit.ts <= VECTOR_STORE_ID_TTL_MS) return hit.id;
+  const id = await findVectorStoreIdByName(name);
+  if (id) vectorStoreIdCache.set(k, { id, ts: Date.now() });
+  return id;
+}
+
 // 你的向量資料庫 ID
 const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID || 'vs_6886f711eda0819189b6c017d6b96d23';
 
@@ -1362,7 +1392,7 @@ app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
 
     const storePrefix = process.env.BIBLE_STORE_PREFIX || 'Bible-';
     const targetName = `${storePrefix}${bookEn}`;
-    const vsId = await findVectorStoreIdByName(targetName);
+    const vsId = await getVectorStoreIdCachedByName(targetName);
     if (!vsId) {
       return res.status(503).json({ success: false, error: `該卷資料庫尚未建立完成，請稍後再試（${targetName}）` });
     }
@@ -1373,7 +1403,14 @@ app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
 
     const q = (language === 'en' ? enPrompt : zhPrompt) + (translation ? `\n（版本：${translation}）` : '');
 
+    const cacheKey = `${targetName}|${ref}|${translation || ''}|${language}`.toLowerCase();
+    const cached = getBibleExplainCached(cacheKey);
+    if (cached) {
+      return res.json({ success: true, data: cached, cached: true });
+    }
+
     const result = await processBibleExplainRequest(q, vsId, req.user, language);
+    setBibleExplainCached(cacheKey, result);
 
     return res.json({ success: true, data: result });
   } catch (error) {
