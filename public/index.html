@@ -549,6 +549,19 @@
 +        .bible-breadcrumb .nav button { padding:4px 8px; border-radius:6px; background: #0000000d; color: var(--text-primary); }
 +        .bible-actions { display:flex; align-items:center; gap:6px; }
 +        .bible-actions button { padding:4px 10px; border-radius:6px; background: #0000000d; color: var(--text-primary); }
++        /* Explanation reading UI */
++        .explain-toolbar { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin:8px 0 6px; }
++        .explain-toolbar button { padding:4px 10px; border-radius:6px; background: #0000000d; color: var(--text-primary); }
++        .explain-content { --ex-font: 15.5px; --ex-lh: 1.85; font-size: var(--ex-font); line-height: var(--ex-lh); color: var(--text-primary); }
++        .explain-content p { margin: 0 0 10px; }
++        .explain-content ul, .explain-content ol { padding-left: 1.1rem; margin: 6px 0 10px; }
++        .explain-content li { margin: 4px 0; }
++        .explain-content hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(0,0,0,0.15), transparent); margin: 12px 0; }
++        .explain-content a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
++        .explain-sources { background: #00000008; border: 1px solid #00000011; border-radius: 8px; padding: 8px; margin-top: 10px; }
++        .explain-sources h4 { margin: 0 0 6px; font-size: 0.95rem; color: var(--text-secondary); }
++        .explain-sources ol { padding-left: 1.1rem; margin: 0; }
++        .explain-sources li { margin: 2px 0; color: var(--text-secondary); }
  
           /* 讓插入列占满整排，始于最左側 */
           .grid-full-row { grid-column: 1 / -1; width: 100%; }
@@ -1721,6 +1734,16 @@
                             <button id=\"backToBibleBtn\" class=\"px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm\">返回聖經</button>
                             <div class=\"text-sm text-[var(--text-secondary)]\">${translation || ''}</div>
                         </div>
+                        <div class=\"bible-breadcrumb mb-2\">
+                            <div class=\"where\">
+                                <div class=\"nav\"><button id=\"prevVerse\">‹</button><button id=\"nextVerse\">›</button></div>
+                                <div id=\"crumbRef\">${ref}</div>
+                            </div>
+                            <div class=\"bible-actions\">
+                                <button id=\"copyVerse\">複製</button>
+                                <button id=\"shareVerse\">分享</button>
+                            </div>
+                        </div>
                         <h2 class=\"text-xl font-serif font-bold text-[var(--text-primary)] mb-2\">${ref}</h2>
                         <div id=\"exVerse\" class=\"mb-3 text-[var(--text-primary)]\">載入經文中...</div>
                         <div id=\"explanation\" class=\"text-left\">正在生成解釋...</div>
@@ -1728,6 +1751,34 @@
                 `;
                 setFooterVisibility();
                 document.getElementById('backToBibleBtn').addEventListener('click', () => showBiblePage());
+                // nav helpers
+                function getMaxVerse(bookId, chap) {
+                    const key = `${translation || 'CUV'}:${bookId}:${chap}`;
+                    let max = 0;
+                    if (window.bibleCache && window.bibleCache[key]) {
+                        max = window.bibleCache[key].reduce((m, v) => Math.max(m, v.verse || 0), 0);
+                    }
+                    return max || 176;
+                }
+                function goto(delta) {
+                    const max = getMaxVerse(bookId, chapter);
+                    let next = verse + delta;
+                    if (next < 1) next = 1;
+                    if (next > max) next = max;
+                    if (next !== verse) showBibleExplanationPage(engs, bookId, chapter, next, translation);
+                }
+                document.getElementById('prevVerse').addEventListener('click', () => goto(-1));
+                document.getElementById('nextVerse').addEventListener('click', () => goto(1));
+                document.getElementById('copyVerse').addEventListener('click', async () => {
+                    const t = document.getElementById('exVerse')?.textContent || '';
+                    const txt = `${ref} ${t}`.trim();
+                    try { await navigator.clipboard.writeText(txt); } catch {}
+                });
+                document.getElementById('shareVerse').addEventListener('click', async () => {
+                    const t = document.getElementById('exVerse')?.textContent || '';
+                    const txt = `${ref} ${t}`.trim();
+                    if (navigator.share) { try { await navigator.share({ text: txt }); } catch {} } else { try { await navigator.clipboard.writeText(txt); } catch {} }
+                });
                 // 載入單節經文（先用快取即時顯示）
                 const cacheKey = `${translation || 'CUV'}:${bookId}:${chapter}`;
                 const box = document.getElementById('exVerse');
@@ -1756,7 +1807,34 @@
                     const box = document.getElementById('explanation');
                     if (j && j.success) {
                         const html = formatAnswer(j.data.answer, j.data.sources);
-                        box.innerHTML = `<div class=\"chat-messages text-left\">${html}</div>`;
+                        const sources = Array.isArray(j.data.sources) ? j.data.sources : [];
+                        const srcList = sources.length ? (`<div class=\"explain-sources\"><h4>參考來源</h4><ol>` + sources.map((s, i) => `<li>[${i+1}] ${typeof s === 'string' ? s : (s.fileName || '來源')}</li>`).join('') + `</ol></div>`) : '';
+                        box.innerHTML = `
+                          <div class=\"explain-toolbar\">
+                            <button id=\"exFontDec\">A-</button>
+                            <button id=\"exFontInc\">A+</button>
+                            <button id=\"exCopyAll\">複製全文</button>
+                          </div>
+                          <div class=\"explain-content\" id=\"exContent\">${html}</div>
+                          ${srcList}
+                        `;
+                        // events
+                        const contentEl = document.getElementById('exContent');
+                        document.getElementById('exFontDec').addEventListener('click', () => {
+                          const cur = parseFloat(getComputedStyle(contentEl).getPropertyValue('--ex-font')) || 15.5;
+                          const next = Math.max(13, cur - 1);
+                          contentEl.style.setProperty('--ex-font', next + 'px');
+                        });
+                        document.getElementById('exFontInc').addEventListener('click', () => {
+                          const cur = parseFloat(getComputedStyle(contentEl).getPropertyValue('--ex-font')) || 15.5;
+                          const next = Math.min(22, cur + 1);
+                          contentEl.style.setProperty('--ex-font', next + 'px');
+                        });
+                        document.getElementById('exCopyAll').addEventListener('click', async () => {
+                          const verseText = (document.getElementById('exVerse')?.textContent || '').trim();
+                          const text = `${document.getElementById('crumbRef')?.textContent || ''}\n${verseText}\n\n` + contentEl.innerText;
+                          try { await navigator.clipboard.writeText(text); } catch {}
+                        });
                         bindCitationEvents();
                     } else {
                         box.innerHTML = `<div class=\"text-red-600 text-sm\">生成解釋失敗</div>`;
@@ -3388,7 +3466,34 @@
                     const box = document.getElementById('explanation');
                     if (j && j.success) {
                         const html = formatAnswer(j.data.answer, j.data.sources);
-                        box.innerHTML = `<div class=\"chat-messages text-left\">${html}</div>`;
+                        const sources = Array.isArray(j.data.sources) ? j.data.sources : [];
+                        const srcList = sources.length ? (`<div class=\"explain-sources\"><h4>參考來源</h4><ol>` + sources.map((s, i) => `<li>[${i+1}] ${typeof s === 'string' ? s : (s.fileName || '來源')}</li>`).join('') + `</ol></div>`) : '';
+                        box.innerHTML = `
+                          <div class=\"explain-toolbar\">
+                            <button id=\"exFontDec\">A-</button>
+                            <button id=\"exFontInc\">A+</button>
+                            <button id=\"exCopyAll\">複製全文</button>
+                          </div>
+                          <div class=\"explain-content\" id=\"exContent\">${html}</div>
+                          ${srcList}
+                        `;
+                        // events
+                        const contentEl = document.getElementById('exContent');
+                        document.getElementById('exFontDec').addEventListener('click', () => {
+                          const cur = parseFloat(getComputedStyle(contentEl).getPropertyValue('--ex-font')) || 15.5;
+                          const next = Math.max(13, cur - 1);
+                          contentEl.style.setProperty('--ex-font', next + 'px');
+                        });
+                        document.getElementById('exFontInc').addEventListener('click', () => {
+                          const cur = parseFloat(getComputedStyle(contentEl).getPropertyValue('--ex-font')) || 15.5;
+                          const next = Math.min(22, cur + 1);
+                          contentEl.style.setProperty('--ex-font', next + 'px');
+                        });
+                        document.getElementById('exCopyAll').addEventListener('click', async () => {
+                          const verseText = (document.getElementById('exVerse')?.textContent || '').trim();
+                          const text = `${document.getElementById('crumbRef')?.textContent || ''}\n${verseText}\n\n` + contentEl.innerText;
+                          try { await navigator.clipboard.writeText(text); } catch {}
+                        });
                         bindCitationEvents();
                     } else {
                         box.innerHTML = `<div class=\"text-red-600 text-sm\">生成解釋失敗</div>`;
