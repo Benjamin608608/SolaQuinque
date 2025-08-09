@@ -1093,6 +1093,35 @@
             return formatted;
         }
 
+        // 針對經文解釋：作者名稱翻譯、加標題「註釋」、每位作者前空一行
+        function refineExplanationHtml(html) {
+            try {
+                let out = html;
+                const lang = window.currentLanguage || 'zh';
+                // 以對照表替換作者（僅在中文介面）
+                if (lang === 'zh' && typeof authorTranslations === 'object' && authorTranslations) {
+                    Object.keys(authorTranslations).forEach(en => {
+                        const zh = authorTranslations[en];
+                        if (!zh) return;
+                        const escaped = en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        // 強調標題中的作者
+                        out = out.replace(new RegExp(`(<strong>\\s*)${escaped}(\\s*[：:])?`, 'g'), `$1${zh}$2`);
+                        // 行首作者
+                        out = out.replace(new RegExp(`(>\\s*)(?:[-•]\\s*)?${escaped}(\\s*[：:])`, 'g'), `$1${zh}$2`);
+                    });
+                }
+                // 每位作者段落前加額外間距（針對 <p><strong> 與 <li><strong>）
+                out = out.replace(/<p><strong>/g, '<p style="margin-top:12px;"><strong>');
+                out = out.replace(/<li><strong>/g, '<li style="margin-top:8px;"><strong>');
+                // 加入標題
+                const heading = (window.currentLanguage === 'en') ? 'Notes' : '註釋';
+                out = `<div class="ex-heading" style="font-size:1.15rem;font-weight:700;margin:6px 0 10px;">${heading}</div>` + out;
+                return out;
+            } catch (e) {
+                return html;
+            }
+        }
+
         // 顯示錯誤
         function showError(message, canRetry = true) {
             const main = document.getElementById('mainContent');
@@ -1823,7 +1852,7 @@
                 .then(j => {
                     const box = document.getElementById('explanation');
                     if (j && j.success) {
-                        const html = formatAnswer(j.data.answer, j.data.sources);
+                        const html = refineExplanationHtml(formatAnswer(j.data.answer, j.data.sources));
                         const sources = Array.isArray(j.data.sources) ? j.data.sources : [];
                         const srcList = sources.length ? (`<div class=\"explain-sources\"><h4>參考來源</h4><ol>` + sources.map((s, i) => `<li>[${i+1}] ${typeof s === 'string' ? s : (s.fileName || '來源')}</li>`).join('') + `</ol></div>`) : '';
                         box.innerHTML = `
