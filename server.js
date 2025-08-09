@@ -125,12 +125,12 @@ connectToMongoDB();
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true, // 需要為 OAuth 初始請求保存未初始化的會話
   cookie: {
     secure: process.env.NODE_ENV === 'production', // 只在生產環境使用 secure
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 小時
-    sameSite: 'lax' // 改善移動設備相容性
+    sameSite: 'lax' // 改善移動設備相容性（對 OAuth 友好）
   },
   name: 'theologian.sid' // 自定義 session cookie 名稱
 }));
@@ -414,7 +414,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   });
 
   app.get('/auth/google/callback', 
-    passport.authenticate('google', { failureRedirect: '/login' }),
+    passport.authenticate('google', { failureRedirect: '/' }),
     async function(req, res) {
       // 寫入登入紀錄到 MongoDB Atlas
       if (loginLogsCollection && req.user) {
@@ -1813,4 +1813,8 @@ app.get('/api/bible/vector-status', ensureAuthenticated, async (req, res) => {
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
+});
+
+app.get('/login', (req, res) => {
+  res.redirect('/');
 });
