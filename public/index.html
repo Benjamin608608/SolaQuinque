@@ -689,6 +689,7 @@
                 window.currentPage = 'login';
                 showLoginUI();
             }
+            setFooterVisibility();
         }
 
         // 顯示已認證的 UI
@@ -723,6 +724,7 @@
             
             // 添加導航按鈕功能
             addNavigationHandlers();
+            setFooterVisibility();
         }
 
         // 顯示登入 UI
@@ -1323,6 +1325,7 @@
                 const s = window.currentBibleSelection;
                 showBibleExplanationPage(s.engs, s.bookId, s.chapter, s.verse || 1, document.getElementById('bibleVersion')?.value || 'CUV');
             }
+            setFooterVisibility();
         }
 
         // 添加導航處理器
@@ -1470,6 +1473,7 @@
             if (footer) {
                 footer.style.display = 'none';
             }
+            setFooterVisibility();
         }
 
         // 聖經頁面（書卷 -> 章 -> 節）
