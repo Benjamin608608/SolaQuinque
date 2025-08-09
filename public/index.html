@@ -1587,9 +1587,9 @@
                         const row = document.createElement('div');
                         row.className = 'chapters-inline-row grid-full-row';
                         row.setAttribute('data-parent-book', String(id));
-                        const inner = document.createElement('div');
-                        inner.className = 'bible-grid-chapters';
-                        row.appendChild(inner);
+                        const chaptersContainer = document.createElement('div');
+                         chaptersContainer.className = 'bible-grid-chapters';
+                         row.appendChild(chaptersContainer);
                         anchor.insertAdjacentElement('afterend', row);
                         // 渲染章按鈕
                         const chapterCount = parseInt(btn.getAttribute('data-chapters'), 10) || 50;
@@ -1597,14 +1597,14 @@
                         for (let i = 1; i <= chapterCount; i++) {
                             arr.push(`<button class=\"bible-btn bible-btn-chapter bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white\" data-bookid=\"${id}\" data-chap=\"${i}\">${i}</button>`);
                         }
-                        inner.innerHTML = arr.join('');
-                        inner.querySelectorAll('button[data-chap]').forEach(btn => {
+                        chaptersContainer.innerHTML = arr.join('');
+                         chaptersContainer.querySelectorAll('button[data-chap]').forEach(btn => {
                             btn.addEventListener('click', async () => {
                                 const chap = parseInt(btn.getAttribute('data-chap'), 10);
                                 const bId = parseInt(btn.getAttribute('data-bookid'), 10);
                                 document.getElementById('bibleChapter').value = chap;
                                 // 移除同一本展開列下先前的節展開列（若點擊相同章則視為收起）
-                                const chaptersRow = inner.closest('.chapters-inline-row');
+                                const chaptersRow = chaptersContainer.closest('.chapters-inline-row');
                                 const parentBook = chaptersRow?.getAttribute('data-parent-book') || '';
                                 const existed = document.querySelector(`.verses-inline-row[data-parent-book='${parentBook}']`);
                                 if (existed && existed.getAttribute('data-chapter') === String(chap)) {
@@ -1613,7 +1613,7 @@
                                 }
                                 document.querySelectorAll(`.verses-inline-row[data-parent-book='${parentBook}']`).forEach(n => n.remove());
                                 // 在章 grid 內，找到被點擊的章所在列的最後一個 cell，於其後插入一個跨整列的 verses row
-                                const cells = Array.from(inner.children);
+                                const cells = Array.from(chaptersContainer.children);
                                 const chapCell = btn.parentElement;
                                 const w = window.innerWidth;
                                 const cols = w >= 768 ? 12 : (w >= 640 ? 8 : 4);
