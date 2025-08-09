@@ -1590,9 +1590,9 @@
                         row.appendChild(inner);
                         anchor.insertAdjacentElement('afterend', row);
                         // 渲染章按鈕
-                        const chapters = parseInt(btn.getAttribute('data-chapters'), 10) || 50;
+                        const chapterCount = parseInt(btn.getAttribute('data-chapters'), 10) || 50;
                         const arr = [];
-                        for (let i = 1; i <= chapters; i++) {
+                        for (let i = 1; i <= chapterCount; i++) {
                             arr.push(`<button class=\"bible-btn bible-btn-chapter bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white\" data-bookid=\"${id}\" data-chap=\"${i}\">${i}</button>`);
                         }
                         inner.innerHTML = arr.join('');
