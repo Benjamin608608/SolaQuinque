@@ -1506,6 +1506,28 @@
             ];
  
             const bookGrid = document.getElementById('bookGrid');
+
+            // 中文書卷縮寫（以英文全名對應）
+            function getZhAbbrByEn(en) {
+                const map = {
+                    'Genesis':'創','Exodus':'出','Leviticus':'利','Numbers':'民','Deuteronomy':'申',
+                    'Joshua':'書','Judges':'士','Ruth':'得','1 Samuel':'撒上','2 Samuel':'撒下',
+                    '1 Kings':'王上','2 Kings':'王下','1 Chronicles':'代上','2 Chronicles':'代下',
+                    'Ezra':'拉','Nehemiah':'尼','Esther':'斯','Job':'伯','Psalms':'詩',
+                    'Proverbs':'箴','Ecclesiastes':'傳','Song of Solomon':'雅','Isaiah':'賽',
+                    'Jeremiah':'耶','Lamentations':'哀','Ezekiel':'結','Daniel':'但',
+                    'Hosea':'何','Joel':'珥','Amos':'摩','Obadiah':'俄','Jonah':'拿',
+                    'Micah':'彌','Nahum':'鴻','Habakkuk':'哈','Zephaniah':'番','Haggai':'該',
+                    'Zechariah':'亞','Malachi':'瑪','Matthew':'太','Mark':'可','Luke':'路',
+                    'John':'約','Acts':'徒','Romans':'羅','1 Corinthians':'林前','2 Corinthians':'林後',
+                    'Galatians':'加','Ephesians':'弗','Philippians':'腓','Colossians':'西',
+                    '1 Thessalonians':'帖前','2 Thessalonians':'帖後','1 Timothy':'提前','2 Timothy':'提後',
+                    'Titus':'多','Philemon':'門','Hebrews':'來','James':'雅',
+                    '1 Peter':'彼前','2 Peter':'彼後','1 John':'約一','2 John':'約二','3 John':'約三',
+                    'Jude':'猶','Revelation':'啟'
+                };
+                return map[en] || en;
+            }
  
             function renderBooks(list) {
                 const lang = window.currentLanguage || 'zh';
@@ -1540,15 +1562,15 @@
                         row.appendChild(inner);
                         anchor.insertAdjacentElement('afterend', row);
                         const lang = window.currentLanguage || 'zh';
-                        const display = lang === 'en' ? enName : zhName;
+                        const display = lang === 'en' ? enName : getZhAbbrByEn(enName);
                         renderChapters(inner, id, display, chapters);
                     });
                 });
             }
-            function renderChapters(container, bookId, zh, count) {
+            function renderChapters(container, bookId, label, count) {
                 const items = [];
                 for (let i = 1; i <= count; i++) {
-                    items.push(`<div><button class=\"bible-btn bible-btn-chapter bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${zh} ${i}</button></div>`);
+                    items.push(`<div><button class=\"bible-btn bible-btn-chapter bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm\" data-bookid=\"${bookId}\" data-chap=\"${i}\">${label}${i}</button></div>`);
                 }
                 container.innerHTML = items.join('');
                 container.querySelectorAll('button').forEach(btn => {
@@ -1646,7 +1668,7 @@
                 if (!main) return;
                 const lang = window.currentLanguage || 'zh';
                 const displayBook = [...booksOT, ...booksNT].find(b => b.engs === engs);
-                const ref = `${lang === 'en' ? displayBook.en : displayBook.zh} ${chapter}:${verse}`;
+                const ref = lang === 'en' ? `${displayBook.en} ${chapter}:${verse}` : `${getZhAbbrByEn(displayBook.en)}${chapter}:${verse}`;
                 main.innerHTML = `
                     <div class=\"w-full max-w-3xl mx-auto px-3\">
                         <div class=\"flex items-center justify-between mt-6 mb-3\">
