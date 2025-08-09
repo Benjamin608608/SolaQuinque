@@ -526,12 +526,7 @@
             }
         }
 
-        // 控制底部搜尋輸入欄顯示：僅首頁顯示
-        function setFooterVisibility() {
-            const footer = document.querySelector('footer');
-            if (!footer) return;
-            footer.style.display = (window.currentPage === 'home') ? 'block' : 'none';
-        }
+        /* footer visibility controlled by JS setFooterVisibility() defined in script */
 
         /* 強化手機排版：統一格線與間距，避免擠在一起 */
         .bible-grid-books { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -670,6 +665,13 @@
     
 
     <script>
+        // 控制底部搜尋輸入欄顯示：僅首頁顯示
+        function setFooterVisibility() {
+            const footer = document.querySelector('footer');
+            if (!footer) return;
+            footer.style.display = (window.currentPage === 'home') ? 'block' : 'none';
+        }
+
         // 檢查用戶認證狀態
         async function checkAuthStatus() {
             try {
