@@ -1089,11 +1089,7 @@
                 `;
             }
             
-            // 確保 footer 顯示
-            const footer = document.querySelector('footer');
-            if (footer) {
-                footer.style.display = 'block';
-            }
+            setFooterVisibility();
         }
 
         // 重試上次搜索
@@ -1468,11 +1464,6 @@
                 }, 100);
             }
             
-            // 隱藏搜尋輸入框，只在首頁顯示
-            const footer = document.querySelector('footer');
-            if (footer) {
-                footer.style.display = 'none';
-            }
             setFooterVisibility();
         }
 
