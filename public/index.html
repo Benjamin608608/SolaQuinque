@@ -1571,7 +1571,7 @@
                                 const bId = parseInt(btn.getAttribute('data-bookid'), 10);
                                 document.getElementById('bibleChapter').value = chap;
                                 // 移除同一本展開列下先前的節展開列（若點擊相同章則視為收起）
-                                const chaptersRow = container.closest('.chapters-inline-row');
+                                const chaptersRow = inner.closest('.chapters-inline-row');
                                 const parentBook = chaptersRow?.getAttribute('data-parent-book') || '';
                                 const existed = document.querySelector(`.verses-inline-row[data-parent-book='${parentBook}']`);
                                 if (existed && existed.getAttribute('data-chapter') === String(chap)) {
@@ -1580,7 +1580,7 @@
                                 }
                                 document.querySelectorAll(`.verses-inline-row[data-parent-book='${parentBook}']`).forEach(n => n.remove());
                                 // 在章 grid 內，找到被點擊的章所在列的最後一個 cell，於其後插入一個跨整列的 verses row
-                                const cells = Array.from(container.children);
+                                const cells = Array.from(inner.children);
                                 const chapCell = btn.parentElement;
                                 const w = window.innerWidth;
                                 const cols = w >= 768 ? 12 : (w >= 640 ? 8 : 4);
