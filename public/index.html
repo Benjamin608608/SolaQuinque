@@ -2174,36 +2174,51 @@
 
         // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
-            // 初始化搜尋狀態
-            window.isSearching = false;
-            window.currentQuestion = null;
-            window.currentPage = 'login'; // 默認為登入頁面
-            
-            // 載入作者對照表
-            await loadAuthorTranslations();
-            
-            checkAuthStatus();
-            
-            // 初始化引用標註事件
-            bindCitationEvents();
+            try {
+                // 初始化搜尋狀態
+                window.isSearching = false;
+                window.currentQuestion = null;
+                window.currentPage = 'login'; // 默認為登入頁面
 
-            // 頁面轉場：初次載入給主內容一個淡入
-            const main = document.getElementById('mainContent');
-            if (main) {
-                main.classList.add('page-enter');
-                requestAnimationFrame(() => main.classList.add('page-enter-active'));
+                // 語言先設為中文（以便渲染登入文案）
+                switchLanguage('zh');
+
+                // 先顯示登入 UI 作為安全預設
+                showLoginUI();
+
+                // 載入作者對照表（失敗不影響主流程）
+                try { await loadAuthorTranslations(); } catch {}
+
+                // 檢查認證狀態（成功會切換到已登入 UI）
+                try { await checkAuthStatus(); } catch {}
+
+                // 初始化引用標註事件
+                bindCitationEvents();
+
+                // 頁面轉場：初次載入給主內容一個淡入
+                const main = document.getElementById('mainContent');
+                if (main) {
+                    main.classList.add('page-enter');
+                    requestAnimationFrame(() => main.classList.add('page-enter-active'));
+                }
+
+                // 頁面載入時檢查
+                showEmbeddedBrowserWarning();
+                // 嘗試自動開啟外部瀏覽器
+                setTimeout(() => { tryOpenExternalBrowser(); }, 1000);
+            } catch (e) {
+                // 若有任何初始化錯誤，確保至少顯示登入頁
+                try { showLoginUI(); } catch {}
+                console.error('Init error:', e);
             }
-            
-            // 初始化語言為中文
-            switchLanguage('zh');
+        });
 
-            // 頁面載入時檢查
-            showEmbeddedBrowserWarning();
-            
-            // 嘗試自動開啟外部瀏覽器
-            setTimeout(() => {
-              tryOpenExternalBrowser();
-            }, 1000);
+        // 全域錯誤守護：避免整頁中斷
+        window.addEventListener('error', () => {
+            try { if (window.currentPage !== 'home') showLoginUI(); } catch {}
+        });
+        window.addEventListener('unhandledrejection', () => {
+            try { if (window.currentPage !== 'home') showLoginUI(); } catch {}
         });
 
         // 主題切換
