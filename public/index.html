@@ -685,6 +685,16 @@
     
 
     <script>
+        // Persist Bible selection globally (defined early)
+        window.updateBibleSelection = function(partial) {
+            const prev = window.currentBibleSelection || {};
+            window.currentBibleSelection = { ...prev, ...partial };
+            try { localStorage.setItem('bibleSel', JSON.stringify(window.currentBibleSelection)); } catch {}
+        };
+        window.loadBibleSelection = function() {
+            try { const s = JSON.parse(localStorage.getItem('bibleSel') || 'null'); if (s) window.currentBibleSelection = s; } catch {}
+        };
+        window.loadBibleSelection();
         // 控制底部搜尋輸入欄顯示：僅首頁顯示
         function setFooterVisibility() {
             const footer = document.querySelector('footer');
