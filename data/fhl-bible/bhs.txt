@@ -1,0 +1,22 @@
+Version: bhs - 舊約馬索拉原文
+Generated: 2025-08-10T17:45:59.028Z
+Source: https://bible.fhl.net/json/
+Note: Content may be subject to licensing; see https://www.fhl.net/main/fhl/fhl8.html
+
+# Genesis (創世記)
+
+# Exodus (出埃及記)
+
+# Leviticus (利未記)
+
+# Numbers (民數記)
+
+# Deuteronomy (申命記)
+
+# Joshua (約書亞記)
+
+# Judges (士師記)
+
+# Ruth (路得記)
+
+# First Samuel (撒母耳記上)
