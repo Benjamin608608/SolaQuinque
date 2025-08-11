@@ -545,6 +545,48 @@
  
           /* 讓插入列占满整排，始于最左側 */
           .grid-full-row { grid-column: 1 / -1; width: 100%; }
+          
+          /* 聖經章節閱讀樣式 - 參考現代聖經app */
+          .bible-chapter-content {
+              font-family: 'Noto Serif TC', serif;
+              line-height: 1.8;
+              text-align: justify;
+          }
+          
+          .bible-chapter-content sup {
+              font-size: 0.75rem;
+              font-weight: 600;
+              color: var(--primary);
+              margin-right: 0.25rem;
+          }
+          
+          .bible-chapter-content .verse-text {
+              display: inline;
+              margin-right: 0.5rem;
+          }
+          
+          /* 段落間距 */
+          .bible-chapter-content .paragraph {
+              margin-bottom: 1.5rem;
+              padding: 1rem;
+              background: white;
+              border-radius: 0.5rem;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+              border-left: 4px solid var(--primary);
+          }
+          
+          /* 響應式設計 */
+          @media (max-width: 768px) {
+              .bible-chapter-content {
+                  font-size: 1rem;
+                  line-height: 1.7;
+              }
+              
+              .bible-chapter-content .paragraph {
+                  padding: 0.75rem;
+                  margin-bottom: 1rem;
+              }
+          }
      </style>
     <style>
         body {
@@ -1716,14 +1758,41 @@
                     
                     main.innerHTML = `
                         <div class="w-full max-w-4xl mx-auto px-3">
-                            <div class="flex items-center justify-between mt-6 mb-3">
-                                <button onclick="showBiblePage().catch(console.error)" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">返回聖經</button>
-                                <div class="text-sm text-[var(--text-secondary)]">${version}</div>
+                            <!-- 導航欄 - 參考現代聖經app設計 -->
+                            <div class="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-[var(--accent)] mb-4">
+                                <div class="flex items-center justify-between py-3">
+                                    <div class="flex items-center space-x-3">
+                                        <button onclick="showBiblePage().catch(console.error)" class="p-2 rounded-lg bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white transition-colors">
+                                            <span class="material-icons-outlined text-lg">arrow_back</span>
+                                        </button>
+                                        <div class="flex flex-col">
+                                            <h1 class="text-lg font-bold text-[var(--text-primary)]">${bookName} ${chapter}</h1>
+                                            <p class="text-sm text-[var(--text-secondary)]">${version}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button class="p-2 rounded-lg bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white transition-colors" title="朗讀">
+                                            <span class="material-icons-outlined text-lg">volume_up</span>
+                                        </button>
+                                        <button class="p-2 rounded-lg bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white transition-colors" title="搜尋">
+                                            <span class="material-icons-outlined text-lg">search</span>
+                                        </button>
+                                        <button class="p-2 rounded-lg bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white transition-colors" title="更多選項">
+                                            <span class="material-icons-outlined text-lg">more_vert</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
+                            
                             ${loginPrompt}
-                            <div class="bible-chapter-header mb-4">
-                                <h2 class="text-xl font-serif font-bold text-[var(--text-primary)]">${bookName} 第${chapter}章</h2>
+                            
+                            <!-- 章節標題 -->
+                            <div class="bible-chapter-header mb-6 text-center">
+                                <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)] mb-2">${bookName} 第${chapter}章</h2>
+                                <div class="w-16 h-1 bg-[var(--primary)] mx-auto rounded-full"></div>
                             </div>
+                            
+                            <!-- 經文內容 -->
                             <div id="bibleChapterContent" class="bible-chapter-content">
                                 <div class="text-center p-8">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)] mx-auto mb-4"></div>
@@ -1771,11 +1840,34 @@
                     const lang = window.currentLanguage || 'zh';
                     const bookName = lang === 'en' ? book.en : book.zh;
                     
-                    const html = verses.map(verse => {
-                        return `<div class="mb-3 p-3 bg-white rounded-lg shadow-sm">
-                            <div class="flex items-start">
-                                <span class="text-[var(--primary)] font-bold mr-3 text-lg">${verse.verse}</span>
-                                <div class="flex-1 text-[var(--text-primary)] leading-relaxed">${verse.text}</div>
+                    // 將經文按段落分組，參考現代聖經app的顯示方式
+                    const groupedVerses = [];
+                    let currentParagraph = [];
+                    
+                    verses.forEach((verse, index) => {
+                        currentParagraph.push(verse);
+                        
+                        // 在句號、問號、感嘆號後分段落，或者每5節分一段
+                        const shouldBreak = verse.text.includes('。') || 
+                                          verse.text.includes('？') || 
+                                          verse.text.includes('！') ||
+                                          (index + 1) % 5 === 0 ||
+                                          index === verses.length - 1;
+                        
+                        if (shouldBreak && currentParagraph.length > 0) {
+                            groupedVerses.push([...currentParagraph]);
+                            currentParagraph = [];
+                        }
+                    });
+                    
+                    const html = groupedVerses.map((paragraph, pIndex) => {
+                        const paragraphText = paragraph.map(verse => 
+                            `<span class="inline-block mr-2"><sup class="text-[var(--primary)] font-semibold text-sm">${verse.verse}</sup>${verse.text}</span>`
+                        ).join('');
+                        
+                        return `<div class="mb-4 p-4 bg-white rounded-lg shadow-sm border-l-4 border-[var(--primary)]">
+                            <div class="text-[var(--text-primary)] leading-relaxed text-justify">
+                                ${paragraphText}
                             </div>
                         </div>`;
                     }).join('');
