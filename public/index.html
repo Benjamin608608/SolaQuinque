@@ -1406,24 +1406,40 @@
             try {
                 let out = html;
                 const lang = window.currentLanguage || 'zh';
+                
                 // 以對照表替換作者（僅在中文介面）
                 if (lang === 'zh' && typeof authorTranslations === 'object' && authorTranslations) {
                     Object.keys(authorTranslations).forEach(en => {
                         const zh = authorTranslations[en];
                         if (!zh) return;
                         const escaped = en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        // 強調標題中的作者
+                        
+                        // 處理不同格式的作者名稱
+                        // 1. 數字開頭的作者（如 "1. Herbert Carl Leupold"）
+                        out = out.replace(new RegExp(`(\\d+\\.\\s*)${escaped}(\\s*\\([^)]+\\))?`, 'g'), `$1<strong>${zh}</strong>$2`);
+                        
+                        // 2. 強調標題中的作者
                         out = out.replace(new RegExp(`(<strong>\\s*)${escaped}(\\s*[：:])?`, 'g'), `$1${zh}$2`);
-                        // 行首作者
-                        out = out.replace(new RegExp(`(>\\s*)(?:[-•]\\s*)?${escaped}(\\s*[：:])`, 'g'), `$1${zh}$2`);
+                        
+                        // 3. 行首作者
+                        out = out.replace(new RegExp(`(>\\s*)(?:[-•]\\s*)?${escaped}(\\s*[：:])`, 'g'), `$1<strong>${zh}</strong>$2`);
+                        
+                        // 4. 一般作者名稱
+                        out = out.replace(new RegExp(`(\\b)${escaped}(\\b)`, 'g'), `$1<strong>${zh}</strong>$2`);
                     });
+                } else {
+                    // 英文介面：確保作者名稱是粗體
+                    out = out.replace(/(\d+\.\s*)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(\s*\([^)]+\))?/g, '$1<strong>$2</strong>$3');
                 }
-                // 每位作者段落前加額外間距（針對 <p><strong> 與 <li><strong>）
-                out = out.replace(/<p><strong>/g, '<p style="margin-top:12px;"><strong>');
-                out = out.replace(/<li><strong>/g, '<li style="margin-top:8px;"><strong>');
-                // 加入標題
-                const heading = (window.currentLanguage === 'en') ? 'Notes' : '註釋';
-                out = `<div class="ex-heading" style="font-size:1.15rem;font-weight:700;margin:6px 0 10px;">${heading}</div>` + out;
+                
+                // 每位作者段落前加額外間距
+                out = out.replace(/<p><strong>/g, '<p style="margin-top:16px;"><strong>');
+                out = out.replace(/<li><strong>/g, '<li style="margin-top:12px;"><strong>');
+                
+                // 移除標題（因為神學家註釋不需要額外的標題）
+                // const heading = (window.currentLanguage === 'en') ? 'Notes' : '註釋';
+                // out = `<div class="ex-heading" style="font-size:1.15rem;font-weight:700;margin:6px 0 10px;">${heading}</div>` + out;
+                
                 return out;
             } catch (e) {
                 return html;
@@ -2290,11 +2306,29 @@
                     }
                     
                     // 顯示神學家註釋
+                    let commentaryContent = data.answer;
+                    
+                    // 移除開頭的說明文字
+                    commentaryContent = commentaryContent.replace(/根據資料庫內容，針對「[^」]+」的評論\/詮釋作者如下：/g, '');
+                    commentaryContent = commentaryContent.replace(/According to the database content, the authors of comments\/interpretations for "[^"]+" are as follows:/g, '');
+                    
+                    // 格式化內容
+                    let formattedContent = formatAnswer(commentaryContent, data.sources);
+                    
+                    // 處理作者名稱翻譯和格式
+                    formattedContent = refineExplanationHtml(formattedContent);
+                    
+                    // 移除數字小標，直接在作者名稱後面放著作名稱
+                    formattedContent = formattedContent.replace(/<span class="citation"[^>]*>(\d+)<\/span>/g, '');
+                    
+                    // 確保每位作者內容間有空行
+                    formattedContent = formattedContent.replace(/<\/p><p>/g, '</p><br><p>');
+                    
                     commentaryDiv.innerHTML = `
                         <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                             <div class="text-sm text-blue-600 mb-2">📚 神學家註釋（基於 ${bookName} 資料庫）</div>
                             <div class="text-gray-800 text-sm leading-relaxed">
-                                ${formatAnswer(data.answer, data.sources)}
+                                ${formattedContent}
                             </div>
                         </div>
                     `;
