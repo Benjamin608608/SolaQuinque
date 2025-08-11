@@ -558,6 +558,7 @@
               line-height: 1.8;
               text-align: justify;
               font-size: 1.1rem;
+              color: #1f2937;
           }
           
           .verse-item {
@@ -567,14 +568,15 @@
           .verse-number {
               display: inline-block;
               font-weight: 700;
-              color: var(--primary);
-              font-size: 0.9rem;
-              margin-right: 0.5rem;
-              background: var(--secondary);
-              padding: 0.1rem 0.3rem;
-              border-radius: 0.25rem;
-              min-width: 1.2rem;
+              color: white;
+              font-size: 0.85rem;
+              margin-right: 0.4rem;
+              background: var(--primary);
+              padding: 0.15rem 0.4rem;
+              border-radius: 0.3rem;
+              min-width: 1.3rem;
               text-align: center;
+              box-shadow: 0 1px 2px rgba(0,0,0,0.1);
           }
           
           /* 響應式設計 */
@@ -583,12 +585,14 @@
                   font-size: 1rem;
                   line-height: 1.7;
                   padding: 1rem !important;
+                  color: #1f2937;
               }
               
               .verse-number {
                   font-size: 0.8rem;
                   margin-right: 0.3rem;
-                  padding: 0.05rem 0.2rem;
+                  padding: 0.1rem 0.3rem;
+                  min-width: 1.2rem;
               }
           }
      </style>
@@ -1849,8 +1853,8 @@
                         `<span class="verse-item"><span class="verse-number">${verse.verse}</span>${verse.text}</span>`
                     ).join('');
                     
-                    const html = `<div class="chapter-content p-6 bg-white rounded-lg shadow-sm">
-                        <div class="text-[var(--text-primary)] leading-relaxed text-justify">
+                    const html = `<div class="chapter-content p-6 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
+                        <div class="text-gray-800 leading-relaxed text-justify">
                             ${chapterText}
                         </div>
                     </div>`;
