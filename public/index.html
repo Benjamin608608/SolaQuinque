@@ -686,6 +686,53 @@
             transform: scale(1);
         }
         
+        /* 經文操作選單樣式 */
+        .verse-action-menu {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.1);
+            padding: 8px;
+            min-width: 120px;
+            z-index: 60;
+            opacity: 0;
+            transform: translateX(-50%) translateY(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .verse-action-menu:not(.hidden) {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .verse-action-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            background: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        
+        .verse-action-menu-item:hover {
+            background-color: rgba(109, 76, 65, 0.1);
+        }
+        
+        .verse-action-menu-item .material-icons-outlined {
+            font-size: 18px;
+            color: var(--primary);
+        }
+        
         /* 響應式設計 */
         @media (max-width: 768px) {
             .chapter-nav-btn {
@@ -1885,9 +1932,9 @@
                 { zh: '猶大書', en: 'Jude', engs: 'Jud', id: 65, chapters: 1 }, { zh: '啟示錄', en: 'Revelation', engs: 'Rev', id: 66, chapters: 22 }
             ];
  
-            // 全局章節導航函數 - 在書卷資料定義之後
-            window.goToChapter = async function(bookId, chapter) {
-                console.log('goToChapter 被調用:', { bookId, chapter });
+            // 簡化的章節導航函數
+            async function navigateToChapter(bookId, chapter) {
+                console.log('navigateToChapter 被調用:', { bookId, chapter });
                 
                 try {
                     // 檢查章節範圍
@@ -1908,7 +1955,7 @@
                     
                     console.log('準備跳轉到章節:', { bookId, chapter, bookName: book.zh });
                     
-                    // 設置頁面狀態為章節頁面，防止被錯誤處理器干擾
+                    // 設置頁面狀態為章節頁面
                     window.currentPage = 'bibleChapter';
                     
                     // 檢查認證狀態，但不強制跳轉到登入頁面
@@ -1929,7 +1976,7 @@
                     // 即使出錯也要確保頁面狀態正確
                     window.currentPage = 'bibleChapter';
                 }
-            };
+            }
  
             const bookGrid = document.getElementById('bookGrid');
 
@@ -1992,6 +2039,12 @@
                     el.classList.remove('verse-selected');
                 });
                 
+                // 隱藏經文操作選單
+                const menu = document.getElementById('verse-action-menu');
+                if (menu) {
+                    menu.classList.add('hidden');
+                }
+                
                 // 選中當前經節
                 const selectedVerse = document.querySelector(`[data-verse="${verseNumber}"]`);
                 if (selectedVerse) {
@@ -2007,6 +2060,49 @@
                 console.log('選中經節:', verseNumber);
             }
 
+            // 切換經文操作選單
+            function toggleVerseActionMenu() {
+                const menu = document.getElementById('verse-action-menu');
+                if (menu) {
+                    menu.classList.toggle('hidden');
+                    console.log('切換經文操作選單');
+                }
+            }
+            
+            // 顯示經文註釋
+            function showVerseCommentary() {
+                const selectedVerse = document.querySelector('.verse-selected');
+                if (selectedVerse) {
+                    const verseNumber = selectedVerse.getAttribute('data-verse');
+                    console.log('顯示經文註釋:', verseNumber);
+                    alert(`顯示第 ${verseNumber} 節的註釋功能（待實現）`);
+                } else {
+                    alert('請先選中一個經節');
+                }
+                // 隱藏選單
+                const menu = document.getElementById('verse-action-menu');
+                if (menu) {
+                    menu.classList.add('hidden');
+                }
+            }
+            
+            // 顯示經文對照
+            function showVerseComparison() {
+                const selectedVerse = document.querySelector('.verse-selected');
+                if (selectedVerse) {
+                    const verseNumber = selectedVerse.getAttribute('data-verse');
+                    console.log('顯示經文對照:', verseNumber);
+                    alert(`顯示第 ${verseNumber} 節的對照功能（待實現）`);
+                } else {
+                    alert('請先選中一個經節');
+                }
+                // 隱藏選單
+                const menu = document.getElementById('verse-action-menu');
+                if (menu) {
+                    menu.classList.add('hidden');
+                }
+            }
+            
             // 將經文按句號分段格式化
             function formatVersesIntoParagraphs(verses) {
                 let result = '';
@@ -2188,7 +2284,7 @@
                 });
             }
 
-            // 添加章節導航按鈕 - 重新設計
+            // 添加章節導航按鈕 - 完全重新設計
             function addChapterNavigationButtons(bookId, chapter) {
                 console.log('添加章節導航按鈕:', { bookId, chapter });
                 
@@ -2220,55 +2316,104 @@
                     return;
                 }
                 
-                // 創建新的導航按鈕
+                // 創建新的導航按鈕容器
                 const navigationDiv = document.createElement('div');
                 navigationDiv.id = 'chapterNavigationButtons';
                 navigationDiv.className = 'fixed bottom-6 left-4 right-4 z-50 pointer-events-none';
                 
-                let buttonsHTML = '<div class="max-w-4xl mx-auto px-3 flex justify-between items-center pointer-events-auto">';
+                const buttonsContainer = document.createElement('div');
+                buttonsContainer.className = 'max-w-4xl mx-auto px-3 flex justify-between items-center pointer-events-auto';
                 
                 // 前一章按鈕
                 if (showPrevButton) {
                     const prevChapter = chapter - 1;
-                    buttonsHTML += `
-                        <button class="chapter-nav-btn chapter-nav-btn-prev" onclick="goToChapter(${bookId}, ${prevChapter})" title="前一章 (${prevChapter})">
-                            <div class="btn-3d-effect">
-                                <span class="material-icons-outlined">arrow_back</span>
-                            </div>
-                        </button>
+                    const prevButton = document.createElement('button');
+                    prevButton.className = 'chapter-nav-btn chapter-nav-btn-prev';
+                    prevButton.title = `前一章 (${prevChapter})`;
+                    prevButton.innerHTML = `
+                        <div class="btn-3d-effect">
+                            <span class="material-icons-outlined">arrow_back</span>
+                        </div>
                     `;
+                    
+                    // 直接添加點擊事件
+                    prevButton.addEventListener('click', function() {
+                        console.log('前一章按鈕被點擊');
+                        console.log('目標章節:', { bookId, chapter: prevChapter });
+                        
+                        // 直接調用章節導航
+                        navigateToChapter(bookId, prevChapter);
+                    });
+                    
+                    buttonsContainer.appendChild(prevButton);
                 } else {
-                    buttonsHTML += '<div></div>'; // 佔位符保持對齊
+                    const spacer = document.createElement('div');
+                    buttonsContainer.appendChild(spacer);
                 }
                 
                 // 中間按鈕（經文選中時顯示）
-                buttonsHTML += `
-                    <button id="verse-action-btn" class="chapter-nav-btn chapter-nav-btn-center hidden" title="經文操作">
-                        <div class="btn-3d-effect">
-                            <span class="material-icons-outlined">more_horiz</span>
-                        </div>
+                const centerContainer = document.createElement('div');
+                centerContainer.className = 'relative';
+                
+                const centerButton = document.createElement('button');
+                centerButton.id = 'verse-action-btn';
+                centerButton.className = 'chapter-nav-btn chapter-nav-btn-center hidden';
+                centerButton.title = '經文操作';
+                centerButton.innerHTML = `
+                    <div class="btn-3d-effect">
+                        <span class="material-icons-outlined">more_horiz</span>
+                    </div>
+                `;
+                centerButton.addEventListener('click', toggleVerseActionMenu);
+                
+                const actionMenu = document.createElement('div');
+                actionMenu.id = 'verse-action-menu';
+                actionMenu.className = 'verse-action-menu hidden';
+                actionMenu.innerHTML = `
+                    <button class="verse-action-menu-item" onclick="showVerseCommentary()">
+                        <span class="material-icons-outlined">comment</span>
+                        <span>註釋</span>
+                    </button>
+                    <button class="verse-action-menu-item" onclick="showVerseComparison()">
+                        <span class="material-icons-outlined">compare_arrows</span>
+                        <span>對照</span>
                     </button>
                 `;
+                
+                centerContainer.appendChild(centerButton);
+                centerContainer.appendChild(actionMenu);
+                buttonsContainer.appendChild(centerContainer);
                 
                 // 後一章按鈕
                 if (showNextButton) {
                     const nextChapter = chapter + 1;
-                    buttonsHTML += `
-                        <button class="chapter-nav-btn chapter-nav-btn-next" onclick="goToChapter(${bookId}, ${nextChapter})" title="後一章 (${nextChapter})">
-                            <div class="btn-3d-effect">
-                                <span class="material-icons-outlined">arrow_forward</span>
-                            </div>
-                        </button>
+                    const nextButton = document.createElement('button');
+                    nextButton.className = 'chapter-nav-btn chapter-nav-btn-next';
+                    nextButton.title = `後一章 (${nextChapter})`;
+                    nextButton.innerHTML = `
+                        <div class="btn-3d-effect">
+                            <span class="material-icons-outlined">arrow_forward</span>
+                        </div>
                     `;
+                    
+                    // 直接添加點擊事件
+                    nextButton.addEventListener('click', function() {
+                        console.log('後一章按鈕被點擊');
+                        console.log('目標章節:', { bookId, chapter: nextChapter });
+                        
+                        // 直接調用章節導航
+                        navigateToChapter(bookId, nextChapter);
+                    });
+                    
+                    buttonsContainer.appendChild(nextButton);
                 } else {
-                    buttonsHTML += '<div></div>'; // 佔位符保持對齊
+                    const spacer = document.createElement('div');
+                    buttonsContainer.appendChild(spacer);
                 }
                 
-                buttonsHTML += '</div>';
-                navigationDiv.innerHTML = buttonsHTML;
-                
-                // 添加到頁面
+                navigationDiv.appendChild(buttonsContainer);
                 document.body.appendChild(navigationDiv);
+                
                 console.log('導航按鈕已添加到頁面');
             }
 
