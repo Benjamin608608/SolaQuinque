@@ -1671,6 +1671,13 @@
         // 聖經頁面（書卷 -> 章 -> 節）
         async function showBiblePage() {
             window.currentPage = 'bible';
+            
+            // 移除章節導航按鈕
+            const existingButtons = document.getElementById('chapterNavigationButtons');
+            if (existingButtons) {
+                existingButtons.remove();
+            }
+            
             const main = document.getElementById('mainContent');
             if (!main) return;
             
@@ -1850,26 +1857,17 @@
                         `<span class="verse-item"><span class="verse-number">${verse.verse}</span>${verse.text}</span>`
                     ).join('');
                     
-                    const html = `<div class="chapter-content p-6 bg-gray-50 rounded-lg shadow-sm border border-gray-200 relative">
+                    const html = `<div class="chapter-content p-6 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
                         <div class="text-gray-800 leading-relaxed text-justify">
                             ${chapterText}
                             <br><br><br>
                         </div>
-                        
-                        <!-- 前一章和後一章按鈕 -->
-                        <div class="fixed bottom-4 left-4 right-4 z-20 pointer-events-none">
-                            <div class="max-w-4xl mx-auto px-3 flex justify-between items-center pointer-events-auto">
-                                <button onclick="navigateChapter(${bookId}, ${chapter - 1})" class="p-3 rounded-full bg-[var(--primary)] text-white shadow-lg hover:bg-[var(--primary-dark)] transition-colors" title="前一章">
-                                    <span class="material-icons-outlined text-xl">arrow_back</span>
-                                </button>
-                                <button onclick="navigateChapter(${bookId}, ${chapter + 1})" class="p-3 rounded-full bg-[var(--primary)] text-white shadow-lg hover:bg-[var(--primary-dark)] transition-colors" title="後一章">
-                                    <span class="material-icons-outlined text-xl">arrow_forward</span>
-                                </button>
-                            </div>
-                        </div>
                     </div>`;
                     
                     container.innerHTML = html;
+                    
+                    // 添加前一章和後一章按鈕到頁面
+                    addChapterNavigationButtons(bookId, chapter);
                     
                 } catch (error) {
                     console.error('載入章節失敗:', error);
@@ -1963,6 +1961,33 @@
                         });
                     });
                 });
+            }
+
+            // 添加章節導航按鈕
+            function addChapterNavigationButtons(bookId, chapter) {
+                // 移除現有的導航按鈕
+                const existingButtons = document.getElementById('chapterNavigationButtons');
+                if (existingButtons) {
+                    existingButtons.remove();
+                }
+                
+                // 創建新的導航按鈕
+                const navigationDiv = document.createElement('div');
+                navigationDiv.id = 'chapterNavigationButtons';
+                navigationDiv.className = 'fixed bottom-4 left-4 right-4 z-50 pointer-events-none';
+                navigationDiv.innerHTML = `
+                    <div class="max-w-4xl mx-auto px-3 flex justify-between items-center pointer-events-auto">
+                        <button onclick="navigateChapter(${bookId}, ${chapter - 1})" class="p-3 rounded-full bg-[var(--primary)] text-white shadow-lg hover:bg-[var(--primary-dark)] transition-colors" title="前一章">
+                            <span class="material-icons-outlined text-xl">arrow_back</span>
+                        </button>
+                        <button onclick="navigateChapter(${bookId}, ${chapter + 1})" class="p-3 rounded-full bg-[var(--primary)] text-white shadow-lg hover:bg-[var(--primary-dark)] transition-colors" title="後一章">
+                            <span class="material-icons-outlined text-xl">arrow_forward</span>
+                        </button>
+                    </div>
+                `;
+                
+                // 添加到頁面
+                document.body.appendChild(navigationDiv);
             }
 
             // 章節導航功能
