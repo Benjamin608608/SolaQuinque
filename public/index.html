@@ -1839,15 +1839,25 @@
                         const cells = Array.from(grid.children);
                         const w = window.innerWidth;
                         const cols = w >= 768 ? 12 : (w >= 640 ? 8 : 3);
-                        const idx = cells.indexOf(btn.closest('div'));
-                        const rowEndIdx = Math.min(Math.floor(idx / cols) * cols + (cols - 1), cells.length - 1);
+                        const clickedCell = btn.closest('div');
+                        const idx = cells.indexOf(clickedCell);
+                        
+                        // 計算被點擊書卷所在行的起始和結束索引
+                        const rowStartIdx = Math.floor(idx / cols) * cols;
+                        const rowEndIdx = Math.min(rowStartIdx + cols - 1, cells.length - 1);
+                        
+                        // 找到該行的最後一個元素作為錨點
                         const anchor = cells[rowEndIdx];
+                        
+                        // 創建章節展開行
                         const row = document.createElement('div');
                         row.className = 'chapters-inline-row grid-full-row';
                         row.setAttribute('data-parent-book', String(id));
                         const chaptersContainer = document.createElement('div');
-                         chaptersContainer.className = 'bible-grid-chapters';
-                         row.appendChild(chaptersContainer);
+                        chaptersContainer.className = 'bible-grid-chapters';
+                        row.appendChild(chaptersContainer);
+                        
+                        // 在該行的最後一個元素後面插入章節行
                         anchor.insertAdjacentElement('afterend', row);
                         // 渲染章按鈕
                         const chapterCount = parseInt(btn.getAttribute('data-chapters'), 10) || 50;
