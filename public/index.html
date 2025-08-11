@@ -1449,6 +1449,13 @@
                   }
                 );
 
+                // 兜底：任何行首「數字. 姓名（年份）」若仍未包 strong，統一補強
+                out = out.replace(/(<p[^>]*>\s*\d+\.\s*)([^<\(]+?)(\s*(\([^\)]*\))?)(\s*<\/p>)/g,
+                  (m, head, name, rest, years, tail) => {
+                    const inner = name.includes('<strong>') ? name : `<strong>${name.trim()}${years || ''}</strong>`;
+                    return `${head}${inner}${tail}`;
+                });
+
                 // 每位作者段落前加額外間距
                 out = out.replace(/<p><strong>/g, '<p style="margin-top:16px;"><strong>');
                 out = out.replace(/<li><strong>/g, '<li style="margin-top:12px;"><strong>');
@@ -2343,6 +2350,8 @@
                 if (!commentaryDiv) return;
                 
                 try {
+                    // 確保作者對照表已載入
+                    try { if (!window.authorTranslations) { await loadAuthorTranslations(); } } catch {}
                     // 獲取當前書卷的英文名稱
                     const allBooks = [...booksOT, ...booksNT];
                     const book = allBooks.find(b => b.zh === bookName || b.en === bookName);
@@ -2438,6 +2447,11 @@
                             </div>
                         </div>
                     `;
+                    // DOM 層級二次清理所有數字小標
+                    try {
+                        commentaryDiv.querySelectorAll('.citation, sup').forEach(el => el.remove());
+                        commentaryDiv.innerHTML = commentaryDiv.innerHTML.replace(/\s*\[\d+\]\s*/g, '');
+                    } catch {}
                     
                     // 綁定引用事件
                     bindCitationEvents();
