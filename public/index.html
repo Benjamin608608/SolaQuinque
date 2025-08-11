@@ -688,9 +688,12 @@
                 const response = await fetch('/api/user');
                 const data = await response.json();
                 
-                if (data.success && data.user) {
+                // 更嚴格的認證檢查
+                if (data.success && data.user && data.user.id && data.user.email) {
+                    console.log('用戶已認證:', data.user.email);
                     showAuthenticatedUI(data.user);
                 } else {
+                    console.log('用戶未認證或認證資料不完整');
                     // 設置當前頁面狀態為登入頁面
                     window.currentPage = 'login';
                     showLoginUI();
@@ -2441,14 +2444,20 @@
                     showLoginUI();
                 }
 
+                // 強制檢查：如果沒有顯示登入畫面且沒有用戶資料，強制顯示登入畫面
+                const mainContent = document.getElementById('mainContent');
+                if (mainContent && !mainContent.innerHTML.includes('登入') && !mainContent.innerHTML.includes('login')) {
+                    console.log('強制顯示登入畫面');
+                    showLoginUI();
+                }
+
                 // 初始化引用標註事件
                 bindCitationEvents();
 
                 // 頁面轉場：初次載入給主內容一個淡入
-                const main = document.getElementById('mainContent');
-                if (main) {
-                    main.classList.add('page-enter');
-                    requestAnimationFrame(() => main.classList.add('page-enter-active'));
+                if (mainContent) {
+                    mainContent.classList.add('page-enter');
+                    requestAnimationFrame(() => mainContent.classList.add('page-enter-active'));
                 }
 
                 // 頁面載入時檢查
