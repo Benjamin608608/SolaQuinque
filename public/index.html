@@ -2228,9 +2228,16 @@
                     if (inTargetChapter && line.match(/^\d+\./)) {
                         const match = line.match(/^(\d+)\.\s*(.+)$/);
                         if (match) {
+                            // 清理 Strong's Concordance 編號標記
+                            let cleanText = match[2].trim();
+                            cleanText = cleanText.replace(/<S>\d+<\/S>/g, ''); // 移除 <S>數字</S> 標記
+                            cleanText = cleanText.replace(/<sup>.*?<\/sup>/g, ''); // 移除註釋標記
+                            cleanText = cleanText.replace(/\s+/g, ' '); // 清理多餘空格
+                            cleanText = cleanText.trim();
+                            
                             verses.push({
                                 verse: parseInt(match[1]),
-                                text: match[2].trim(),
+                                text: cleanText,
                                 chapter: chapter
                             });
                         }
