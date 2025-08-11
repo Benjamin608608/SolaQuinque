@@ -2501,13 +2501,13 @@
                 container.innerHTML = `
                   <div class="flex items-center justify-between p-2">
                     <div class="text-sm text-[var(--text-primary)]">對照模式：${currentChapter}章 ${start}${end>start?`-${end}`:''}（上方：${topVersion}）</div>
-                    <div class="flex items-center gap-2 text-sm">
-                      <span class="text-[var(--text-primary)]">下方版本：</span>
-                      <select id="compareBottomVersion" class="border rounded px-2 py-1 text-sm">
+                    <div class="flex items-center gap-3 text-sm">
+                      <label for="compareBottomVersion" class="text-[var(--text-primary)] whitespace-nowrap">下方版本：</label>
+                      <select id="compareBottomVersion" class="border rounded px-3 py-1.5 pr-8 text-sm min-w-[160px] appearance-auto">
                         <option value="CUV" ${defaultBottom==='CUV'?'selected':''}>CUV</option>
                         <option value="KJV" ${defaultBottom==='KJV'?'selected':''}>KJV</option>
                       </select>
-                      <button id="exitCompare" class="ml-2 px-2 py-1 rounded border">退出對照</button>
+                      <button id="exitCompare" class="ml-2 px-3 py-1.5 rounded border">退出對照</button>
                     </div>
                   </div>
                   <div class="grid grid-rows-[1fr_auto_1fr]">
