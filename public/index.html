@@ -2065,6 +2065,28 @@
                 
                 console.log('選中經節:', verseNumber);
             }
+            
+            // 清除經文選中功能
+            function clearVerseSelection() {
+                // 移除所有選中狀態
+                document.querySelectorAll('.clickable-verse').forEach(el => {
+                    el.classList.remove('verse-selected');
+                });
+                
+                // 隱藏經文操作選單
+                const menu = document.getElementById('verse-action-menu');
+                if (menu) {
+                    menu.classList.add('hidden');
+                }
+                
+                // 隱藏中間按鈕
+                const centerBtn = document.getElementById('verse-action-btn');
+                if (centerBtn) {
+                    centerBtn.classList.add('hidden');
+                }
+                
+                console.log('清除經文選中');
+            }
 
             // 切換經文操作選單
             function toggleVerseActionMenu() {
@@ -2307,10 +2329,19 @@
                     
                     // 添加經文點擊事件監聽器
                     container.querySelectorAll('.clickable-verse').forEach(verseEl => {
-                        verseEl.addEventListener('click', () => {
+                        verseEl.addEventListener('click', (event) => {
+                            event.stopPropagation(); // 防止事件冒泡
                             const verseNumber = parseInt(verseEl.getAttribute('data-verse'));
                             selectVerse(verseNumber);
                         });
+                    });
+                    
+                    // 添加點擊空白處取消選中的功能
+                    container.addEventListener('click', (event) => {
+                        // 如果點擊的不是經文元素，則取消選中
+                        if (!event.target.closest('.clickable-verse')) {
+                            clearVerseSelection();
+                        }
                     });
                     
                     // 添加前一章和後一章按鈕到頁面
@@ -2511,15 +2542,26 @@
                 actionMenu.id = 'verse-action-menu';
                 actionMenu.className = 'verse-action-menu hidden';
                 actionMenu.innerHTML = `
-                    <button class="verse-action-menu-item" onclick="showVerseCommentary()">
+                    <button class="verse-action-menu-item" id="commentary-btn">
                         <span class="material-icons-outlined">comment</span>
                         <span>註釋</span>
                     </button>
-                    <button class="verse-action-menu-item" onclick="showVerseComparison()">
+                    <button class="verse-action-menu-item" id="comparison-btn">
                         <span class="material-icons-outlined">compare_arrows</span>
                         <span>對照</span>
                     </button>
                 `;
+                
+                // 添加按鈕事件監聽器
+                const commentaryBtn = actionMenu.querySelector('#commentary-btn');
+                const comparisonBtn = actionMenu.querySelector('#comparison-btn');
+                
+                if (commentaryBtn) {
+                    commentaryBtn.addEventListener('click', showVerseCommentary);
+                }
+                if (comparisonBtn) {
+                    comparisonBtn.addEventListener('click', showVerseComparison);
+                }
                 
                 centerContainer.appendChild(centerButton);
                 centerContainer.appendChild(actionMenu);
