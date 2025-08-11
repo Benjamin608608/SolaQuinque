@@ -1727,50 +1727,6 @@
                 el.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
             }
 
-            // 載入整章內容 - 直接顯示經文而不顯示節數按鈕
-            async function loadWholeChapter(bookId, chapter) {
-                const version = document.getElementById('bibleVersion').value || 'CUV';
-                const container = document.getElementById('bibleText');
-                const bibleResult = document.getElementById('bibleResult');
-                const explain = document.getElementById('bibleExplanation');
-                
-                // 隱藏解釋功能
-                if (explain) explain.innerHTML = '';
-                
-                // 顯示載入中
-                container.innerHTML = '<div class="text-[var(--text-secondary)] text-sm">載入中...</div>';
-                bibleResult.classList.remove('hidden');
-                
-                try {
-                    // 從本地文本檔案載入
-                    const response = await fetch(`/data/bible-versions/${version.toLowerCase()}-bible.txt`);
-                    if (!response.ok) {
-                        throw new Error(`無法載入聖經檔案 (${response.status}: ${response.statusText})`);
-                    }
-                    
-                    const text = await response.text();
-                    
-                    // 檢查檔案是否為空或只有標題
-                    if (!text || text.trim().length < 100) {
-                        throw new Error('聖經檔案內容不完整');
-                    }
-                    
-                    const verses = parseBibleTextFromFile(text, bookId, chapter);
-                    
-                    if (verses.length === 0) {
-                        container.innerHTML = '<div class="text-[var(--text-secondary)] text-sm">找不到該章節的內容</div>';
-                        return;
-                    }
-                    
-                    // 渲染整章內容
-                    renderWholeChapter(verses, version);
-                    
-                } catch (error) {
-                    console.error('載入章節失敗:', error);
-                    container.innerHTML = `<div class="text-[var(--text-secondary)] text-sm">載入章節失敗: ${error.message}</div>`;
-                }
-            }
-
             // 從本地文本檔案解析聖經內容
             function parseBibleTextFromFile(text, bookId, chapter) {
                 const verses = [];
@@ -1833,6 +1789,50 @@
                 
                 return verses.sort((a, b) => a.verse - b.verse);
             }
+
+            // 載入整章內容 - 直接顯示經文而不顯示節數按鈕
+            async function loadWholeChapter(bookId, chapter) {
+                const version = document.getElementById('bibleVersion').value || 'CUV';
+                const container = document.getElementById('bibleText');
+                const bibleResult = document.getElementById('bibleResult');
+                const explain = document.getElementById('bibleExplanation');
+                
+                // 隱藏解釋功能
+                if (explain) explain.innerHTML = '';
+                
+                // 顯示載入中
+                container.innerHTML = '<div class="text-[var(--text-secondary)] text-sm">載入中...</div>';
+                bibleResult.classList.remove('hidden');
+                
+                try {
+                    // 從本地文本檔案載入
+                    const response = await fetch(`/data/bible-versions/${version.toLowerCase()}-bible.txt`);
+                    if (!response.ok) {
+                        throw new Error(`無法載入聖經檔案 (${response.status}: ${response.statusText})`);
+                    }
+                    
+                    const text = await response.text();
+                    
+                    // 檢查檔案是否為空或只有標題
+                    if (!text || text.trim().length < 100) {
+                        throw new Error('聖經檔案內容不完整');
+                    }
+                    
+                    const verses = parseBibleTextFromFile(text, bookId, chapter);
+                    
+                    if (verses.length === 0) {
+                        container.innerHTML = '<div class="text-[var(--text-secondary)] text-sm">找不到該章節的內容</div>';
+                        return;
+                    }
+                    
+                    // 渲染整章內容
+                    renderWholeChapter(verses, version);
+                    
+                } catch (error) {
+                    console.error('載入章節失敗:', error);
+                    container.innerHTML = `<div class="text-[var(--text-secondary)] text-sm">載入章節失敗: ${error.message}</div>`;
+                }
+
 
             // 渲染整章內容
             function renderWholeChapter(verses, version) {
