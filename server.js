@@ -1256,6 +1256,180 @@ app.post('/api/search', ensureAuthenticated, async (req, res) => {
   }
 });
 
+// === 新增：SSE 工具函式與串流端點（不影響原有 API） ===
+function sseInit(res) {
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+}
+function sseSend(res, event, data) {
+  if (event) res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+function sseHeartbeat(res) {
+  res.write(`: keep-alive\n\n`);
+}
+async function streamTextByChunks(res, fullText, chunkSize = 24, delayMs = 0) {
+  for (let i = 0; i < fullText.length; i += chunkSize) {
+    const part = fullText.slice(i, i + chunkSize);
+    sseSend(res, 'delta', { text: part });
+    if (delayMs > 0) {
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+}
+
+// 新增：首頁搜尋串流端點（模擬 token 串流輸出）
+app.get('/api/search/stream', ensureAuthenticated, async (req, res) => {
+  try {
+    const question = (req.query.question || '').toString();
+    const language = (req.query.language || 'zh').toString();
+    if (!question.trim()) {
+      res.status(400);
+      sseInit(res);
+      sseSend(res, 'error', { message: '請提供有效的問題' });
+      return res.end();
+    }
+    sseInit(res);
+    sseSend(res, 'ready', { ok: true });
+
+    // 使用原邏輯取回完整答案，再以小塊輸出
+    const result = await processSearchRequest(question.trim(), req.user, language);
+
+    // 先串流未處理的答案文字（模擬 token）
+    const rawText = (result && result.answer) ? String(result.answer) : '';
+    await streamTextByChunks(res, rawText, 32, 0);
+
+    // 最終以已處理（含引文註釋）的文本覆蓋（避免 citations 遺漏）
+    sseSend(res, 'replace', { html: result.answer, sources: result.sources || [] });
+    sseSend(res, 'done', { ok: true });
+    return res.end();
+  } catch (err) {
+    try {
+      sseSend(res, 'error', { message: err.message || '處理失敗' });
+      return res.end();
+    } catch {}
+  }
+});
+
+// 聖經經文解釋（依卷限定向量庫）
+app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
+  try {
+    const { bookEn, ref, translation, language = 'zh', passageText } = req.body || {};
+
+    if (!bookEn || !ref) {
+      return res.status(400).json({ success: false, error: '缺少必要參數 bookEn 或 ref' });
+    }
+
+    const storePrefix = process.env.BIBLE_STORE_PREFIX || 'Bible-';
+    const targetName = `${storePrefix}${bookEn}`;
+    const vsId = await getVectorStoreIdCachedByName(targetName);
+    if (!vsId) {
+      return res.status(503).json({ success: false, error: `該卷資料庫尚未建立完成，請稍後再試（${targetName}）` });
+    }
+
+    // 讓回答格式列出「每位作者」對指定經文的解釋，並附註來源（交由檔案引用處理）。
+    // 傳入的 passageText 僅作為定位語境，仍然必須只根據資料庫內容回答。
+    const zhPrompt = `請嚴格僅根據資料庫內容作答。針對「${ref}」，請在本卷向量庫中「全面檢索所有涉及此段經文的作者」，不要省略任何一位作者。必須展示該經卷資料庫中所有對此段經文有註釋的作者資料。
+
+對每位作者，請按以下格式呈現：
+1. 標題部分：**作者名稱（年代，著作名稱）** - 作者名稱、年代和著作名稱必須加粗顯示
+2. 內文部分：用一段完整的敘述方式詳盡說明這位神學家對這段經文的解釋和觀點，包含其詮釋角度、論據、神學立場等，不得使用條列式或數字清單
+
+要求：
+- 標題部分格式：作者名稱（年代和著作名稱）須加粗
+- 內文必須是敘述性段落，不可用條列
+- 必須包含資料庫中所有對此經文有註釋的作者
+- 著作名稱請保持原文
+
+若無資料，請直接說明找不到相關資料。
+
+以下為選取經文僅用於定位語境（不可作為回答來源）：
+${passageText ? '---\n' + passageText + '\n---' : ''}`;
+
+    const enPrompt = `Answer strictly from the provided vector store only. For "${ref}", perform an exhaustive retrieval of ALL authors in this book who comment on the passage (do not omit any author). Must display all author data from this book's database that have commentary on this passage.
+
+For each author, please present in the following format:
+1. Title section: **Author Name (Year, Work Title)** - Author name, year, and work title must be in bold
+2. Content section: Provide one complete narrative paragraph explaining this theologian's interpretation of this passage, including their interpretive approach, arguments, theological position, etc. No bullet points or numbered lists.
+
+Requirements:
+- Title format: Author name (year and work title) must be bold
+- Content must be narrative paragraphs, not lists
+- Must include ALL authors from the database who comment on this passage
+- Keep work titles in original language
+
+If nothing is found, state it directly.
+
+Passage provided only to locate context (do not use it as a source of facts):
+${passageText ? '---\n' + passageText + '\n---' : ''}`;
+
+    const q = (language === 'en' ? enPrompt : zhPrompt) + (translation ? `\n（版本：${translation}）` : '');
+
+    const cacheKey = `${targetName}|${ref}|${translation || ''}|${language}|${passageText ? 'withPassage' : ''}`.toLowerCase();
+    const cached = getBibleExplainCached(cacheKey);
+    if (cached) {
+      return res.json({ success: true, data: cached, cached: true });
+    }
+
+    const result = await processBibleExplainRequest(q, vsId, req.user, language);
+    setBibleExplainCached(cacheKey, result);
+
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('聖經經文解釋錯誤:', error.message);
+    res.status(500).json({ success: false, error: '處理失敗，請稍後再試' });
+  }
+});
+
+// 新增：聖經經文解釋串流端點（POST + SSE 格式，方便攜帶大 payload）
+app.post('/api/bible/explain/stream', ensureAuthenticated, async (req, res) => {
+  try {
+    const { bookEn, ref, translation, language = 'zh', passageText } = req.body || {};
+    if (!bookEn || !ref) {
+      res.status(400);
+      sseInit(res);
+      sseSend(res, 'error', { message: '缺少必要參數 bookEn 或 ref' });
+      return res.end();
+    }
+
+    const storePrefix = process.env.BIBLE_STORE_PREFIX || 'Bible-';
+    const targetName = `${storePrefix}${bookEn}`;
+    const vsId = await getVectorStoreIdCachedByName(targetName);
+    if (!vsId) {
+      res.status(503);
+      sseInit(res);
+      sseSend(res, 'error', { message: `該卷資料庫尚未建立完成，請稍後再試（${targetName}）` });
+      return res.end();
+    }
+
+    sseInit(res);
+    sseSend(res, 'ready', { ok: true });
+
+    const zhPrompt = `請嚴格僅根據資料庫內容作答。針對「${ref}」，請在本卷向量庫中「全面檢索所有涉及此段經文的作者」，不要省略任何一位作者。必須展示該經卷資料庫中所有對此段經文有註釋的作者資料。
+\n對每位作者，請按以下格式呈現：\n1. 標題部分：**作者名稱（年代，著作名稱）** - 作者名稱、年代和著作名稱必須加粗顯示\n2. 內文部分：用一段完整的敘述方式詳盡說明這位神學家對這段經文的解釋和觀點，包含其詮釋角度、論據、神學立場等，不得使用條列式或數字清單\n\n要求：\n- 標題部分格式：作者名稱（年代和著作名稱）須加粗\n- 內文必須是敘述性段落，不可用條列\n- 必須包含資料庫中所有對此經文有註釋的作者\n- 著作名稱請保持原文\n\n若無資料，請直接說明找不到相關資料。\n\n以下為選取經文僅用於定位語境（不可作為回答來源）：\n${passageText ? '---\n' + passageText + '\n---' : ''}`;
+    const enPrompt = `Answer strictly from the provided vector store only. For "${ref}", perform an exhaustive retrieval of ALL authors in this book who comment on the passage (do not omit any author). Must display all author data from this book's database that have commentary on this passage.\n\nFor each author, please present in the following format:\n1. Title section: **Author Name (Year, Work Title)** - Author name, year, and work title must be in bold\n2. Content section: Provide one complete narrative paragraph explaining this theologian's interpretation of this passage, including their interpretive approach, arguments, theological position, etc. No bullet points or numbered lists.\n\nRequirements:\n- Title format: Author name (year and work title) must be bold\n- Content must be narrative paragraphs, not lists\n- Must include ALL authors from the database who comment on this passage\n- Keep work titles in original language\n\nIf nothing is found, state it directly.\n\nPassage provided only to locate context (do not use it as a source of facts):\n${passageText ? '---\n' + passageText + '\n---' : ''}`;
+
+    const q = (language === 'en' ? enPrompt : zhPrompt) + (translation ? `\n（版本：${translation}）` : '');
+
+    const result = await processBibleExplainRequest(q, vsId, req.user, language);
+
+    const rawText = (result && result.answer) ? String(result.answer) : '';
+    await streamTextByChunks(res, rawText, 32, 0);
+
+    sseSend(res, 'replace', { html: result.answer, sources: result.sources || [] });
+    sseSend(res, 'done', { ok: true });
+    return res.end();
+  } catch (err) {
+    try {
+      sseSend(res, 'error', { message: err.message || '處理失敗' });
+      return res.end();
+    } catch {}
+  }
+});
+
 // 幫助方法：依名稱尋找向量庫 ID（不區分大小寫）
 async function findVectorStoreIdByName(name) {
   try {
@@ -1381,76 +1555,6 @@ async function processBibleExplainRequest(question, targetVectorStoreId, user, l
     throw e;
   }
 }
-
-// 聖經經文解釋（依卷限定向量庫）
-app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
-  try {
-    const { bookEn, ref, translation, language = 'zh', passageText } = req.body || {};
-
-    if (!bookEn || !ref) {
-      return res.status(400).json({ success: false, error: '缺少必要參數 bookEn 或 ref' });
-    }
-
-    const storePrefix = process.env.BIBLE_STORE_PREFIX || 'Bible-';
-    const targetName = `${storePrefix}${bookEn}`;
-    const vsId = await getVectorStoreIdCachedByName(targetName);
-    if (!vsId) {
-      return res.status(503).json({ success: false, error: `該卷資料庫尚未建立完成，請稍後再試（${targetName}）` });
-    }
-
-    // 讓回答格式列出「每位作者」對指定經文的解釋，並附註來源（交由檔案引用處理）。
-    // 傳入的 passageText 僅作為定位語境，仍然必須只根據資料庫內容回答。
-    const zhPrompt = `請嚴格僅根據資料庫內容作答。針對「${ref}」，請在本卷向量庫中「全面檢索所有涉及此段經文的作者」，不要省略任何一位作者。必須展示該經卷資料庫中所有對此段經文有註釋的作者資料。
-
-對每位作者，請按以下格式呈現：
-1. 標題部分：**作者名稱（年代，著作名稱）** - 作者名稱、年代和著作名稱必須加粗顯示
-2. 內文部分：用一段完整的敘述方式詳盡說明這位神學家對這段經文的解釋和觀點，包含其詮釋角度、論據、神學立場等，不得使用條列式或數字清單
-
-要求：
-- 標題部分格式：作者名稱（年代和著作名稱）須加粗
-- 內文必須是敘述性段落，不可用條列
-- 必須包含資料庫中所有對此經文有註釋的作者
-- 著作名稱請保持原文
-
-若無資料，請直接說明找不到相關資料。
-
-以下為選取經文僅用於定位語境（不可作為回答來源）：
-${passageText ? '---\n' + passageText + '\n---' : ''}`;
-
-    const enPrompt = `Answer strictly from the provided vector store only. For "${ref}", perform an exhaustive retrieval of ALL authors in this book who comment on the passage (do not omit any author). Must display all author data from this book's database that have commentary on this passage.
-
-For each author, please present in the following format:
-1. Title section: **Author Name (Year, Work Title)** - Author name, year, and work title must be in bold
-2. Content section: Provide one complete narrative paragraph explaining this theologian's interpretation of this passage, including their interpretive approach, arguments, theological position, etc. No bullet points or numbered lists.
-
-Requirements:
-- Title format: Author name (year and work title) must be bold
-- Content must be narrative paragraphs, not lists
-- Must include ALL authors from the database who comment on this passage
-- Keep work titles in original language
-
-If nothing is found, state it directly.
-
-Passage provided only to locate context (do not use it as a source of facts):
-${passageText ? '---\n' + passageText + '\n---' : ''}`;
-
-    const q = (language === 'en' ? enPrompt : zhPrompt) + (translation ? `\n（版本：${translation}）` : '');
-
-    const cacheKey = `${targetName}|${ref}|${translation || ''}|${language}|${passageText ? 'withPassage' : ''}`.toLowerCase();
-    const cached = getBibleExplainCached(cacheKey);
-    if (cached) {
-      return res.json({ success: true, data: cached, cached: true });
-    }
-
-    const result = await processBibleExplainRequest(q, vsId, req.user, language);
-    setBibleExplainCached(cacheKey, result);
-
-    return res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('聖經經文解釋錯誤:', error.message);
-    res.status(500).json({ success: false, error: '處理失敗，請稍後再試' });
-  }
-});
 
 // 作者對照表 API（必須在靜態文件服務之前）
 app.get('/config/author-translations.json', (req, res) => {

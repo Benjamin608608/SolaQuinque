@@ -807,6 +807,9 @@
                   min-width: 1.2rem;
               }
           }
++        /* 串流渲染：暫掛粗體樣式 */
++        .pending-strong { font-weight: 700; opacity: 0.95; }
++        .code-pending { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#f7f7f9; border:1px solid #e5e7eb; border-radius:6px; padding:8px 10px; white-space:pre-wrap; }
      </style>
     <style>
         body {
@@ -1225,39 +1228,41 @@
                         throw new Error('連線檢查失敗');
                     }
                     
-                    const response = await fetch('/api/search', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            question,
-                            language: window.currentLanguage || 'zh'
-                        }),
-                        // 添加超時設置
-                        signal: AbortSignal.timeout(120000) // 2分鐘超時
+                    // 優先使用 SSE 串流
+                    const lang = encodeURIComponent(window.currentLanguage || 'zh');
+                    const q = encodeURIComponent(question);
+                    const es = new EventSource(`/api/search/stream?question=${q}&language=${lang}`);
+                    let finished = false;
+                    es.addEventListener('ready', () => {});
+                    es.addEventListener('delta', (ev) => {
+                        try {
+                            const payload = JSON.parse(ev.data);
+                            if (renderer && payload && typeof payload.text === 'string') renderer.onDelta(payload.text);
+                        } catch {}
                     });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        showResult(data.data.answer, data.data.sources);
+                    es.addEventListener('replace', (ev) => {
+                        try {
+                            const payload = JSON.parse(ev.data);
+                            if (renderer) renderer.onReplace(payload.html, payload.sources || []);
+                        } catch {}
+                    });
+                    es.addEventListener('done', () => {
+                        finished = true;
+                        if (renderer) renderer.onDone();
                         clearSearchState();
-                        return; // 成功，退出重試循環
-                    } else {
-                        // 如果服務器建議重試
-                        if (data.retry && retryCount < maxRetries - 1) {
-                            retryCount++;
-                            console.log(`重試第 ${retryCount} 次...`);
-                            await new Promise(resolve => setTimeout(resolve, 2000)); // 等待2秒
-                            continue;
-                        }
-                        
-                        const errorText = window.translations ? window.translations['search-error'] : '搜索失敗，請稍後再試';
-                        showError(data.error || errorText);
-                        clearSearchState();
-                        return;
+                        es.close();
+                    });
+                    es.addEventListener('error', (ev) => {
+                        try { console.warn('SSE error', ev?.data); } catch {}
+                        if (!finished) { try { es.close(); } catch {} }
+                    });
+                    // 等待最多 2 分鐘，若仍未完成則改用舊 API 作為後備
+                    await new Promise((resolve) => setTimeout(resolve, 120000));
+                    if (!finished) {
+                        try { es.close(); } catch {}
+                        throw new Error('SSE 超時');
                     }
+                    return;
                 } catch (error) {
                     console.error('搜索錯誤:', error);
                     retryCount++;
@@ -1438,7 +1443,7 @@
 
                 // 書名強制英文：避免將含有 Bible/bible 的書名被翻譯為「聖經」
                 // 只作用於引號內或斜體/書名格式常見片段，保留大小寫
-                out = out.replace(/([“"'\(\[])([^\1\)\]“”"']*?\b[Bb]ible\b[^\1\)\]“”"']*?)([”"'\)\]])/g, (m, l, mid, r) => `${l}${mid.replace(/聖經/g, 'Bible')}${r}`);
+                out = out.replace(/([“"'\(\[])([^\1\)\]“”"']*?\b[Bb]ible\b[^\1\)\]“"']*?)([”"'\)\]])/g, (m, l, mid, r) => `${l}${mid.replace(/聖經/g, 'Bible')}${r}`);
                 // 再保守處理：若已存在英文 Bible 被錯誤替換為中文，也還原
                 out = out.replace(/\b聖經\b\s*(\([^)]*\))?/g, 'Bible$1');
 
@@ -1457,9 +1462,9 @@
                 protect(/<cite[\s\S]*?<\/cite>/gi);
                 // 引號形式的書名
                 protect(/"[\s\S]*?"/g);
-                protect(/“[\s\S]*?”/g);
+                protect(/"[\s\S]*?"/g);
                 protect(/'[^']*?'/g);
-                protect(/‘[\s\S]*?’/g);
+                protect(/'[\s\S]*?'/g);
                 protect(/「[\s\S]*?」/g);
                 protect(/『[\s\S]*?』/g);
 
@@ -2595,33 +2600,67 @@
                         ? targetVerses.map(v => `${v.verse}. ${v.text}`).join('\n')
                         : '';
 
-                    // 使用聖經解釋API搜尋該卷的神學家註釋
+                    // 串流方式（POST + SSE 解析）
+                    commentaryDiv.innerHTML = `<div class="text-sm text-gray-600">正在生成註釋...</div>`;
+                    const contentEl = document.createElement('div');
+                    commentaryDiv.appendChild(contentEl);
+                    const renderer = createStreamMarkdownRenderer(contentEl, { paragraphOnly: true });
+                    let completed = false;
+                    const controller = new AbortController();
+                    const resp = await fetch('/api/bible/explain/stream', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            bookEn: book.engs,
+                            ref,
+                            passageText,
+                            translation: version,
+                            language: window.currentLanguage || 'zh'
+                        }),
+                        signal: controller.signal
+                    });
+                    if (!resp.ok) throw new Error('搜尋請求失敗');
+                    createSseReader(resp, (event, payload) => {
+                        if (event === 'delta' && payload && typeof payload.text === 'string') {
+                            renderer.onDelta(payload.text);
+                        } else if (event === 'replace') {
+                            try {
+                                const finalHtml = refineExplanationHtml(formatAnswer((payload && payload.html) || '', (payload && payload.sources) || []));
+                                contentEl.innerHTML = finalHtml;
+                                bindCitationEvents();
+                            } catch {}
+                        } else if (event === 'done') {
+                            completed = true;
+                            renderer.onDone();
+                        } else if (event === 'error') {
+                            // 忽略，讓後備流程處理
+                        }
+                    });
+                    // 超時保險
+                    await new Promise(r => setTimeout(r, 120000));
+                    if (!completed) throw new Error('串流超時');
+                    return;
+ 
+                } catch (streamErr) {
+                    console.warn('串流註釋失敗，退回非串流:', streamErr?.message || streamErr);
+                    // 後備：使用原非串流 API
                     const response = await fetch('/api/bible/explain', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            bookEn: book.engs,
-                            ref: ref,
+                            bookEn: (book && book.engs) || '',
+                            ref: startVerse === endVerse ? `${chapter}:${startVerse}` : `${chapter}:${startVerse}-${endVerse}`,
                             passageText,
-                            translation: version,
+                            translation: (document.getElementById('bibleVersion')?.value) || 'CUV',
                             language: window.currentLanguage || 'zh'
                         })
                     });
-                    
-                    if (!response.ok) {
-                        throw new Error('搜尋請求失敗');
-                    }
-                    
+                    if (!response.ok) throw new Error('搜尋請求失敗');
                     const result = await response.json();
-                    
-                    if (!result.success) {
-                        throw new Error(result.error || '搜尋失敗');
-                    }
-                    
+                    if (!result.success) throw new Error(result.error || '搜尋失敗');
                     const data = result.data;
-                    
                     if (!data || !data.answer || data.answer.includes('找不到相關資料') || data.answer.includes('nothing is found')) {
                         commentaryDiv.innerHTML = `
                             <div class="text-gray-500 text-center py-4">
@@ -2634,10 +2673,10 @@
                         `;
                         return;
                     }
-                    
+                     
                     // 顯示神學家註釋
                     let commentaryContent = data.answer;
-                    
+                     
                     // 移除開頭與結尾的多餘說明文字
                     commentaryContent = commentaryContent.replace(/根據資料庫內容，針對「[^」]+」的評論\/詮釋作者如下：/g, '');
                     commentaryContent = commentaryContent.replace(/我找到了針對「[^」]+」的評論\/詮釋，以下是相關的作者及其重點概述：/g, '');
@@ -2646,12 +2685,12 @@
                     // 去除常見的結尾客套
                     commentaryContent = commentaryContent.replace(/如果需要更多詳細的?信息或其他(方面的)?問題，請告知！?/g, '');
                     commentaryContent = commentaryContent.replace(/If you need more details or have other questions, please let me know!?/g, '');
-                    
+                     
                     // 格式化內容（不帶任何 AI 額外補語，僅保留內容本身）
                     let formattedContent = commentaryContent;
                     // 移除可能內嵌的重複標題
                     formattedContent = formattedContent.replace(/📚?\s*神學家註釋（基於[^）]+資料庫）/g, '');
-                    
+                     
                     // 處理作者名稱翻譯和格式
                     formattedContent = refineExplanationHtml(formattedContent);
                     // 追加強制書名英文與作者段落化處理（避免混成一段、標示書名為英文）
@@ -2660,13 +2699,13 @@
                     formattedContent = attachTitlesFromSourcesToHeaders(formattedContent, data.sources || []);
                     // 若來源無法判定，再嘗試從內容相鄰處抽取書名
                     formattedContent = attachEnglishTitleToAuthorHeader(formattedContent);
-                    
+                     
                     // 移除數字小標（span/sup/[n] 等多種形式）
                     formattedContent = formattedContent
                         .replace(/<span[^>]*class=["'][^"']*citation[^"']*["'][^>]*>\s*\d+\s*<\/span>/gi, '')
                         .replace(/<sup[^>]*>\s*\d+\s*<\/sup>/gi, '')
                         .replace(/\s*\[\d+\]\s*/g, '');
-                    
+                     
                     // 將可能的條列項合併為敘述段：去除以 - 、•、數字. 開頭的換行列表，轉為句號+空格
                     formattedContent = formattedContent
                         .replace(/\n\s*[-•]\s+/g, ' ')
@@ -2678,21 +2717,21 @@
                         .replace(/<ol[^>]*>/gi, '')
                         .replace(/<\/ol>/gi, '')
                         .replace(/\s{2,}/g, ' ');
-                    
+                     
                     // 確保每個作者段落之間有適當間距
                     // 尋找以<strong>開頭的作者標題，並在前面加上段落間距
                     formattedContent = formattedContent.replace(/(<p[^>]*>)?<strong>([^<]+?（[^）]+）[^<]*?)<\/strong>/g, 
                         '<p style="margin-top:20px; margin-bottom:8px; font-weight:bold; color:#1f2937;">$2</p>');
-                    
+                     
                     // 確保作者標題後的內容作為獨立段落
                     formattedContent = formattedContent.replace(/(<p[^>]*font-weight:bold[^>]*>[^<]+<\/p>)\s*([^<])/g, '$1<p style="margin-top:8px; line-height:1.6;">$2');
-                    
+                     
                     // 段與段之間保留一行空白
-                    formattedContent = formattedContent.replace(/<\/p><p>/g, '</p><br><p>');
-                    
+                    formattedContent = formattedContent.replace(/<\/p><p>/g, '<\/p><br><p>');
+                     
                     // 最終清理：移除任何剩餘的佔位符
                     formattedContent = formattedContent.replace(/@@[A-Z]+\d+@@/g, '');
-                    
+                     
                     commentaryDiv.innerHTML = `
                         <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                 <div class="text-gray-800 text-sm leading-relaxed">
@@ -2705,14 +2744,6 @@
                         commentaryDiv.querySelectorAll('.citation, sup').forEach(el => el.remove());
                         commentaryDiv.innerHTML = commentaryDiv.innerHTML.replace(/\s*\[\d+\]\s*/g, '');
                     } catch {}
-                    
-                } catch (error) {
-                    console.error('搜尋神學家註釋失敗:', error);
-                    commentaryDiv.innerHTML = `
-                        <div class="text-red-600 text-center py-4">
-                            <p>搜尋神學家註釋時發生錯誤：${error.message}</p>
-                        </div>
-                    `;
                 }
             }
             
@@ -4004,6 +4035,139 @@
             const f = all.find(b => b.engs === engs);
             return f ? f.en : engs;
         }
+        // ... existing code ...
+
+        // === 串流渲染工具：節流、SSE 解析與 Markdown 解析（段落級 + 暫掛樣式） ===
+        function throttle(fn, wait) {
+            let pending = false;
+            let lastArgs = null;
+            return function(...args) {
+                lastArgs = args;
+                if (pending) return;
+                pending = true;
+                setTimeout(() => {
+                    pending = false;
+                    fn.apply(this, lastArgs);
+                }, wait);
+            };
+        }
+
+        function createSseReader(response, onEvent) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            const process = async () => {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    let idx;
+                    while ((idx = buffer.indexOf('\n\n')) !== -1) {
+                        const raw = buffer.slice(0, idx).trim();
+                        buffer = buffer.slice(idx + 2);
+                        if (!raw) continue;
+                        const lines = raw.split('\n');
+                        let event = 'message';
+                        let data = '';
+                        for (const line of lines) {
+                            if (line.startsWith('event:')) event = line.slice(6).trim();
+                            else if (line.startsWith('data:')) data += line.slice(5).trim();
+                        }
+                        try { onEvent(event, JSON.parse(data)); } catch { onEvent(event, data); }
+                    }
+                }
+            };
+            process().catch(() => {});
+            return () => { try { reader.cancel(); } catch {} };
+        }
+
+        function createStreamMarkdownRenderer(targetEl, { paragraphOnly = true } = {}) {
+            const md = window.markdownit ? window.markdownit({ breaks: true }) : null;
+            let buffer = '';
+            let lastRenderedStableHtml = '';
+            let lastPendingHtml = '';
+
+            const update = throttle(() => {
+                // 分段：避免未關閉的 code block 被渲染為 <pre><code>
+                const codeFenceOpenCount = (buffer.match(/```/g) || []).length;
+                const hasOpenCode = codeFenceOpenCount % 2 === 1;
+                let safeBuffer = buffer;
+                let tailCodeHtml = '';
+                if (hasOpenCode) {
+                    const lastFence = safeBuffer.lastIndexOf('```');
+                    const head = safeBuffer.slice(0, lastFence);
+                    const tail = safeBuffer.slice(lastFence);
+                    // 頭部允許解析；尾部保留為純文字容器
+                    safeBuffer = head;
+                    tailCodeHtml = `<div class="code-pending">${escapeHtml(tail)}</div>`;
+                }
+
+                // 段落級穩定化：偵測雙換行或句號/全形句號
+                let stable = safeBuffer;
+                let pending = '';
+                if (paragraphOnly) {
+                    const match = stable.match(/[。.!?]\s*$|\n\n[\s\S]*$/);
+                    // 找到最後一個段落分隔點
+                    const lastDoubleNl = stable.lastIndexOf('\n\n');
+                    const lastSentenceEnd = Math.max(stable.lastIndexOf('。'), stable.lastIndexOf('.'));
+                    const cut = Math.max(lastDoubleNl + 2, lastSentenceEnd + 1);
+                    if (cut > 0 && cut <= stable.length) {
+                        pending = stable.slice(cut);
+                        stable = stable.slice(0, cut);
+                    }
+                }
+
+                // 解析 stable 區塊為 HTML
+                let stableHtml = stable ? (md ? md.render(stable) : basicMarkdown(stable)) : '';
+
+                // 對 pending 區塊：暫掛粗體
+                let pendingHtml = '';
+                if (pending || tailCodeHtml) {
+                    const temp = pending || '';
+                    const lastBold = temp.lastIndexOf('**');
+                    let head = temp;
+                    let tail = '';
+                    if (lastBold !== -1 && (temp.match(/\*\*/g) || []).length % 2 === 1) {
+                        head = temp.slice(0, lastBold);
+                        tail = temp.slice(lastBold + 2);
+                        // head 正常解析，tail 暫掛粗體
+                        const headHtml = head ? (md ? md.renderInline(head) : basicMarkdownInline(head)) : '';
+                        pendingHtml = headHtml + `<span class="pending-strong">${escapeHtml(tail)}</span>`;
+                    } else {
+                        pendingHtml = temp ? (md ? md.renderInline(temp) : basicMarkdownInline(temp)) : '';
+                    }
+                }
+
+                const html = (lastRenderedStableHtml + stableHtml) + (pendingHtml || '') + (tailCodeHtml || '');
+                targetEl.innerHTML = html;
+                lastRenderedStableHtml += stableHtml;
+                lastPendingHtml = pendingHtml;
+            }, 80);
+
+            function onDelta(text) {
+                buffer += text;
+                update();
+            }
+            function onReplace(rawAnswer, sources) {
+                // 使用既有格式化 + 引用處理
+                const html = formatAnswer(rawAnswer || '', sources || []);
+                targetEl.innerHTML = html;
+                lastRenderedStableHtml = html;
+                lastPendingHtml = '';
+                if (typeof bindCitationEvents === 'function') bindCitationEvents();
+            }
+            function onDone() {
+                if (typeof bindCitationEvents === 'function') bindCitationEvents();
+            }
+            return { onDelta, onReplace, onDone };
+        }
+
+        function escapeHtml(s) {
+            return (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        }
+        function basicMarkdown(text) { return `<p>${escapeHtml(text).replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`; }
+        function basicMarkdownInline(text) { return escapeHtml(text); }
+
         // ... existing code ...
 
         // 初始化
