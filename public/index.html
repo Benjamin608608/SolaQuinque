@@ -1793,13 +1793,13 @@
                     }
                     
                     // 檢查是否進入目標章節
-                    if (inTargetBook && line.includes(`第${chapter}章`)) {
+                    if (inTargetBook && line.includes(`===`) && line.includes(`第${chapter}章`)) {
                         inTargetChapter = true;
                         continue;
                     }
                     
                     // 如果遇到下一章，停止搜索
-                    if (inTargetChapter && line.includes('第') && line.includes('章') && !line.includes(`第${chapter}章`)) {
+                    if (inTargetChapter && line.includes('===') && line.includes('第') && line.includes('章') && !line.includes(`第${chapter}章`)) {
                         break;
                     }
                     
