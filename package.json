@@ -18,6 +18,12 @@
     "railway-build-index": "node scripts/railway-build-index.js",
     "railway-deploy": "npm run railway-build-index && npm start",
     "setup-google-drive": "node scripts/setup-google-drive.js",
+    "fetch-bible": "node scripts/fetch-bible-versions.js",
+    "fetch-bolls-bible": "node scripts/fetch-bolls-bible.js",
+    "test-bible-api": "node scripts/test-bible-api.js",
+    "test-bible-sample": "node scripts/test-fetch-sample.js",
+    "check-bible-versions": "node scripts/check-available-versions.js",
+    "check-bolls-versions": "node scripts/check-bolls-versions.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

@@ -1,0 +1,49 @@
+name: Fetch Bible Versions
+
+on:
+  workflow_dispatch:  # 手動觸發
+  schedule:
+    # 每週一凌晨2點執行
+    - cron: '0 2 * * 1'
+
+jobs:
+  fetch-bible:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Test API connection
+      run: npm run test-bible-api
+      
+    - name: Fetch sample Bible texts
+      run: npm run test-bible-sample
+      
+    - name: Fetch complete Bible versions
+      run: npm run fetch-bible
+      timeout-minutes: 120  # 2小時超時
+      
+    - name: Upload Bible files as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: bible-versions
+        path: data/bible-versions/
+        retention-days: 30
+        
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add data/bible-versions/
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update Bible versions - $(date)"
+        git push 
