@@ -2019,6 +2019,10 @@
                     // 更新選擇並跳轉到新章節
                     updateBibleSelection({ bookId: bookId, chapter: chapter });
                     await showBibleChapterPage(bookId, chapter);
+                    // 若處於對照模式，載入後立即重建對照
+                    if (window.isCompareMode) {
+                        await showVerseComparison();
+                    }
                     
                     console.log('章節導航完成');
                     
