@@ -746,6 +746,9 @@
             color: var(--primary);
         }
 
+        /* 保證註釋區域粗體可見 */
+        #theological-commentary strong { font-weight: 700; }
+
         /* 展開中的經卷（麵包屑點亮） */
         .bible-book-btn.is-active {
             background: var(--primary) !important;
@@ -1533,7 +1536,7 @@
 
                 // 作者段落：在句末或換行後出現「人名（含西文與年份）」時，插入段落間距並加粗作者+年份
                 const authorHeaderRe = /(^|[。；;\n]\s*)([\u4e00-\u9fa5A-Za-z ·'\-]+?)(\s*（[^）]*\d{3,4}[^）]*）)/g;
-                out = out.replace(authorHeaderRe, (m, sep, name, years) => `${sep}<br><br><strong>${name}${years}</strong>`);
+                out = out.replace(authorHeaderRe, (m, sep, name, years) => `${sep}<p style="margin-top:12px;"><strong>${name}${years}</strong></p>`);
 
                 return out;
             } catch (e) {
