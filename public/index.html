@@ -2519,23 +2519,27 @@
                   </div>
                 `;
 
-                const bottomSelect = document.getElementById('compareBottomVersion');
-                // 保留先前選擇的下方版本
-                if (window.compareBottomVersion) {
-                    bottomSelect.value = window.compareBottomVersion;
-                }
-                // 對照模式旗標
+                // 延後到 DOM 實際插入後再綁定，避免偶發 null
                 window.isCompareMode = true;
-                const renderBoth = async () => {
-                    await renderComparisonPane('compareTopContent', 'compareTopPane', currentBookId, currentChapter, topVersion, start, end);
-                    const bottomVersion = bottomSelect.value.toUpperCase();
-                    await renderComparisonPane('compareBottomContent', 'compareBottomPane', currentBookId, currentChapter, bottomVersion, start, end);
+                await new Promise(r => requestAnimationFrame(r));
+                const setupCompare = async () => {
+                    const bottomSelect = document.getElementById('compareBottomVersion');
+                    if (!bottomSelect) return; // 若仍未渲染，避免報錯
+                    if (window.compareBottomVersion) {
+                        bottomSelect.value = window.compareBottomVersion;
+                    }
+                    const renderBoth = async () => {
+                        await renderComparisonPane('compareTopContent', 'compareTopPane', currentBookId, currentChapter, topVersion, start, end);
+                        const bottomVersion = bottomSelect.value.toUpperCase();
+                        await renderComparisonPane('compareBottomContent', 'compareBottomPane', currentBookId, currentChapter, bottomVersion, start, end);
+                    };
+                    bottomSelect.addEventListener('change', () => {
+                        window.compareBottomVersion = bottomSelect.value;
+                        renderBoth();
+                    });
+                    await renderBoth();
                 };
-                bottomSelect.addEventListener('change', () => {
-                    window.compareBottomVersion = bottomSelect.value;
-                    renderBoth();
-                });
-                await renderBoth();
+                setupCompare();
 
                 // 退出對照，恢復原畫面
                 document.getElementById('exitCompare').addEventListener('click', async () => {
@@ -2561,7 +2565,8 @@
                 try {
                     // 嘗試載入指定版本，失敗則使用備用版本
                     const tryLoad = async (ver) => {
-                        const r = await fetch(`/data/bible-versions/${ver.toLowerCase()}-bible.txt`);
+                        const url = `/data/bible-versions/${ver.toLowerCase()}-bible.txt`;
+                        const r = await fetch(url, { cache: 'no-store' });
                         if (!r.ok) throw new Error('無法載入聖經檔案');
                         const t = await r.text();
                         return t;
