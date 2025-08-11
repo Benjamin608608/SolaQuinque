@@ -2421,8 +2421,11 @@
                     // 處理作者名稱翻譯和格式
                     formattedContent = refineExplanationHtml(formattedContent);
                     
-                    // 移除數字小標，直接在作者名稱後面放著作名稱
-                    formattedContent = formattedContent.replace(/<span class="citation"[^>]*>(\d+)<\/span>/g, '');
+                    // 移除數字小標（span/sup/[n] 等多種形式）
+                    formattedContent = formattedContent
+                        .replace(/<span[^>]*class=["'][^"']*citation[^"']*["'][^>]*>\s*\d+\s*<\/span>/gi, '')
+                        .replace(/<sup[^>]*>\s*\d+\s*<\/sup>/gi, '')
+                        .replace(/\s*\[\d+\]\s*/g, '');
                     
                     // 確保每位作者內容間有空行
                     formattedContent = formattedContent.replace(/<\/p><p>/g, '</p><br><p>');
