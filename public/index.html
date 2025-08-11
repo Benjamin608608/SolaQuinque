@@ -2490,15 +2490,14 @@
 
                 // 取得版本
                 const versionElement = document.getElementById('bibleVersion');
-                const topVersion = (versionElement ? versionElement.value : 'CUV').toUpperCase();
+                const topVersion = ((versionElement ? versionElement.value : 'CUV') || 'CUV').toUpperCase();
                 const defaultBottom = topVersion === 'CUV' ? 'KJV' : 'CUV';
 
                 // 直接將原本畫面切成上下分割
                 const container = document.getElementById('bibleChapterContent');
                 if (!container) return;
                 container.innerHTML = `
-                  <div class="flex items-center justify-between p-2">
-                    <div class="text-sm text-[var(--text-primary)]">對照模式：${currentChapter}章 ${start}${end>start?`-${end}`:''}（上方：${topVersion}）</div>
+                  <div class="flex items-center justify-end p-2">
                     <div class="flex items-center gap-3 text-sm">
                       <label for="compareBottomVersion" class="text-[var(--text-primary)] whitespace-nowrap">下方版本：</label>
                       <select id="compareBottomVersion" class="border rounded px-3 py-1.5 pr-8 text-sm min-w-[160px] appearance-auto text-[var(--primary)]">
@@ -2530,8 +2529,9 @@
                     }
                     const renderBoth = async () => {
                         await renderComparisonPane('compareTopContent', 'compareTopPane', currentBookId, currentChapter, topVersion, start, end);
-                        const bottomVersion = bottomSelect.value.toUpperCase();
-                        await renderComparisonPane('compareBottomContent', 'compareBottomPane', currentBookId, currentChapter, bottomVersion, start, end);
+                        const bv = (bottomSelect.value || (topVersion === 'CUV' ? 'KJV' : 'CUV')).toUpperCase();
+                        if (!bottomSelect.value) bottomSelect.value = bv;
+                        await renderComparisonPane('compareBottomContent', 'compareBottomPane', currentBookId, currentChapter, bv, start, end);
                     };
                     bottomSelect.addEventListener('change', () => {
                         window.compareBottomVersion = bottomSelect.value;
@@ -2888,7 +2888,7 @@
                             await showBibleChapterPage(prevBookId, prevChapter);
                             await showVerseComparison();
                         } else {
-                            navigateToChapter(prevBookId, prevChapter);
+                        navigateToChapter(prevBookId, prevChapter);
                         }
                     });
                     
@@ -2978,7 +2978,7 @@
                             await showBibleChapterPage(nextBookId, nextChapter);
                             await showVerseComparison();
                         } else {
-                            navigateToChapter(nextBookId, nextChapter);
+                        navigateToChapter(nextBookId, nextChapter);
                         }
                     });
                     
