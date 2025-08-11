@@ -2146,11 +2146,7 @@
                     }
                 }
                 
-                // 顯示中間按鈕
-                const centerBtn = document.getElementById('verse-action-btn');
-                if (centerBtn) {
-                    centerBtn.classList.remove('hidden');
-                }
+                // 中間按鈕常駐顯示，無需切換
             }
             
             // 清除經文選中功能
@@ -2169,11 +2165,7 @@
                     menu.classList.add('hidden');
                 }
                 
-                // 隱藏中間按鈕
-                const centerBtn = document.getElementById('verse-action-btn');
-                if (centerBtn) {
-                    centerBtn.classList.add('hidden');
-                }
+                // 中間按鈕常駐顯示，無需切換
                 
                 console.log('清除經文選中');
             }
@@ -2190,7 +2182,7 @@
             // 顯示經文註釋
             function showVerseCommentary() {
                 if (!window.selectedVerseRange) {
-                    alert('請先選中經節');
+                    alert('請先選取一段經文後再使用「註釋」。');
                     return;
                 }
                 
@@ -2484,9 +2476,9 @@
             
             // 顯示經文對照（上下分割）
             async function showVerseComparison() {
+                // 沒有選取則預設本章第一節
                 if (!window.selectedVerseRange) {
-                    alert('請先選中經節');
-                    return;
+                    window.selectedVerseRange = { start: 1, end: 1 };
                 }
                 const { start, end } = window.selectedVerseRange;
                 const currentBookId = window.currentBibleSelection?.bookId;
@@ -2878,13 +2870,13 @@
                     buttonsContainer.appendChild(spacer);
                 }
                 
-                // 中間按鈕（經文選中時顯示）
+                // 中間按鈕（常駐顯示）
                 const centerContainer = document.createElement('div');
                 centerContainer.className = 'relative';
                 
                 const centerButton = document.createElement('button');
                 centerButton.id = 'verse-action-btn';
-                centerButton.className = 'chapter-nav-btn chapter-nav-btn-center hidden';
+                centerButton.className = 'chapter-nav-btn chapter-nav-btn-center';
                 centerButton.title = '經文操作';
                 centerButton.innerHTML = `
                     <div class="btn-3d-effect">
