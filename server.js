@@ -1404,22 +1404,13 @@ app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
 
 對每位作者，請按以下格式呈現：
 1. 標題部分：**作者名稱（年代，著作名稱）** - 作者名稱、年代和著作名稱必須加粗顯示
-2. 內文部分：用一段完整的敘述方式詳盡說明這位神學家對這段經文的解釋和觀點，務必包含：
-   - 神學家對該經文的具體解釋內容
-   - 其詮釋的角度、方法和論據
-   - 相關的神學立場和觀點
-   - 任何引用的專有名詞、術語或概念，必須同時提供原文（希臘文、希伯來文、拉丁文等）
-   - 與其他經文或教義的關聯
-   - 該神學家獨特的見解或貢獻
+2. 內文部分：用一段完整的敘述方式詳盡說明這位神學家對這段經文的解釋和觀點，包含其詮釋角度、論據、神學立場等，不得使用條列式或數字清單
 
-重要要求：
+要求：
 - 標題部分格式：作者名稱（年代和著作名稱）須加粗
-- 內文必須盡可能詳細完整，充分展現神學家的解釋深度
-- 內文必須是敘述性段落，不可用條列式或數字清單
-- 專有名詞、神學術語如有原文，務必附上（如：稱義「δικαίωσις」、道「λόγος」等）
+- 內文必須是敘述性段落，不可用條列
 - 必須包含資料庫中所有對此經文有註釋的作者
 - 著作名稱請保持原文
-- 優先搜尋直接針對此段經文的解釋內容
 
 若無資料，請直接說明找不到相關資料。
 
@@ -1430,22 +1421,13 @@ ${passageText ? '---\n' + passageText + '\n---' : ''}`;
 
 For each author, please present in the following format:
 1. Title section: **Author Name (Year, Work Title)** - Author name, year, and work title must be in bold
-2. Content section: Provide one complete narrative paragraph explaining this theologian's interpretation of this passage, must include:
-   - The theologian's specific interpretation of this passage
-   - Their interpretive approach, method, and arguments
-   - Related theological positions and viewpoints
-   - Any technical terms, concepts, or proper nouns with original language (Greek, Hebrew, Latin, etc.)
-   - Connections to other scriptures or doctrines
-   - The theologian's unique insights or contributions
+2. Content section: Provide one complete narrative paragraph explaining this theologian's interpretation of this passage, including their interpretive approach, arguments, theological position, etc. No bullet points or numbered lists.
 
-Critical Requirements:
+Requirements:
 - Title format: Author name (year and work title) must be bold
-- Content must be as detailed and complete as possible, fully demonstrating the depth of the theologian's interpretation
-- Content must be narrative paragraphs, not bullet points or numbered lists
-- Technical terms and theological concepts must include original language when available (e.g., justification "δικαίωσις", word "λόγος", etc.)
+- Content must be narrative paragraphs, not lists
 - Must include ALL authors from the database who comment on this passage
 - Keep work titles in original language
-- Prioritize direct commentary on this specific passage
 
 If nothing is found, state it directly.
 

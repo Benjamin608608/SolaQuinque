@@ -1442,23 +1442,6 @@
                 // 再保守處理：若已存在英文 Bible 被錯誤替換為中文，也還原
                 out = out.replace(/\b聖經\b\s*(\([^)]*\))?/g, 'Bible$1');
 
-                // 保護希臘文、希伯來文、拉丁文等原文專有名詞
-                // 保護希臘文字母（包括常見的神學術語）
-                const greekTerms = [];
-                function protectGreek(regex) {
-                  out = out.replace(regex, (m) => {
-                    const key = `@@GREEK${greekTerms.length}@@`;
-                    greekTerms.push(m);
-                    return key;
-                  });
-                }
-                // 保護希臘文單詞和片段
-                protectGreek(/[α-ωΑ-Ω][α-ωΑ-Ω\s]*[α-ωΑ-Ω]/g);
-                // 保護拉丁文常見術語
-                protectGreek(/\b[A-Z][a-z]+us\b/g); // 拉丁文結尾
-                protectGreek(/\bsola\s+[a-z]+\b/gi); // 宗教改革術語
-                protectGreek(/\bper\s+[a-z]+\b/gi); // 拉丁文介詞短語
-
                 // 在替換作者名稱之前，暫時保護可能為書名的片段，避免把書名中的作者也翻譯掉
                 const placeholders = [];
                 function protect(regex) {
@@ -1527,8 +1510,6 @@
                 out = out.replace(/@@TITLE(\d+)@@/g, (m, idx) => placeholders[Number(idx)] || m);
                 // 還原括號內容（保持英文原文、不被翻譯，且已將「聖經」修正為 Bible）
                 out = out.replace(/@@PAREN(\d+)@@/g, (m, idx) => parenPlaceholders[Number(idx)] || m);
-                // 還原被保護的希臘文、拉丁文等原文術語
-                out = out.replace(/@@GREEK(\d+)@@/g, (m, idx) => greekTerms[Number(idx)] || m);
 
                 // 每位作者段落前加額外間距
                 out = out.replace(/<p><strong>/g, '<p style="margin-top:16px;"><strong>');
@@ -2686,16 +2667,10 @@
                     // 確保每個作者段落之間有適當間距
                     // 尋找以<strong>開頭的作者標題，並在前面加上段落間距
                     formattedContent = formattedContent.replace(/(<p[^>]*>)?<strong>([^<]+?（[^）]+）[^<]*?)<\/strong>/g, 
-                        '<p style="margin-top:20px; margin-bottom:8px; font-weight:bold; color:#1f2937; font-size:1.05em;">$2</p>');
+                        '<p style="margin-top:20px; margin-bottom:8px; font-weight:bold; color:#1f2937;">$2</p>');
                     
-                    // 確保作者標題後的內容作為獨立段落，並設置更好的行距支持長內容
-                    formattedContent = formattedContent.replace(/(<p[^>]*font-weight:bold[^>]*>[^<]+<\/p>)\s*([^<])/g, '$1<p style="margin-top:8px; line-height:1.7; text-align:justify;">$2');
-                    
-                    // 為希臘文、希伯來文等原文術語添加特殊樣式
-                    formattedContent = formattedContent.replace(/([α-ωΑ-Ω][α-ωΑ-Ω\s]*[α-ωΑ-Ω])/g, '<span style="font-style:italic; color:#8B4513; font-weight:500;">$1</span>');
-                    
-                    // 為引號內的專有名詞添加突出顯示
-                    formattedContent = formattedContent.replace(/「([^」]+)」/g, '<span style="font-weight:500; color:#2563eb;">「$1」</span>');
+                    // 確保作者標題後的內容作為獨立段落
+                    formattedContent = formattedContent.replace(/(<p[^>]*font-weight:bold[^>]*>[^<]+<\/p>)\s*([^<])/g, '$1<p style="margin-top:8px; line-height:1.6;">$2');
                     
                     // 段與段之間保留一行空白
                     formattedContent = formattedContent.replace(/<\/p><p>/g, '</p><br><p>');
