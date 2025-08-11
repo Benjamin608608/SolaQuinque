@@ -1489,7 +1489,8 @@
                 }
                 
                 // 捕捉段落開頭「(可選序號.) 作者（年份）」並確保作者粗體，中文介面轉中文名；年份需保留在作者名後
-                out = out.replace(/(<p[^>]*>\s*)(?:\d+\.\s*)?([A-Za-z .'-]+?)(\s*(\([^\)]*\))?)(\s*[:：])?/g,
+                // 改進正則表達式，更精確匹配作者名稱和年份
+                out = out.replace(/(<p[^>]*>\s*)(?:\d+\.\s*)?([A-Z][a-zA-Z\s\.'-]{2,40}?)(\s*(\(\d{4}(?:-\d{4})?\))?)(\s*[:：])?/g,
                   (all, pStart, name, rest, years, colon) => {
                     const cleanName = name.trim().replace(/\*+/g, '');
                     let display = cleanName;
@@ -1557,7 +1558,8 @@
                 text = text.replace(re, (m, p1) => `<strong>${mapLower[p1.toLowerCase()] || authorTranslations[p1] || p1}</strong>`);
                 
                 // 特別處理段落開頭的作者格式：作者名（年份）
-                text = text.replace(/^([A-Za-z][A-Za-z\s]+?)(\([^)]*\d{4}[^)]*\))/gm, (match, name, years) => {
+                // 改進正則表達式，避免跨作者匹配
+                text = text.replace(/^([A-Z][a-zA-Z\s\.'-]{2,40}?)\s*(\(\d{4}-\d{4}\)|\(\d{4}\))/gm, (match, name, years) => {
                     const cleanName = name.trim();
                     const translated = mapLower[cleanName.toLowerCase()] || authorTranslations[cleanName] || cleanName;
                     return `<strong>${translated}${years}</strong>`;
@@ -1576,8 +1578,9 @@
             try {
                 let out = html;
                 // 先將年份後面誤插入的 ", Title" 移除，只保留年份（支援全形/半形括號）
-                out = out.replace(/\(([^)]*?\d{3,4}\s*[-–—]\s*\d{2,4})(?:\s*[,，]\s*[^)]*?)?\)/g, '($1)');
-                out = out.replace(/（([^）]*?\d{3,4}\s*[-–—]\s*\d{2,4})(?:\s*[,，]\s*[^）]*?)?）/g, '（$1）');
+                // 改進正則表達式，避免匹配到錯誤的年份組合
+                out = out.replace(/\((\d{4}\s*[-–—]\s*\d{4})(?:\s*[,，]\s*[^)]*?)?\)/g, '($1)');
+                out = out.replace(/（(\d{4}\s*[-–—]\s*\d{4})(?:\s*[,，]\s*[^）]*?)?）/g, '（$1）');
 
                 // 書名：移除中文《...》+保留後面英語（...）為斜體（同時支援全形/半形括號）
                 out = out.replace(/《[^》]+》\s*（([^）]*[A-Za-z][^）]*)）/g, (m, en) => ` (<em>${en}</em>)`);
