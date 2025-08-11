@@ -744,13 +744,13 @@
                     showAuthenticatedUI(data.user);
                 } else {
                     console.log('用戶未認證或認證資料不完整');
-                    // 允許未登入用戶使用部分功能（如聖經）
-                    showUnauthenticatedUI();
+                    // 顯示登入畫面，但允許使用部分功能
+                    showLoginUI();
                 }
             } catch (error) {
                 console.error('檢查認證狀態失敗:', error);
-                // 允許未登入用戶使用部分功能（如聖經）
-                showUnauthenticatedUI();
+                // 顯示登入畫面，但允許使用部分功能
+                showLoginUI();
             }
             setFooterVisibility();
         }
@@ -845,12 +845,16 @@
             // 設置當前頁面狀態
             window.currentPage = 'login';
             
-            // 隱藏導航按鈕和用戶按鈕
+            // 顯示導航按鈕（允許使用聖經功能）
             const navLinks = document.getElementById('navLinks');
+            if (navLinks) {
+                navLinks.style.display = 'flex';
+            }
+            
+            // 隱藏用戶按鈕
             const userAvatar = document.getElementById('userAvatar');
             const logoutBtn = document.getElementById('logoutBtn');
             
-            if (navLinks) navLinks.style.display = 'none';
             if (userAvatar) userAvatar.style.display = 'none';
             if (logoutBtn) logoutBtn.style.display = 'none';
             
@@ -880,6 +884,8 @@
                 `;
             }
             
+            // 添加導航按鈕功能
+            addNavigationHandlers();
             setFooterVisibility();
         }
 
