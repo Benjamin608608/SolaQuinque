@@ -1536,7 +1536,13 @@
 
                 // 作者段落：在句末或換行後出現「人名（含西文與年份）」時，插入段落間距並加粗作者+年份
                 const authorHeaderRe = /(^|[。；;\n]\s*)([\u4e00-\u9fa5A-Za-z ·'\-]+?)(\s*（[^）]*\d{3,4}[^）]*）)\s*[:：]?/g;
-                out = out.replace(authorHeaderRe, (m, sep, name, years) => `${sep}<p style="margin-top:12px;"><strong>${name}${years}</strong></p>`);
+                out = out.replace(authorHeaderRe, (m, sep, name, years) => {
+                    const normalizedYears = years
+                        .replace(/[（]/g, '(')
+                        .replace(/[）]/g, ')')
+                        .replace(/[^0-9()\-]/g, '');
+                    return `${sep}<p style=\"margin-top:12px;\"><strong>${name}${normalizedYears}</strong></p>`;
+                });
 
                 return out;
             } catch (e) {
@@ -1544,14 +1550,33 @@
             }
         }
 
-        // 將緊貼作者標頭後面的英文書名移入標頭行，改為《英文書名》
+        // 將英文書名移入作者標頭行，格式：作者（年份）《Title》
         function attachEnglishTitleToAuthorHeader(html) {
             try {
-                return html.replace(/(<p[^>]*><strong>[^<]*?（[^）]*\d{3,4}[^）]*）<\/strong><\/p>)\s*(?:[（(]\s*<em>([^<]+)<\/em>\s*[）)])?/g,
-                    (all, header, enTitle) => {
-                        if (!enTitle) return header;
-                        return header.replace(/<\/strong><\/p>$/, `</strong> 《${enTitle}》</p>`);
-                    });
+                const parts = html.split(/(<p[^>]*><strong>[\s\S]*?<\/strong><\/p>)/g);
+                if (parts.length <= 1) return html;
+                for (let i = 1; i < parts.length; i += 2) {
+                    let header = parts[i];
+                    let body = parts[i+1] || '';
+                    let title = '';
+                    let m = body.match(/\(\s*<em>([^<]+)<\/em>\s*\)/);
+                    if (m) {
+                        title = m[1];
+                        body = body.replace(m[0], '');
+                    } else {
+                        m = body.match(/<em>([^<]+)<\/em>/);
+                        if (m) {
+                            title = m[1];
+                            body = body.replace(m[0], '');
+                        }
+                    }
+                    if (title) {
+                        header = header.replace(/<\/strong><\/p>/, `</strong> 《${title}》</p>`);
+                        parts[i] = header;
+                        parts[i+1] = body;
+                    }
+                }
+                return parts.join('');
             } catch {
                 return html;
             }
