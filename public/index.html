@@ -2041,24 +2041,53 @@
                     existingButtons.remove();
                 }
                 
+                // 檢查章節範圍
+                const allBooks = [...booksOT, ...booksNT];
+                const book = allBooks.find(b => b.id === bookId);
+                if (!book) return;
+                
+                // 決定是否顯示前一章和後一章按鈕
+                const showPrevButton = chapter > 1;
+                const showNextButton = chapter < book.chapters;
+                
+                // 如果都不需要顯示，直接返回
+                if (!showPrevButton && !showNextButton) return;
+                
                 // 創建新的導航按鈕
                 const navigationDiv = document.createElement('div');
                 navigationDiv.id = 'chapterNavigationButtons';
                 navigationDiv.className = 'fixed bottom-6 left-4 right-4 z-50 pointer-events-none';
-                navigationDiv.innerHTML = `
-                    <div class="max-w-4xl mx-auto px-3 flex justify-between items-center pointer-events-auto">
+                
+                let buttonsHTML = '<div class="max-w-4xl mx-auto px-3 flex justify-between items-center pointer-events-auto">';
+                
+                // 前一章按鈕
+                if (showPrevButton) {
+                    buttonsHTML += `
                         <button onclick="navigateChapter(${bookId}, ${chapter - 1})" class="chapter-nav-btn chapter-nav-btn-prev" title="前一章">
                             <div class="btn-3d-effect">
                                 <span class="material-icons-outlined">arrow_back</span>
                             </div>
                         </button>
+                    `;
+                } else {
+                    buttonsHTML += '<div></div>'; // 佔位符保持對齊
+                }
+                
+                // 後一章按鈕
+                if (showNextButton) {
+                    buttonsHTML += `
                         <button onclick="navigateChapter(${bookId}, ${chapter + 1})" class="chapter-nav-btn chapter-nav-btn-next" title="後一章">
                             <div class="btn-3d-effect">
                                 <span class="material-icons-outlined">arrow_forward</span>
                             </div>
                         </button>
-                    </div>
-                `;
+                    `;
+                } else {
+                    buttonsHTML += '<div></div>'; // 佔位符保持對齊
+                }
+                
+                buttonsHTML += '</div>';
+                navigationDiv.innerHTML = buttonsHTML;
                 
                 // 添加到頁面
                 document.body.appendChild(navigationDiv);
@@ -2075,6 +2104,12 @@
                 if (chapter < 1 || chapter > book.chapters) {
                     console.log(`章節 ${chapter} 超出範圍 (1-${book.chapters})`);
                     return;
+                }
+                
+                // 檢查認證狀態，但不強制跳轉到登入頁面
+                const authStatus = await checkAuthStatusSilent();
+                if (!authStatus.authenticated) {
+                    console.log('用戶未登入，但允許查看聖經章節');
                 }
                 
                 // 更新選擇並跳轉到新章節
