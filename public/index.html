@@ -1435,8 +1435,8 @@
                     out = out.replace(/(\d+\.\s*)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(\s*\([^)]+\))?/g, '$1<strong>$2</strong>$3');
                 }
                 
-                // 捕捉「序號. 作者（年份）」或「作者（年份）」並確保作者粗體，中文介面轉中文名
-                out = out.replace(/(<p[^>]*>\s*)(?:\d+\.\s*)?([^<\n\(]+?)(\s*(\([^\)]*\))?)(\s*[:：])?/g,
+                    // 捕捉段落開頭「(可選序號.) 作者（年份）」並確保作者粗體，中文介面轉中文名
+                    out = out.replace(/(<p[^>]*>\s*)(?:\d+\.\s*)?([A-Za-z .'-]+?)(\s*(\([^\)]*\))?)(\s*[:：])?/g,
                   (all, pStart, name, rest, years, colon) => {
                     const cleanName = name.trim().replace(/\*+/g, '');
                     let display = cleanName;
