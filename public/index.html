@@ -738,6 +738,12 @@
             color: var(--primary);
         }
 
+        /* 展開中的經卷（麵包屑點亮） */
+        .bible-book-btn.is-active {
+            background: var(--primary) !important;
+            color: #fff !important;
+        }
+
         /* 對照模式中間分界線（明顯但不突兀，沿用主題色） */
         .compare-divider {
             height: 4px;
@@ -2709,7 +2715,7 @@
                 const lang = window.currentLanguage || 'zh';
                 bookGrid.innerHTML = list.map(b => {
                     const name = lang === 'en' ? b.en : b.zh;
-                    return `<div class=\"space-y-2\"><button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm w-full text-left\" data-engs=\"${b.engs}\" data-id=\"${b.id}\" data-zh=\"${b.zh}\" data-en=\"${b.en}\" data-chapters=\"${b.chapters}\">${name}</button></div>`;
+                    return `<div class=\"space-y-2\"><button class=\"px-2 py-1 rounded-md bg-[var(--secondary)] hover:bg-[var(--primary)] hover:text-white text-sm w-full text-left bible-book-btn\" data-engs=\"${b.engs}\" data-id=\"${b.id}\" data-zh=\"${b.zh}\" data-en=\"${b.en}\" data-chapters=\"${b.chapters}\">${name}</button></div>`;
                 }).join('');
                 bookGrid.querySelectorAll('button').forEach(btn => {
                     btn.addEventListener('click', () => {
@@ -2724,11 +2730,16 @@
                         if (existingForThisBook) {
                             existingForThisBook.remove();
                             document.querySelectorAll(`.verses-inline-row[data-parent-book='${id}']`).forEach(n => n.remove());
+                            // 收起時取消點亮
+                            document.querySelectorAll('.bible-book-btn').forEach(b => b.classList.remove('is-active'));
                             return;
                         }
                         // 收起其他展開列
                         document.querySelectorAll('.chapters-inline-row').forEach(n => n.remove());
                         document.querySelectorAll('.verses-inline-row').forEach(n => n.remove());
+                        // 點亮當前經卷（作為麵包屑效果）
+                        document.querySelectorAll('.bible-book-btn').forEach(b => b.classList.remove('is-active'));
+                        btn.classList.add('is-active');
                         // 創建章節展開行並插入到被點擊的書卷後面
                         const row = document.createElement('div');
                         row.className = 'chapters-inline-row grid-full-row';
