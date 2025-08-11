@@ -2305,9 +2305,9 @@
                 
                 console.log('當前書卷:', book);
                 
-                // 決定是否顯示前一章和後一章按鈕
-                const showPrevButton = chapter > 1;
-                const showNextButton = chapter < book.chapters;
+                // 決定是否顯示前一章和後一章按鈕（支持跨書卷導航）
+                const showPrevButton = !(bookId === 1 && chapter === 1); // 創世記第一章不顯示前一章
+                const showNextButton = !(bookId === 66 && chapter === 22); // 啟示錄最後一章不顯示後一章
                 
                 console.log('按鈕顯示狀態:', { showPrevButton, showNextButton, currentChapter: chapter, maxChapters: book.chapters });
                 
@@ -2327,10 +2327,25 @@
                 
                 // 前一章按鈕
                 if (showPrevButton) {
-                    const prevChapter = chapter - 1;
                     const prevButton = document.createElement('button');
                     prevButton.className = 'chapter-nav-btn chapter-nav-btn-prev';
-                    prevButton.title = `前一章 (${prevChapter})`;
+                    
+                    // 計算前一章的書卷和章節
+                    let prevBookId = bookId;
+                    let prevChapter = chapter - 1;
+                    
+                    if (prevChapter < 1) {
+                        // 需要跳到上一卷的最後一章
+                        const prevBook = allBooks.find(b => b.id === bookId - 1);
+                        if (prevBook) {
+                            prevBookId = prevBook.id;
+                            prevChapter = prevBook.chapters;
+                        }
+                    }
+                    
+                    const prevBook = allBooks.find(b => b.id === prevBookId);
+                    const prevBookName = prevBook ? prevBook.zh : '';
+                    prevButton.title = `前一章 (${prevBookName} ${prevChapter})`;
                     prevButton.innerHTML = `
                         <div class="btn-3d-effect">
                             <span class="material-icons-outlined">arrow_back</span>
@@ -2340,10 +2355,10 @@
                     // 直接添加點擊事件
                     prevButton.addEventListener('click', function() {
                         console.log('前一章按鈕被點擊');
-                        console.log('目標章節:', { bookId, chapter: prevChapter });
+                        console.log('目標章節:', { bookId: prevBookId, chapter: prevChapter });
                         
                         // 直接調用章節導航
-                        navigateToChapter(bookId, prevChapter);
+                        navigateToChapter(prevBookId, prevChapter);
                     });
                     
                     buttonsContainer.appendChild(prevButton);
@@ -2387,10 +2402,25 @@
                 
                 // 後一章按鈕
                 if (showNextButton) {
-                    const nextChapter = chapter + 1;
                     const nextButton = document.createElement('button');
                     nextButton.className = 'chapter-nav-btn chapter-nav-btn-next';
-                    nextButton.title = `後一章 (${nextChapter})`;
+                    
+                    // 計算後一章的書卷和章節
+                    let nextBookId = bookId;
+                    let nextChapter = chapter + 1;
+                    
+                    if (nextChapter > book.chapters) {
+                        // 需要跳到下一卷的第一章
+                        const nextBook = allBooks.find(b => b.id === bookId + 1);
+                        if (nextBook) {
+                            nextBookId = nextBook.id;
+                            nextChapter = 1;
+                        }
+                    }
+                    
+                    const nextBook = allBooks.find(b => b.id === nextBookId);
+                    const nextBookName = nextBook ? nextBook.zh : '';
+                    nextButton.title = `後一章 (${nextBookName} ${nextChapter})`;
                     nextButton.innerHTML = `
                         <div class="btn-3d-effect">
                             <span class="material-icons-outlined">arrow_forward</span>
@@ -2400,10 +2430,10 @@
                     // 直接添加點擊事件
                     nextButton.addEventListener('click', function() {
                         console.log('後一章按鈕被點擊');
-                        console.log('目標章節:', { bookId, chapter: nextChapter });
+                        console.log('目標章節:', { bookId: nextBookId, chapter: nextChapter });
                         
                         // 直接調用章節導航
-                        navigateToChapter(bookId, nextChapter);
+                        navigateToChapter(nextBookId, nextChapter);
                     });
                     
                     buttonsContainer.appendChild(nextButton);
