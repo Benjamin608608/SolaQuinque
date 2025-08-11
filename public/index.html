@@ -1535,11 +1535,24 @@
                 out = out.replace(/《[^》]+》/g, '');
 
                 // 作者段落：在句末或換行後出現「人名（含西文與年份）」時，插入段落間距並加粗作者+年份
-                const authorHeaderRe = /(^|[。；;\n]\s*)([\u4e00-\u9fa5A-Za-z ·'\-]+?)(\s*（[^）]*\d{3,4}[^）]*）)/g;
+                const authorHeaderRe = /(^|[。；;\n]\s*)([\u4e00-\u9fa5A-Za-z ·'\-]+?)(\s*（[^）]*\d{3,4}[^）]*）)\s*[:：]?/g;
                 out = out.replace(authorHeaderRe, (m, sep, name, years) => `${sep}<p style="margin-top:12px;"><strong>${name}${years}</strong></p>`);
 
                 return out;
             } catch (e) {
+                return html;
+            }
+        }
+
+        // 將緊貼作者標頭後面的英文書名移入標頭行，改為《英文書名》
+        function attachEnglishTitleToAuthorHeader(html) {
+            try {
+                return html.replace(/(<p[^>]*><strong>[^<]*?（[^）]*\d{3,4}[^）]*）<\/strong><\/p>)\s*(?:[（(]\s*<em>([^<]+)<\/em>\s*[）)])?/g,
+                    (all, header, enTitle) => {
+                        if (!enTitle) return header;
+                        return header.replace(/<\/strong><\/p>$/, `</strong> 《${enTitle}》</p>`);
+                    });
+            } catch {
                 return html;
             }
         }
@@ -2503,6 +2516,8 @@
                     formattedContent = refineExplanationHtml(formattedContent);
                     // 追加強制書名英文與作者段落化處理（避免混成一段、標示書名為英文）
                     formattedContent = enforceCommentaryFormatting(formattedContent);
+                    // 將英文書名附加到作者標頭行，並移除冒號
+                    formattedContent = attachEnglishTitleToAuthorHeader(formattedContent);
                     
                     // 移除數字小標（span/sup/[n] 等多種形式）
                     formattedContent = formattedContent
