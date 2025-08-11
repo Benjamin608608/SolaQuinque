@@ -860,48 +860,7 @@
         };
         window.loadBibleSelection();
         
-        // 全局章節導航函數
-        window.goToChapter = async function(bookId, chapter) {
-            console.log('goToChapter 被調用:', { bookId, chapter });
-            
-            try {
-                // 檢查章節範圍
-                const allBooks = [...booksOT, ...booksNT];
-                const book = allBooks.find(b => b.id === bookId);
-                if (!book) {
-                    console.error('找不到書卷:', bookId);
-                    return;
-                }
-                
-                // 檢查章節是否在有效範圍內
-                if (chapter < 1 || chapter > book.chapters) {
-                    console.log(`章節 ${chapter} 超出範圍 (1-${book.chapters})`);
-                    return;
-                }
-                
-                console.log('準備跳轉到章節:', { bookId, chapter, bookName: book.zh });
-                
-                // 設置頁面狀態為章節頁面，防止被錯誤處理器干擾
-                window.currentPage = 'bibleChapter';
-                
-                // 檢查認證狀態，但不強制跳轉到登入頁面
-                const authStatus = await checkAuthStatusSilent();
-                if (!authStatus.authenticated) {
-                    console.log('用戶未登入，但允許查看聖經章節');
-                }
-                
-                // 更新選擇並跳轉到新章節
-                updateBibleSelection({ bookId: bookId, chapter: chapter });
-                await showBibleChapterPage(bookId, chapter);
-                
-                console.log('章節導航完成');
-                
-            } catch (error) {
-                console.error('章節導航過程中發生錯誤:', error);
-                // 即使出錯也要確保頁面狀態正確
-                window.currentPage = 'bibleChapter';
-            }
-        };
+
         // 控制底部搜尋輸入欄顯示：僅首頁顯示
         function setFooterVisibility() {
             const footer = document.querySelector('footer');
@@ -1925,6 +1884,49 @@
                 { zh: '彼得前書', en: '1 Peter', engs: '1Pe', id: 60, chapters: 5 }, { zh: '彼得後書', en: '2 Peter', engs: '2Pe', id: 61, chapters: 3 }, { zh: '約翰一書', en: '1 John', engs: '1Jo', id: 62, chapters: 5 }, { zh: '約翰二書', en: '2 John', engs: '2Jo', id: 63, chapters: 1 }, { zh: '約翰三書', en: '3 John', engs: '3Jo', id: 64, chapters: 1 },
                 { zh: '猶大書', en: 'Jude', engs: 'Jud', id: 65, chapters: 1 }, { zh: '啟示錄', en: 'Revelation', engs: 'Rev', id: 66, chapters: 22 }
             ];
+ 
+            // 全局章節導航函數 - 在書卷資料定義之後
+            window.goToChapter = async function(bookId, chapter) {
+                console.log('goToChapter 被調用:', { bookId, chapter });
+                
+                try {
+                    // 檢查章節範圍
+                    const allBooks = [...booksOT, ...booksNT];
+                    const book = allBooks.find(b => b.id === bookId);
+                    if (!book) {
+                        console.error('找不到書卷:', bookId);
+                        return;
+                    }
+                    
+                    // 檢查章節是否在有效範圍內
+                    if (chapter < 1 || chapter > book.chapters) {
+                        console.log(`章節 ${chapter} 超出範圍 (1-${book.chapters})`);
+                        return;
+                    }
+                    
+                    console.log('準備跳轉到章節:', { bookId, chapter, bookName: book.zh });
+                    
+                    // 設置頁面狀態為章節頁面，防止被錯誤處理器干擾
+                    window.currentPage = 'bibleChapter';
+                    
+                    // 檢查認證狀態，但不強制跳轉到登入頁面
+                    const authStatus = await checkAuthStatusSilent();
+                    if (!authStatus.authenticated) {
+                        console.log('用戶未登入，但允許查看聖經章節');
+                    }
+                    
+                    // 更新選擇並跳轉到新章節
+                    updateBibleSelection({ bookId: bookId, chapter: chapter });
+                    await showBibleChapterPage(bookId, chapter);
+                    
+                    console.log('章節導航完成');
+                    
+                } catch (error) {
+                    console.error('章節導航過程中發生錯誤:', error);
+                    // 即使出錯也要確保頁面狀態正確
+                    window.currentPage = 'bibleChapter';
+                }
+            };
  
             const bookGrid = document.getElementById('bookGrid');
 
