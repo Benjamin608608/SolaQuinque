@@ -1460,26 +1460,9 @@
                 protect(/「[\s\S]*?」/g);
                 protect(/『[\s\S]*?』/g);
 
-                // 以對照表替換作者（僅在中文介面）
+                // 以對照表嚴格替換作者（僅在中文介面；全部依照 config/author-translations.json）
                 if (lang === 'zh' && typeof authorTranslations === 'object' && authorTranslations) {
-                    Object.keys(authorTranslations).forEach(en => {
-                        const zh = authorTranslations[en];
-                        if (!zh) return;
-                        const escaped = en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        
-                        // 處理不同格式的作者名稱
-                        // 1. 數字開頭的作者（如 "1. Herbert Carl Leupold"）
-                        out = out.replace(new RegExp(`(\\d+\\.\\s*)${escaped}(\\s*\\([^)]+\\))?`, 'g'), `$1<strong>${zh}</strong>$2`);
-                        
-                        // 2. 強調標題中的作者
-                        out = out.replace(new RegExp(`(<strong>\\s*)${escaped}(\\s*[：:])?`, 'g'), `$1${zh}$2`);
-                        
-                        // 3. 行首作者
-                        out = out.replace(new RegExp(`(>\\s*)(?:[-•]\\s*)?${escaped}(\\s*[：:])`, 'g'), `$1<strong>${zh}</strong>$2`);
-                        
-                        // 4. 一般作者名稱（避免匹配到括號內年份部分）
-                        out = out.replace(new RegExp(`(?![^<]*>)((?<![A-Za-z])${escaped}(?![A-Za-z]))`, 'g'), `<strong>${zh}</strong>`);
-                    });
+                    out = strictTranslateAuthorsByMapping(out);
                 } else {
                     // 英文介面：確保作者名稱是粗體
                     out = out.replace(/(\d+\.\s*)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(\s*\([^)]+\))?/g, '$1<strong>$2</strong>$3');
@@ -1512,6 +1495,26 @@
                 return out;
             } catch (e) {
                 return html;
+            }
+        }
+
+        // 嚴格依照作者對照表替換作者名稱（中文介面用）
+        function strictTranslateAuthorsByMapping(text) {
+            try {
+                if (!authorTranslations || typeof authorTranslations !== 'object') return text;
+                const englishNames = Object.keys(authorTranslations).filter(Boolean);
+                if (englishNames.length === 0) return text;
+                // 長名稱優先，避免部分匹配
+                englishNames.sort((a, b) => b.length - a.length);
+                const alternation = englishNames
+                    .map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                    .join('|');
+                const mapLower = Object.create(null);
+                englishNames.forEach(n => { mapLower[n.toLowerCase()] = authorTranslations[n]; });
+                const re = new RegExp(`(?<![A-Za-z])(${alternation})(?![A-Za-z])`, 'g');
+                return text.replace(re, (m, p1) => `<strong>${mapLower[p1.toLowerCase()] || authorTranslations[p1] || p1}</strong>`);
+            } catch {
+                return text;
             }
         }
 
@@ -2518,11 +2521,11 @@
                     
                     commentaryDiv.innerHTML = `
                         <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div class="text-gray-800 text-sm leading-relaxed">
+                                <div class="text-gray-800 text-sm leading-relaxed">
                                 ${formattedContent}
+                                </div>
                             </div>
-                        </div>
-                    `;
+                        `;
                     // DOM 層級二次清理所有數字小標
                     try {
                         commentaryDiv.querySelectorAll('.citation, sup').forEach(el => el.remove());
