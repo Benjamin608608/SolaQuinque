@@ -1512,6 +1512,91 @@
             setFooterVisibility();
         }
 
+        // 聖經章節頁面（顯示特定章節內容）
+        function showBibleChapterPage(bookId, chapter) {
+            window.currentPage = 'bibleChapter';
+            const main = document.getElementById('mainContent');
+            if (main) {
+                // 獲取書卷和版本資訊
+                const allBooks = [...booksOT, ...booksNT];
+                const book = allBooks.find(b => b.id === bookId);
+                const version = document.getElementById('bibleVersion').value || 'CUV';
+                const lang = window.currentLanguage || 'zh';
+                const bookName = lang === 'en' ? book.en : book.zh;
+                
+                main.innerHTML = `
+                    <div class="w-full max-w-4xl mx-auto px-3">
+                        <div class="flex items-center justify-between mt-6 mb-3">
+                            <button onclick="showBiblePage()" class="px-3 py-1.5 rounded-md bg-[var(--secondary)] text-[var(--text-primary)] text-sm">返回聖經</button>
+                            <div class="text-sm text-[var(--text-secondary)]">${version}</div>
+                        </div>
+                        <div class="bible-chapter-header mb-4">
+                            <h2 class="text-xl font-serif font-bold text-[var(--text-primary)]">${bookName} 第${chapter}章</h2>
+                        </div>
+                        <div id="bibleChapterContent" class="bible-chapter-content">
+                            <div class="text-center p-8">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)] mx-auto mb-4"></div>
+                                <p class="text-[var(--text-secondary)]">載入章節內容中...</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 載入章節內容
+                loadBibleChapterContent(bookId, chapter, version);
+            }
+            setFooterVisibility();
+        }
+
+        // 載入章節內容
+        async function loadBibleChapterContent(bookId, chapter, version) {
+            const container = document.getElementById('bibleChapterContent');
+            if (!container) return;
+            
+            try {
+                // 從本地文本檔案載入
+                const response = await fetch(`/data/bible-versions/${version.toLowerCase()}-bible.txt`);
+                if (!response.ok) {
+                    throw new Error(`無法載入聖經檔案 (${response.status}: ${response.statusText})`);
+                }
+                
+                const text = await response.text();
+                
+                // 檢查檔案是否為空或只有標題
+                if (!text || text.trim().length < 100) {
+                    throw new Error('聖經檔案內容不完整');
+                }
+                
+                const verses = parseBibleTextFromFile(text, bookId, chapter);
+                
+                if (verses.length === 0) {
+                    container.innerHTML = '<div class="text-[var(--text-secondary)] text-sm text-center p-8">找不到該章節的內容</div>';
+                    return;
+                }
+                
+                // 渲染章節內容
+                const allBooks = [...booksOT, ...booksNT];
+                const book = allBooks.find(b => b.id === bookId);
+                const lang = window.currentLanguage || 'zh';
+                const bookName = lang === 'en' ? book.en : book.zh;
+                
+                const html = verses.map(verse => {
+                    return `<div class="mb-3 p-3 bg-white rounded-lg shadow-sm">
+                        <div class="flex items-start">
+                            <span class="text-[var(--primary)] font-bold mr-3 text-lg">${verse.verse}</span>
+                            <div class="flex-1 text-[var(--text-primary)] leading-relaxed">${verse.text}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+                
+                container.innerHTML = html;
+                
+            } catch (error) {
+                console.error('載入章節失敗:', error);
+                container.innerHTML = `<div class="text-[var(--text-secondary)] text-sm text-center p-8">載入章節失敗: ${error.message}</div>`;
+            }
+        }
+
         // 聖經頁面（書卷 -> 章 -> 節）
         function showBiblePage() {
             window.currentPage = 'bible';
@@ -1650,8 +1735,8 @@
                                 chaptersContainer.querySelectorAll('.bible-btn-chapter').forEach(b => b.classList.remove('is-active'));
                                 btn.classList.add('is-active');
                                 updateBibleSelection({ bookId: bId, chapter: chap });
-                                // 直接載入整章內容，不顯示節數按鈕
-                                await loadWholeChapter(bId, chap);
+                                // 跳轉到章節頁面
+                                showBibleChapterPage(bId, chap);
                             });
                         });
                     });
