@@ -1938,7 +1938,7 @@
                     ${loginPrompt}
                     <div class="flex items-center gap-3 justify-end mb-3">
                         <label for="bibleVersion" class="text-sm text-[var(--text-secondary)] whitespace-nowrap">${(window.translations && window.translations['bible-version']) || (window.currentLanguage==='en'?'Version':'版本')}</label>
-                        <select id="bibleVersion" class="border rounded px-3 py-1.5 text-sm min-w-[180px] appearance-auto">
+                        <select id="bibleVersion" class="border rounded px-3 py-1.5 text-sm min-w-[180px] appearance-auto text-[var(--primary)]">
                             <option value="CUV">${window.currentLanguage==='en'?'CUV':'和合本(CUV)'}</option>
                             <option value="KJV">KJV</option>
                         </select>
@@ -2509,7 +2509,7 @@
                     <div class="text-sm text-[var(--text-primary)]">對照模式：${currentChapter}章 ${start}${end>start?`-${end}`:''}（上方：${topVersion}）</div>
                     <div class="flex items-center gap-3 text-sm">
                       <label for="compareBottomVersion" class="text-[var(--text-primary)] whitespace-nowrap">下方版本：</label>
-                      <select id="compareBottomVersion" class="border rounded px-3 py-1.5 pr-8 text-sm min-w-[160px] appearance-auto">
+                      <select id="compareBottomVersion" class="border rounded px-3 py-1.5 pr-8 text-sm min-w-[160px] appearance-auto text-[var(--primary)]">
                         <option value="CUV" ${defaultBottom==='CUV'?'selected':''}>CUV</option>
                         <option value="KJV" ${defaultBottom==='KJV'?'selected':''}>KJV</option>
                       </select>
