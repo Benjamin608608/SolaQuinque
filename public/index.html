@@ -1582,6 +1582,68 @@
             }
         }
 
+        // 根據 API 傳回的來源清單，將英文書名（取自 fileName 中 ']' 後的部分）附到對應作者標頭
+        function attachTitlesFromSourcesToHeaders(html, sources) {
+            try {
+                if (!Array.isArray(sources) || sources.length === 0) return html;
+                // 建立 作者英名 -> 書名 集合
+                const titleByAuthorEn = {};
+                sources.forEach(s => {
+                    const fileName = (typeof s === 'string') ? s : (s && s.fileName) || '';
+                    const m = fileName.match(/^\s*\[([^\]]+)\]\s*(.+)$/);
+                    if (!m) return;
+                    const authorEn = m[1].trim();
+                    const title = m[2].trim();
+                    if (authorEn && title) titleByAuthorEn[authorEn] = title;
+                });
+                if (Object.keys(titleByAuthorEn).length === 0) return html;
+
+                // 將中文介面也能對應：透過 authorTranslations 做英->中匹配
+                const titleByAuthorZh = {};
+                if (typeof authorTranslations === 'object' && authorTranslations) {
+                    Object.keys(authorTranslations).forEach(en => {
+                        const zh = authorTranslations[en];
+                        if (zh && titleByAuthorEn[en]) titleByAuthorZh[zh] = titleByAuthorEn[en];
+                    });
+                }
+                // 構造中->英反查
+                const zhToEn = {};
+                if (typeof authorTranslations === 'object' && authorTranslations) {
+                    Object.keys(authorTranslations).forEach(en => {
+                        const zh = authorTranslations[en];
+                        if (zh) zhToEn[zh] = en;
+                    });
+                }
+
+                // 逐一替換每個作者標頭段：若匹配到作者名，就把《Title》加在行尾
+                return html.replace(/(<p[^>]*><strong>)([\u4e00-\u9fa5A-Za-z ·'\-]+)\s*(\([^)]*\))(?:<\/strong><\/p>)/g,
+                  (all, pStart, name, years) => {
+                    const lang = window.currentLanguage || 'zh';
+                    const normalizedYears = years.replace(/[（]/g, '(').replace(/[）]/g, ')').replace(/[^0-9()\-]/g, '');
+                    // 取得英文 key 與顯示名
+                    let enKey = name;
+                    let displayName = name;
+                    if (lang === 'zh') {
+                        if (authorTranslations && authorTranslations[name]) {
+                            // header 是英文名，直接翻成中文
+                            displayName = authorTranslations[name];
+                            enKey = name;
+                        } else if (zhToEn[name]) {
+                            // header 已是中文名
+                            enKey = zhToEn[name];
+                            displayName = name;
+                        }
+                    }
+                    // 擷取書名
+                    let title = titleByAuthorEn[enKey] || titleByAuthorZh[displayName] || '';
+                    if (!title) return `${pStart}${displayName}${normalizedYears}</strong></p>`;
+                    return `${pStart}${displayName}${normalizedYears}《${title}》</strong></p>`;
+                  });
+            } catch {
+                return html;
+            }
+        }
+
         // 顯示錯誤
         function showError(message, canRetry = true) {
             const main = document.getElementById('mainContent');
@@ -2541,7 +2603,9 @@
                     formattedContent = refineExplanationHtml(formattedContent);
                     // 追加強制書名英文與作者段落化處理（避免混成一段、標示書名為英文）
                     formattedContent = enforceCommentaryFormatting(formattedContent);
-                    // 將英文書名附加到作者標頭行，並移除冒號
+                    // 優先根據來源檔名，將英文書名附加到作者標頭（作者[年份]《Title》）
+                    formattedContent = attachTitlesFromSourcesToHeaders(formattedContent, data.sources || []);
+                    // 若來源無法判定，再嘗試從內容相鄰處抽取書名
                     formattedContent = attachEnglishTitleToAuthorHeader(formattedContent);
                     
                     // 移除數字小標（span/sup/[n] 等多種形式）
