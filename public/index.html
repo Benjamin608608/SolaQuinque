@@ -1463,6 +1463,19 @@
                 protect(/「[\s\S]*?」/g);
                 protect(/『[\s\S]*?』/g);
 
+                // 額外保護：括號中包含英文字母的內容（避免被翻譯），並將其中的「聖經」還原為 Bible
+                const parenPlaceholders = [];
+                function protectParen(regex) {
+                  out = out.replace(regex, (m) => {
+                    const key = `@@PAREN${parenPlaceholders.length}@@`;
+                    const fixed = m.replace(/聖經/g, 'Bible');
+                    parenPlaceholders.push(fixed);
+                    return key;
+                  });
+                }
+                protectParen(/\([^)]*[A-Za-z][^)]*\)/g);
+                protectParen(/（[^）]*[A-Za-z][^）]*）/g);
+
                 // 以對照表嚴格替換作者（僅在中文介面；全部依照 config/author-translations.json）
                 if (lang === 'zh' && typeof authorTranslations === 'object' && authorTranslations) {
                     out = strictTranslateAuthorsByMapping(out);
@@ -1486,6 +1499,8 @@
 
                 // 還原被保護的書名片段（保持原文，避免被作者翻譯影響）
                 out = out.replace(/@@TITLE(\d+)@@/g, (m, idx) => placeholders[Number(idx)] || m);
+                // 還原括號內容（保持英文原文、不被翻譯，且已將「聖經」修正為 Bible）
+                out = out.replace(/@@PAREN(\d+)@@/g, (m, idx) => parenPlaceholders[Number(idx)] || m);
 
                 // 每位作者段落前加額外間距
                 out = out.replace(/<p><strong>/g, '<p style="margin-top:16px;"><strong>');
