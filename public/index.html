@@ -2891,8 +2891,8 @@
                     authCheckCompleted = true;
                 }
 
-                // 如果認證檢查沒有完成或沒有顯示任何頁面，顯示登入畫面
-                if (!authCheckCompleted || window.currentPage === 'login') {
+                // 如果認證檢查沒有完成且沒有顯示任何頁面，才顯示登入畫面
+                if (!authCheckCompleted && window.currentPage === 'login') {
                     showLoginUI();
                 }
 
@@ -2921,10 +2921,18 @@
 
         // 全域錯誤守護：避免整頁中斷
         window.addEventListener('error', () => {
-            try { if (window.currentPage !== 'home') showLoginUI(); } catch {}
+            try { 
+                if (window.currentPage !== 'home' && window.currentPage !== 'bibleChapter') {
+                    showLoginUI(); 
+                }
+            } catch {}
         });
         window.addEventListener('unhandledrejection', () => {
-            try { if (window.currentPage !== 'home') showLoginUI(); } catch {}
+            try { 
+                if (window.currentPage !== 'home' && window.currentPage !== 'bibleChapter') {
+                    showLoginUI(); 
+                }
+            } catch {}
         });
 
         // 主題切換
