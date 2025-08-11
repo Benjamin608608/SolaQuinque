@@ -1922,6 +1922,28 @@
                 setFooterVisibility();
             }
 
+            // 經文選中功能
+            function selectVerse(verseNumber) {
+                // 移除之前的選中狀態
+                document.querySelectorAll('.clickable-verse').forEach(el => {
+                    el.classList.remove('verse-selected');
+                });
+                
+                // 選中當前經節
+                const selectedVerse = document.querySelector(`[data-verse="${verseNumber}"]`);
+                if (selectedVerse) {
+                    selectedVerse.classList.add('verse-selected');
+                }
+                
+                // 顯示中間按鈕
+                const centerBtn = document.getElementById('verse-action-btn');
+                if (centerBtn) {
+                    centerBtn.classList.remove('hidden');
+                }
+                
+                console.log('選中經節:', verseNumber);
+            }
+
             // 載入章節內容
             async function loadBibleChapterContent(bookId, chapter, version) {
                 const container = document.getElementById('bibleChapterContent');
@@ -1956,7 +1978,7 @@
                     
                     // 將整章經文組合成一篇文章，每節前面加上數字
                     const chapterText = verses.map(verse => 
-                        `<span class="verse-item clickable-verse" data-verse="${verse.verse}" onclick="selectVerse(${verse.verse})">
+                        `<span class="verse-item clickable-verse" data-verse="${verse.verse}">
                             <span class="verse-number">${verse.verse}</span>${verse.text}
                         </span>`
                     ).join('');
@@ -1969,6 +1991,14 @@
                     </div>`;
                     
                     container.innerHTML = html;
+                    
+                    // 添加經文點擊事件監聽器
+                    container.querySelectorAll('.clickable-verse').forEach(verseEl => {
+                        verseEl.addEventListener('click', () => {
+                            const verseNumber = parseInt(verseEl.getAttribute('data-verse'));
+                            selectVerse(verseNumber);
+                        });
+                    });
                     
                     // 添加前一章和後一章按鈕到頁面
                     addChapterNavigationButtons(bookId, chapter);
@@ -2154,28 +2184,6 @@
                         navigateChapter(bookId, chapter);
                     });
                 }
-            }
-
-            // 經文選中功能
-            function selectVerse(verseNumber) {
-                // 移除之前的選中狀態
-                document.querySelectorAll('.clickable-verse').forEach(el => {
-                    el.classList.remove('verse-selected');
-                });
-                
-                // 選中當前經節
-                const selectedVerse = document.querySelector(`[data-verse="${verseNumber}"]`);
-                if (selectedVerse) {
-                    selectedVerse.classList.add('verse-selected');
-                }
-                
-                // 顯示中間按鈕
-                const centerBtn = document.getElementById('verse-action-btn');
-                if (centerBtn) {
-                    centerBtn.classList.remove('hidden');
-                }
-                
-                console.log('選中經節:', verseNumber);
             }
 
             // 章節導航功能
