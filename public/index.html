@@ -737,6 +737,15 @@
             font-size: 18px;
             color: var(--primary);
         }
+
+        /* 對照模式中間分界線（明顯但不突兀，沿用主題色） */
+        .compare-divider {
+            height: 4px;
+            width: 100%;
+            background: var(--primary);
+            opacity: 0.9;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.06), 0 -1px 0 rgba(0,0,0,0.06);
+        }
         
         /* 響應式設計 */
         @media (max-width: 768px) {
@@ -2501,10 +2510,11 @@
                       <button id="exitCompare" class="ml-2 px-2 py-1 rounded border">退出對照</button>
                     </div>
                   </div>
-                  <div class="grid grid-rows-2">
+                  <div class="grid grid-rows-[1fr_auto_1fr]">
                     <div class="overflow-auto p-3 h-[38vh]" id="compareTopPane">
                       <div id="compareTopContent" class="leading-relaxed text-justify text-[var(--text-primary)]"></div>
                     </div>
+                    <div class="compare-divider"></div>
                     <div class="overflow-auto p-3 h-[38vh]" id="compareBottomPane">
                       <div id="compareBottomContent" class="leading-relaxed text-justify text-[var(--text-primary)]"></div>
                     </div>
