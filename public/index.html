@@ -697,11 +697,14 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.15);
             border: 1px solid rgba(0,0,0,0.1);
             padding: 8px;
-            min-width: 120px;
+            min-width: 200px;
             z-index: 60;
             opacity: 0;
             transform: translateX(-50%) translateY(10px);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: row;
+            gap: 4px;
         }
         
         .verse-action-menu:not(.hidden) {
@@ -712,8 +715,9 @@
         .verse-action-menu-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            width: 100%;
+            justify-content: center;
+            gap: 6px;
+            flex: 1;
             padding: 8px 12px;
             border: none;
             background: none;
@@ -722,6 +726,7 @@
             transition: all 0.2s ease;
             color: var(--text-primary);
             font-size: 14px;
+            white-space: nowrap;
         }
         
         .verse-action-menu-item:hover {
@@ -2076,7 +2081,16 @@
                 if (selectedVerse) {
                     const verseNumber = selectedVerse.getAttribute('data-verse');
                     console.log('顯示經文註釋:', verseNumber);
-                    alert(`顯示第 ${verseNumber} 節的註釋功能（待實現）`);
+                    
+                    // 獲取當前章節信息
+                    const currentBookId = window.currentBibleSelection?.bookId;
+                    const currentChapter = window.currentBibleSelection?.chapter;
+                    
+                    if (currentBookId && currentChapter) {
+                        showVerseCommentaryDialog(currentBookId, currentChapter, parseInt(verseNumber));
+                    } else {
+                        alert('無法獲取當前章節信息');
+                    }
                 } else {
                     alert('請先選中一個經節');
                 }
@@ -2084,6 +2098,117 @@
                 const menu = document.getElementById('verse-action-menu');
                 if (menu) {
                     menu.classList.add('hidden');
+                }
+            }
+            
+            // 顯示經文註釋對話框
+            function showVerseCommentaryDialog(bookId, chapter, verse) {
+                // 移除現有的對話框
+                const existingDialog = document.getElementById('verse-commentary-dialog');
+                if (existingDialog) {
+                    existingDialog.remove();
+                }
+                
+                // 獲取書卷信息
+                const allBooks = [...booksOT, ...booksNT];
+                const book = allBooks.find(b => b.id === bookId);
+                const bookName = book ? book.zh : '';
+                
+                // 創建對話框
+                const dialog = document.createElement('div');
+                dialog.id = 'verse-commentary-dialog';
+                dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]';
+                dialog.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
+                        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">${bookName} ${chapter}:${verse} 註釋</h3>
+                            <button onclick="closeVerseCommentaryDialog()" class="text-gray-400 hover:text-gray-600">
+                                <span class="material-icons-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-4 overflow-y-auto max-h-[60vh]">
+                            <div id="verse-commentary-content" class="text-gray-700">
+                                <div class="flex items-center justify-center py-8">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                    <span class="ml-3 text-gray-600">正在生成註釋...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 添加到頁面
+                document.body.appendChild(dialog);
+                
+                // 生成註釋內容
+                generateVerseCommentary(bookId, chapter, verse, bookName);
+            }
+            
+            // 關閉經文註釋對話框
+            function closeVerseCommentaryDialog() {
+                const dialog = document.getElementById('verse-commentary-dialog');
+                if (dialog) {
+                    dialog.remove();
+                }
+            }
+            
+            // 生成經文註釋
+            async function generateVerseCommentary(bookId, chapter, verse, bookName) {
+                const contentDiv = document.getElementById('verse-commentary-content');
+                if (!contentDiv) return;
+                
+                try {
+                    // 獲取經文內容
+                    const versionElement = document.getElementById('bibleVersion');
+                    const version = versionElement ? versionElement.value : 'CUV';
+                    
+                    // 從本地文本檔案載入經文
+                    const response = await fetch(`/data/bible-versions/${version.toLowerCase()}-bible.txt`);
+                    if (!response.ok) {
+                        throw new Error('無法載入聖經檔案');
+                    }
+                    
+                    const text = await response.text();
+                    const verses = parseBibleTextFromFile(text, bookId, chapter);
+                    const targetVerse = verses.find(v => v.verse === verse);
+                    
+                    if (!targetVerse) {
+                        contentDiv.innerHTML = '<div class="text-red-600">找不到該節經文</div>';
+                        return;
+                    }
+                    
+                    // 顯示經文內容
+                    contentDiv.innerHTML = `
+                        <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                            <div class="text-sm text-gray-600 mb-2">經文內容：</div>
+                            <div class="text-gray-800">${targetVerse.text}</div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="text-sm text-gray-600 mb-2">註釋：</div>
+                            <div class="text-gray-800 leading-relaxed">
+                                <p>這節經文出自${bookName}第${chapter}章第${verse}節。</p>
+                                <p class="mt-2">根據聖經學者們的解釋，這節經文主要表達了以下幾個要點：</p>
+                                <ul class="mt-2 ml-4 list-disc space-y-1">
+                                    <li>經文的歷史背景和上下文</li>
+                                    <li>重要的神學概念和教導</li>
+                                    <li>對信徒生活的實際應用</li>
+                                    <li>與其他經文的關聯性</li>
+                                </ul>
+                                <p class="mt-2">這節經文提醒我們要...</p>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            註：這是基礎的註釋內容。完整的註釋功能需要整合神學資料庫和AI解釋功能。
+                        </div>
+                    `;
+                    
+                } catch (error) {
+                    console.error('生成註釋失敗:', error);
+                    contentDiv.innerHTML = `
+                        <div class="text-red-600">
+                            生成註釋時發生錯誤：${error.message}
+                        </div>
+                    `;
                 }
             }
             
