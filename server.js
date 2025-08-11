@@ -1615,15 +1615,6 @@ app.use((error, req, res, next) => {
   });
 });
 
-// 測試靜態檔案服務
-app.get('/test-static', (req, res) => {
-  res.json({ 
-    message: '靜態檔案服務測試',
-    dataPath: path.join(__dirname, 'data'),
-    exists: require('fs').existsSync(path.join(__dirname, 'data', 'bible-versions', 'cuv-sample.txt'))
-  });
-});
-
 // 404 處理
 app.use((req, res) => {
   res.status(404).json({
