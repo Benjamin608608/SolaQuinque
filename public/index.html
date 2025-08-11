@@ -1476,6 +1476,10 @@
                 protectParen(/\([^)]*[A-Za-z][^)]*\)/g);
                 protectParen(/（[^）]*[A-Za-z][^）]*）/g);
 
+                // 處理新格式：**作者名稱（年代，著作名稱）** 
+                // 首先確保已有的**標記被轉換為HTML strong標籤
+                out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                
                 // 以對照表嚴格替換作者（僅在中文介面；全部依照 config/author-translations.json）
                 if (lang === 'zh' && typeof authorTranslations === 'object' && authorTranslations) {
                     out = strictTranslateAuthorsByMapping(out);
@@ -1484,8 +1488,8 @@
                     out = out.replace(/(\d+\.\s*)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(\s*\([^)]+\))?/g, '$1<strong>$2</strong>$3');
                 }
                 
-                    // 捕捉段落開頭「(可選序號.) 作者（年份）」並確保作者粗體，中文介面轉中文名；年份需保留在作者名後
-                    out = out.replace(/(<p[^>]*>\s*)(?:\d+\.\s*)?([A-Za-z .'-]+?)(\s*(\([^\)]*\))?)(\s*[:：])?/g,
+                // 捕捉段落開頭「(可選序號.) 作者（年份）」並確保作者粗體，中文介面轉中文名；年份需保留在作者名後
+                out = out.replace(/(<p[^>]*>\s*)(?:\d+\.\s*)?([A-Za-z .'-]+?)(\s*(\([^\)]*\))?)(\s*[:：])?/g,
                   (all, pStart, name, rest, years, colon) => {
                     const cleanName = name.trim().replace(/\*+/g, '');
                     let display = cleanName;
@@ -1496,6 +1500,11 @@
                     const yearText = years ? years : '';
                     return `${pStart}<strong>${display}${yearText}</strong>${colon || ''}`;
                 });
+                
+                // 特別處理作者標題格式：作者名稱（年代，著作名稱）
+                // 確保整個標題（包括作者、年代、著作）都被加粗
+                out = out.replace(/<strong>([^<]+?)\s*（([^）]+)）<\/strong>/g, '<strong>$1（$2）</strong>');
+                out = out.replace(/<strong>([^<]+?)\s*\(([^)]+)\)<\/strong>/g, '<strong>$1（$2）</strong>');
 
                 // 還原被保護的書名片段（保持原文，避免被作者翻譯影響）
                 out = out.replace(/@@TITLE(\d+)@@/g, (m, idx) => placeholders[Number(idx)] || m);
@@ -1529,6 +1538,16 @@
                     .join('|');
                 const mapLower = Object.create(null);
                 englishNames.forEach(n => { mapLower[n.toLowerCase()] = authorTranslations[n]; });
+                
+                // 處理已在<strong>標籤內的作者名稱
+                const strongRe = new RegExp(`<strong>([^<]*?)(?<![A-Za-z])(${alternation})(?![A-Za-z])([^<]*?)<\/strong>`, 'gi');
+                text = text.replace(strongRe, 
+                    (match, before, authorName, after) => {
+                        const translated = mapLower[authorName.toLowerCase()] || authorTranslations[authorName] || authorName;
+                        return `<strong>${before}${translated}${after}</strong>`;
+                    });
+                
+                // 處理不在<strong>標籤內的作者名稱
                 const re = new RegExp(`(?<![A-Za-z])(${alternation})(?![A-Za-z])`, 'g');
                 return text.replace(re, (m, p1) => `<strong>${mapLower[p1.toLowerCase()] || authorTranslations[p1] || p1}</strong>`);
             } catch {
@@ -2641,7 +2660,18 @@
                         .replace(/<\/li>/gi, ' ')
                         .replace(/<ul[^>]*>/gi, '')
                         .replace(/<\/ul>/gi, '')
+                        .replace(/<ol[^>]*>/gi, '')
+                        .replace(/<\/ol>/gi, '')
                         .replace(/\s{2,}/g, ' ');
+                    
+                    // 確保每個作者段落之間有適當間距
+                    // 尋找以<strong>開頭的作者標題，並在前面加上段落間距
+                    formattedContent = formattedContent.replace(/(<p[^>]*>)?<strong>([^<]+?（[^）]+）[^<]*?)<\/strong>/g, 
+                        '<p style="margin-top:20px; margin-bottom:8px; font-weight:bold; color:#1f2937;">$2</p>');
+                    
+                    // 確保作者標題後的內容作為獨立段落
+                    formattedContent = formattedContent.replace(/(<p[^>]*font-weight:bold[^>]*>[^<]+<\/p>)\s*([^<])/g, '$1<p style="margin-top:8px; line-height:1.6;">$2');
+                    
                     // 段與段之間保留一行空白
                     formattedContent = formattedContent.replace(/<\/p><p>/g, '</p><br><p>');
                     
