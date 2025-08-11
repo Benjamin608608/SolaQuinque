@@ -1385,7 +1385,7 @@ async function processBibleExplainRequest(question, targetVectorStoreId, user, l
 // 聖經經文解釋（依卷限定向量庫）
 app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
   try {
-    const { bookEn, ref, translation, language = 'zh' } = req.body || {};
+    const { bookEn, ref, translation, language = 'zh', passageText } = req.body || {};
 
     if (!bookEn || !ref) {
       return res.status(400).json({ success: false, error: '缺少必要參數 bookEn 或 ref' });
@@ -1398,13 +1398,14 @@ app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
       return res.status(503).json({ success: false, error: `該卷資料庫尚未建立完成，請稍後再試（${targetName}）` });
     }
 
-    // 讓回答格式列出「每位作者」對指定經文的解釋，並附註來源（交由檔案引用處理）
-    const zhPrompt = `請僅根據資料庫內容，列出本卷向量庫中針對「${ref}」有評論/詮釋的作者，每位作者各自以條列格式簡述重點，並在各段落末尾附上資料庫引用註記（和首頁相同的數字方括號格式）。若無資料，請明確告知找不到相關資料。`;
-    const enPrompt = `Using only the provided vector store, list the authors in this book who comment on "${ref}". For each author, provide a concise bullet explanation and include numeric file citations at the end of each bullet (same bracketed numbers as the homepage). If nothing is found, say so explicitly.`;
+    // 讓回答格式列出「每位作者」對指定經文的解釋，並附註來源（交由檔案引用處理）。
+    // 傳入的 passageText 僅作為定位語境，仍然必須只根據資料庫內容回答。
+    const zhPrompt = `請僅根據資料庫內容作答。針對「${ref}」在本卷向量庫中的評論/詮釋，請列出作者清單並為每位作者提供重點條列，段落末尾附上資料庫引用註記（數字方括號）。若無資料，請明確告知找不到相關資料。\n\n供你定位語境的經文（不可作為回答來源，僅輔助理解引用段落）：\n${passageText ? '---\n' + passageText + '\n---' : ''}`;
+    const enPrompt = `Answer strictly from the vector store only. For "${ref}", list the authors in this book who comment on it and provide concise bullet points per author. Append numeric file citations in brackets after each bullet. If nothing is found, say so.\n\nPassage provided to locate context only (do not use as a source of facts):\n${passageText ? '---\n' + passageText + '\n---' : ''}`;
 
     const q = (language === 'en' ? enPrompt : zhPrompt) + (translation ? `\n（版本：${translation}）` : '');
 
-    const cacheKey = `${targetName}|${ref}|${translation || ''}|${language}`.toLowerCase();
+    const cacheKey = `${targetName}|${ref}|${translation || ''}|${language}|${passageText ? 'withPassage' : ''}`.toLowerCase();
     const cached = getBibleExplainCached(cacheKey);
     if (cached) {
       return res.json({ success: true, data: cached, cached: true });

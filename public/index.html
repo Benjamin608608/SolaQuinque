@@ -2209,7 +2209,7 @@
                     <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
                         <div class="flex items-center justify-between p-4 border-b border-gray-200">
                             <h3 class="text-lg font-semibold text-gray-900">${title}</h3>
-                            <button onclick="closeVerseCommentaryDialog()" class="text-gray-400 hover:text-gray-600">
+                            <button id="close-commentary-btn" class="text-gray-400 hover:text-gray-600">
                                 <span class="material-icons-outlined">close</span>
                             </button>
                         </div>
@@ -2226,6 +2226,21 @@
                 
                 // 添加到頁面
                 document.body.appendChild(dialog);
+                
+                // 綁定關閉按鈕事件
+                const closeBtn = dialog.querySelector('#close-commentary-btn');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        closeVerseCommentaryDialog();
+                    });
+                }
+                
+                // 點擊背景也可以關閉對話框
+                dialog.addEventListener('click', (event) => {
+                    if (event.target === dialog) {
+                        closeVerseCommentaryDialog();
+                    }
+                });
                 
                 // 生成註釋內容
                 generateVerseCommentary(bookId, chapter, startVerse, endVerse, bookName);
@@ -2326,6 +2341,11 @@
                     const versionElement = document.getElementById('bibleVersion');
                     const version = versionElement ? versionElement.value : 'CUV';
                     
+                    // 準備選中經文全文（用於定位語境，不作為回答來源）
+                    const passageText = Array.isArray(targetVerses)
+                        ? targetVerses.map(v => `${v.verse}. ${v.text}`).join('\n')
+                        : '';
+
                     // 使用聖經解釋API搜尋該卷的神學家註釋
                     const response = await fetch('/api/bible/explain', {
                         method: 'POST',
@@ -2335,6 +2355,7 @@
                         body: JSON.stringify({
                             bookEn: book.engs,
                             ref: ref,
+                            passageText,
                             translation: version,
                             language: window.currentLanguage || 'zh'
                         })
