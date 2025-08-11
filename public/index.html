@@ -2529,12 +2529,7 @@
                     showLoginUI();
                 }
 
-                // 強制檢查：只有在未認證狀態下才檢查是否需要顯示登入畫面
-                const mainContent = document.getElementById('mainContent');
-                if (window.currentPage === 'login' && mainContent && !mainContent.innerHTML.includes('登入') && !mainContent.innerHTML.includes('login')) {
-                    console.log('強制顯示登入畫面');
-                    showLoginUI();
-                }
+                // 移除強制檢查，避免干擾正常的頁面導航
 
                 // 初始化引用標註事件
                 bindCitationEvents();
