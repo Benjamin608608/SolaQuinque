@@ -1407,6 +1407,9 @@
                 let out = html;
                 const lang = window.currentLanguage || 'zh';
                 
+                // 清理殘留的 Markdown 星號
+                out = out.replace(/\*\*/g, '');
+
                 // 以對照表替換作者（僅在中文介面）
                 if (lang === 'zh' && typeof authorTranslations === 'object' && authorTranslations) {
                     Object.keys(authorTranslations).forEach(en => {
@@ -1432,6 +1435,20 @@
                     out = out.replace(/(\d+\.\s*)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(\s*\([^)]+\))?/g, '$1<strong>$2</strong>$3');
                 }
                 
+                // 進一步規範「序號. 作者（年份）」段落格式，並在中文情況嘗試轉名
+                out = out.replace(/(<p[^>]*>\s*)(\d+\.\s*)([^<\n]+?)(\s*(\([^\)]*\))?)(\s*<\/p>)/g,
+                  (all, pStart, num, name, rest, years, pEnd) => {
+                    const cleanName = name.trim().replace(/\*+/g, '');
+                    let display = cleanName;
+                    if (lang === 'zh' && typeof getAuthorName === 'function') {
+                      const mapped = getAuthorName(cleanName) || (authorTranslations && authorTranslations[cleanName]);
+                      if (mapped) display = mapped;
+                    }
+                    const yearText = years ? years : '';
+                    return `${pStart}${num}<strong>${display}${yearText}</strong>${pEnd}`;
+                  }
+                );
+
                 // 每位作者段落前加額外間距
                 out = out.replace(/<p><strong>/g, '<p style="margin-top:16px;"><strong>');
                 out = out.replace(/<li><strong>/g, '<li style="margin-top:12px;"><strong>');
@@ -2389,9 +2406,14 @@
                     // 顯示神學家註釋
                     let commentaryContent = data.answer;
                     
-                    // 移除開頭的說明文字
+                    // 移除開頭與結尾的多餘說明文字
                     commentaryContent = commentaryContent.replace(/根據資料庫內容，針對「[^」]+」的評論\/詮釋作者如下：/g, '');
+                    commentaryContent = commentaryContent.replace(/我找到了針對「[^」]+」的評論\/詮釋，以下是相關的作者及其重點概述：/g, '');
                     commentaryContent = commentaryContent.replace(/According to the database content, the authors of comments\/interpretations for "[^"]+" are as follows:/g, '');
+                    commentaryContent = commentaryContent.replace(/I found comments\/interpretations for "[^"]+"\. Here are the relevant authors and key points:/g, '');
+                    // 去除常見的結尾客套
+                    commentaryContent = commentaryContent.replace(/如果需要更多詳細的?信息或其他(方面的)?問題，請告知！?/g, '');
+                    commentaryContent = commentaryContent.replace(/If you need more details or have other questions, please let me know!?/g, '');
                     
                     // 格式化內容
                     let formattedContent = formatAnswer(commentaryContent, data.sources);
