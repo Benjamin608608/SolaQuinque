@@ -1988,7 +1988,8 @@
                     // 獲取書卷和版本資訊
                     const allBooks = [...booksOT, ...booksNT];
                     const book = allBooks.find(b => b.id === bookId);
-                    const version = document.getElementById('bibleVersion').value || 'CUV';
+                    const versionElement = document.getElementById('bibleVersion');
+                    const version = versionElement ? versionElement.value : 'CUV';
                     const lang = window.currentLanguage || 'zh';
                     const bookName = lang === 'en' ? book.en : book.zh;
                     
@@ -2453,7 +2454,8 @@
             */
 
             function renderPreloadedVerses(verses, from, to) {
-                const version = document.getElementById('bibleVersion').value || 'CUV';
+                const versionElement = document.getElementById('bibleVersion');
+                const version = versionElement ? versionElement.value : 'CUV';
                 const container = document.getElementById('bibleText');
                 const bibleResult = document.getElementById('bibleResult');
                 const explain = document.getElementById('bibleExplanation');
@@ -2563,7 +2565,8 @@
 
             // 載入整章內容 - 直接顯示經文而不顯示節數按鈕
             async function loadWholeChapter(bookId, chapter) {
-                const version = document.getElementById('bibleVersion').value || 'CUV';
+                const versionElement = document.getElementById('bibleVersion');
+                const version = versionElement ? versionElement.value : 'CUV';
                 const container = document.getElementById('bibleText');
                 const bibleResult = document.getElementById('bibleResult');
                 const explain = document.getElementById('bibleExplanation');
@@ -2805,7 +2808,8 @@
             const container = document.getElementById('bibleExplanation');
             if (!container) return;
             try {
-                const version = document.getElementById('bibleVersion').value;
+                const versionElement = document.getElementById('bibleVersion');
+                const version = versionElement ? versionElement.value : 'CUV';
                 const engs = document.getElementById('bibleBookEngs').value;
                 const chapter = document.getElementById('bibleChapter').value;
                 const vFrom = document.getElementById('bibleVerseFrom').value;
