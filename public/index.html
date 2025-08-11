@@ -1457,9 +1457,9 @@
                 protect(/<cite[\s\S]*?<\/cite>/gi);
                 // 引號形式的書名
                 protect(/"[\s\S]*?"/g);
-                protect(/“[\s\S]*?”/g);
+                protect(/"'[\s\S]*?'/g);
                 protect(/'[^']*?'/g);
-                protect(/‘[\s\S]*?’/g);
+                protect(/'[\s\S]*?'/g);
                 protect(/「[\s\S]*?」/g);
                 protect(/『[\s\S]*?』/g);
 
@@ -2511,7 +2511,8 @@
                         </div>
                         <div class="mb-4">
                             <div class="text-sm text-gray-600 mb-2">📚 神學家註釋（基於 ${bookName} 資料庫）：</div>
-                            <div id="theological-commentary" class="text-gray-800">
+                            <div class="text-xs text-gray-500 mb-2">提示：經文解釋的部分請參考首頁詢問功能中的數字小標註解。</div>
+                             <div id="theological-commentary" class="text-gray-800">
                                 <div class="flex items-center justify-center py-4">
                                     <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                                     <span class="ml-2 text-gray-600">正在搜尋 ${bookName} 資料庫中的神學家註釋...</span>
