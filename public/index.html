@@ -1419,22 +1419,15 @@
                 return text;
             }
 
-            finalize() {
+            finalize(sources = []) {
                 // 最終渲染，處理所有剩餘內容
                 this.lastStableIndex = 0;
                 const finalContent = this.buffer;
                 
                 if (this.renderContainer) {
-                    let html = finalContent
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
-                        .replace(/`([^`]+)`/g, '<code>$1</code>');
-                        
-                    // 分段處理
-                    const paragraphs = html.split(/\n\s*\n/).filter(p => p.trim());
-                    const finalHtml = paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
-                    
-                    this.renderContainer.innerHTML = finalHtml;
+                    // 使用現有的 formatAnswer 函數處理引用標註
+                    const formattedHtml = formatAnswer(finalContent, sources);
+                    this.renderContainer.innerHTML = formattedHtml;
                 }
             }
 
@@ -1496,7 +1489,9 @@
                     function processStream() {
                         return reader.read().then(({ done, value }) => {
                             if (done) {
-                                renderer.finalize();
+                                renderer.finalize(sources);
+                                // 重新綁定引用標註事件
+                                bindCitationEvents();
                                 resolve();
                                 return;
                             }
@@ -1524,7 +1519,7 @@
                                                 break;
                                                 
                                             case 'done':
-                                                renderer.finalize();
+                                                renderer.finalize(sources);
                                                 
                                                 // 重新綁定引用標註事件
                                                 bindCitationEvents();
@@ -1695,6 +1690,13 @@
                     formatted = formatted.replace(citationRegex, citationHtml);
                 });
             }
+            
+            // 處理 OpenAI 特殊格式的引用標註 【4:16†source】
+            formatted = formatted.replace(/【(\d+:\d+)†([^】]*)】/g, (match, reference, sourceInfo) => {
+                // 為這種格式創建一個簡單的引用標註
+                const citationHtml = `<span class="citation" data-citation="ref" title="${reference} - ${sourceInfo}" style="display: inline; margin: 0;">📖</span>`;
+                return citationHtml;
+            });
             
             return formatted;
         }
