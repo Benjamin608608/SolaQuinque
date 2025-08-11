@@ -2054,8 +2054,48 @@
                 setFooterVisibility();
             }
 
+            // 全局變數：追蹤選中的經節範圍
+            window.selectedVerseRange = null;
+            
             // 經文選中功能
             function selectVerse(verseNumber) {
+                const verseNumberInt = parseInt(verseNumber);
+                
+                // 如果沒有選中範圍，開始新的選中
+                if (!window.selectedVerseRange) {
+                    window.selectedVerseRange = { start: verseNumberInt, end: verseNumberInt };
+                    selectVerseRange(window.selectedVerseRange.start, window.selectedVerseRange.end);
+                    return;
+                }
+                
+                // 如果已經有選中範圍，檢查是否形成連續範圍
+                const currentRange = window.selectedVerseRange;
+                let newStart = currentRange.start;
+                let newEnd = currentRange.end;
+                
+                // 如果點擊的經節在當前範圍內，不做任何改變
+                if (verseNumberInt >= currentRange.start && verseNumberInt <= currentRange.end) {
+                    return;
+                }
+                
+                // 如果點擊的經節在當前範圍之前
+                if (verseNumberInt < currentRange.start) {
+                    newStart = verseNumberInt;
+                }
+                // 如果點擊的經節在當前範圍之後
+                else if (verseNumberInt > currentRange.end) {
+                    newEnd = verseNumberInt;
+                }
+                
+                // 更新選中範圍
+                window.selectedVerseRange = { start: newStart, end: newEnd };
+                selectVerseRange(newStart, newEnd);
+                
+                console.log('選中經節範圍:', window.selectedVerseRange);
+            }
+            
+            // 選中經節範圍
+            function selectVerseRange(start, end) {
                 // 移除之前的選中狀態
                 document.querySelectorAll('.clickable-verse').forEach(el => {
                     el.classList.remove('verse-selected');
@@ -2067,10 +2107,12 @@
                     menu.classList.add('hidden');
                 }
                 
-                // 選中當前經節
-                const selectedVerse = document.querySelector(`[data-verse="${verseNumber}"]`);
-                if (selectedVerse) {
-                    selectedVerse.classList.add('verse-selected');
+                // 選中範圍內的所有經節
+                for (let i = start; i <= end; i++) {
+                    const verseElement = document.querySelector(`[data-verse="${i}"]`);
+                    if (verseElement) {
+                        verseElement.classList.add('verse-selected');
+                    }
                 }
                 
                 // 顯示中間按鈕
@@ -2078,8 +2120,6 @@
                 if (centerBtn) {
                     centerBtn.classList.remove('hidden');
                 }
-                
-                console.log('選中經節:', verseNumber);
             }
             
             // 清除經文選中功能
@@ -2088,6 +2128,9 @@
                 document.querySelectorAll('.clickable-verse').forEach(el => {
                     el.classList.remove('verse-selected');
                 });
+                
+                // 清除選中範圍
+                window.selectedVerseRange = null;
                 
                 // 隱藏經文操作選單
                 const menu = document.getElementById('verse-action-menu');
@@ -2115,23 +2158,24 @@
             
             // 顯示經文註釋
             function showVerseCommentary() {
-                const selectedVerse = document.querySelector('.verse-selected');
-                if (selectedVerse) {
-                    const verseNumber = selectedVerse.getAttribute('data-verse');
-                    console.log('顯示經文註釋:', verseNumber);
-                    
-                    // 獲取當前章節信息
-                    const currentBookId = window.currentBibleSelection?.bookId;
-                    const currentChapter = window.currentBibleSelection?.chapter;
-                    
-                    if (currentBookId && currentChapter) {
-                        showVerseCommentaryDialog(currentBookId, currentChapter, parseInt(verseNumber));
-                    } else {
-                        alert('無法獲取當前章節信息');
-                    }
-                } else {
-                    alert('請先選中一個經節');
+                if (!window.selectedVerseRange) {
+                    alert('請先選中經節');
+                    return;
                 }
+                
+                const { start, end } = window.selectedVerseRange;
+                console.log('顯示經文註釋範圍:', { start, end });
+                
+                // 獲取當前章節信息
+                const currentBookId = window.currentBibleSelection?.bookId;
+                const currentChapter = window.currentBibleSelection?.chapter;
+                
+                if (currentBookId && currentChapter) {
+                    showVerseCommentaryDialog(currentBookId, currentChapter, start, end);
+                } else {
+                    alert('無法獲取當前章節信息');
+                }
+                
                 // 隱藏選單
                 const menu = document.getElementById('verse-action-menu');
                 if (menu) {
@@ -2140,7 +2184,7 @@
             }
             
             // 顯示經文註釋對話框
-            function showVerseCommentaryDialog(bookId, chapter, verse) {
+            function showVerseCommentaryDialog(bookId, chapter, startVerse, endVerse) {
                 // 移除現有的對話框
                 const existingDialog = document.getElementById('verse-commentary-dialog');
                 if (existingDialog) {
@@ -2152,6 +2196,11 @@
                 const book = allBooks.find(b => b.id === bookId);
                 const bookName = book ? book.zh : '';
                 
+                // 構建標題
+                const title = startVerse === endVerse 
+                    ? `${bookName} ${chapter}:${startVerse} 神學家註釋`
+                    : `${bookName} ${chapter}:${startVerse}-${endVerse} 神學家註釋`;
+                
                 // 創建對話框
                 const dialog = document.createElement('div');
                 dialog.id = 'verse-commentary-dialog';
@@ -2159,7 +2208,7 @@
                 dialog.innerHTML = `
                     <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
                         <div class="flex items-center justify-between p-4 border-b border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-900">${bookName} ${chapter}:${verse} 神學家註釋</h3>
+                            <h3 class="text-lg font-semibold text-gray-900">${title}</h3>
                             <button onclick="closeVerseCommentaryDialog()" class="text-gray-400 hover:text-gray-600">
                                 <span class="material-icons-outlined">close</span>
                             </button>
@@ -2179,7 +2228,7 @@
                 document.body.appendChild(dialog);
                 
                 // 生成註釋內容
-                generateVerseCommentary(bookId, chapter, verse, bookName);
+                generateVerseCommentary(bookId, chapter, startVerse, endVerse, bookName);
             }
             
             // 關閉經文註釋對話框
@@ -2191,7 +2240,7 @@
             }
             
             // 生成經文註釋
-            async function generateVerseCommentary(bookId, chapter, verse, bookName) {
+            async function generateVerseCommentary(bookId, chapter, startVerse, endVerse, bookName) {
                 const contentDiv = document.getElementById('verse-commentary-content');
                 if (!contentDiv) return;
                 
@@ -2208,18 +2257,29 @@
                     
                     const text = await response.text();
                     const verses = parseBibleTextFromFile(text, bookId, chapter);
-                    const targetVerse = verses.find(v => v.verse === verse);
                     
-                    if (!targetVerse) {
-                        contentDiv.innerHTML = '<div class="text-red-600">找不到該節經文</div>';
+                    // 獲取範圍內的所有經文
+                    const targetVerses = [];
+                    for (let i = startVerse; i <= endVerse; i++) {
+                        const verse = verses.find(v => v.verse === i);
+                        if (verse) {
+                            targetVerses.push(verse);
+                        }
+                    }
+                    
+                    if (targetVerses.length === 0) {
+                        contentDiv.innerHTML = '<div class="text-red-600">找不到該範圍的經文</div>';
                         return;
                     }
+                    
+                    // 構建經文內容顯示
+                    const versesText = targetVerses.map(v => `${v.verse}. ${v.text}`).join('<br>');
                     
                     // 顯示經文內容
                     contentDiv.innerHTML = `
                         <div class="mb-4 p-3 bg-gray-50 rounded-lg">
                             <div class="text-sm text-gray-600 mb-2">經文內容：</div>
-                            <div class="text-gray-800">${targetVerse.text}</div>
+                            <div class="text-gray-800">${versesText}</div>
                         </div>
                         <div class="mb-4">
                             <div class="text-sm text-gray-600 mb-2">📚 神學家註釋（基於 ${bookName} 資料庫）：</div>
@@ -2233,7 +2293,7 @@
                     `;
                     
                     // 搜尋神學家註釋
-                    await searchTheologicalCommentary(bookName, chapter, verse, targetVerse.text);
+                    await searchTheologicalCommentary(bookName, chapter, startVerse, endVerse, targetVerses);
                     
                 } catch (error) {
                     console.error('生成註釋失敗:', error);
@@ -2246,7 +2306,7 @@
             }
             
             // 搜尋神學家註釋
-            async function searchTheologicalCommentary(bookName, chapter, verse, verseText) {
+            async function searchTheologicalCommentary(bookName, chapter, startVerse, endVerse, targetVerses) {
                 const commentaryDiv = document.getElementById('theological-commentary');
                 if (!commentaryDiv) return;
                 
@@ -2259,7 +2319,7 @@
                     }
                     
                     // 構建經文參考
-                    const ref = `${chapter}:${verse}`;
+                    const ref = startVerse === endVerse ? `${chapter}:${startVerse}` : `${chapter}:${startVerse}-${endVerse}`;
                     console.log('搜尋神學家註釋:', { bookName, bookEn: book.engs, ref });
                     
                     // 獲取聖經版本
@@ -2399,6 +2459,9 @@
             async function loadBibleChapterContent(bookId, chapter, version) {
                 const container = document.getElementById('bibleChapterContent');
                 if (!container) return;
+                
+                // 清除之前的選中狀態
+                clearVerseSelection();
                 
                 try {
                     // 從本地文本檔案載入
