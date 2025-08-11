@@ -2516,16 +2516,19 @@
                 try { await loadAuthorTranslations(); } catch {}
 
                 // 檢查認證狀態（成功會切換到已登入 UI）
+                let authCheckCompleted = false;
                 try { 
                     await checkAuthStatus(); 
+                    authCheckCompleted = true;
                 } catch (error) {
                     console.error('認證檢查失敗:', error);
                     // 確保顯示登入畫面
                     showLoginUI();
+                    authCheckCompleted = true;
                 }
 
-                // 如果還沒有顯示任何頁面，顯示登入畫面
-                if (window.currentPage === 'login') {
+                // 如果認證檢查沒有完成或沒有顯示任何頁面，顯示登入畫面
+                if (!authCheckCompleted || window.currentPage === 'login') {
                     showLoginUI();
                 }
 
@@ -2535,6 +2538,7 @@
                 bindCitationEvents();
 
                 // 頁面轉場：初次載入給主內容一個淡入
+                const mainContent = document.getElementById('mainContent');
                 if (mainContent) {
                     mainContent.classList.add('page-enter');
                     requestAnimationFrame(() => mainContent.classList.add('page-enter-active'));
