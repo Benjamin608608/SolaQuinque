@@ -859,6 +859,49 @@
             try { const s = JSON.parse(localStorage.getItem('bibleSel') || 'null'); if (s) window.currentBibleSelection = s; } catch {}
         };
         window.loadBibleSelection();
+        
+        // 全局章節導航函數
+        window.goToChapter = async function(bookId, chapter) {
+            console.log('goToChapter 被調用:', { bookId, chapter });
+            
+            try {
+                // 檢查章節範圍
+                const allBooks = [...booksOT, ...booksNT];
+                const book = allBooks.find(b => b.id === bookId);
+                if (!book) {
+                    console.error('找不到書卷:', bookId);
+                    return;
+                }
+                
+                // 檢查章節是否在有效範圍內
+                if (chapter < 1 || chapter > book.chapters) {
+                    console.log(`章節 ${chapter} 超出範圍 (1-${book.chapters})`);
+                    return;
+                }
+                
+                console.log('準備跳轉到章節:', { bookId, chapter, bookName: book.zh });
+                
+                // 設置頁面狀態為章節頁面，防止被錯誤處理器干擾
+                window.currentPage = 'bibleChapter';
+                
+                // 檢查認證狀態，但不強制跳轉到登入頁面
+                const authStatus = await checkAuthStatusSilent();
+                if (!authStatus.authenticated) {
+                    console.log('用戶未登入，但允許查看聖經章節');
+                }
+                
+                // 更新選擇並跳轉到新章節
+                updateBibleSelection({ bookId: bookId, chapter: chapter });
+                await showBibleChapterPage(bookId, chapter);
+                
+                console.log('章節導航完成');
+                
+            } catch (error) {
+                console.error('章節導航過程中發生錯誤:', error);
+                // 即使出錯也要確保頁面狀態正確
+                window.currentPage = 'bibleChapter';
+            }
+        };
         // 控制底部搜尋輸入欄顯示：僅首頁顯示
         function setFooterVisibility() {
             const footer = document.querySelector('footer');
@@ -2117,8 +2160,10 @@
                 });
             }
 
-            // 添加章節導航按鈕
+            // 添加章節導航按鈕 - 重新設計
             function addChapterNavigationButtons(bookId, chapter) {
+                console.log('添加章節導航按鈕:', { bookId, chapter });
+                
                 // 移除現有的導航按鈕
                 const existingButtons = document.getElementById('chapterNavigationButtons');
                 if (existingButtons) {
@@ -2128,14 +2173,24 @@
                 // 檢查章節範圍
                 const allBooks = [...booksOT, ...booksNT];
                 const book = allBooks.find(b => b.id === bookId);
-                if (!book) return;
+                if (!book) {
+                    console.error('找不到書卷:', bookId);
+                    return;
+                }
+                
+                console.log('當前書卷:', book);
                 
                 // 決定是否顯示前一章和後一章按鈕
                 const showPrevButton = chapter > 1;
                 const showNextButton = chapter < book.chapters;
                 
+                console.log('按鈕顯示狀態:', { showPrevButton, showNextButton, currentChapter: chapter, maxChapters: book.chapters });
+                
                 // 如果都不需要顯示，直接返回
-                if (!showPrevButton && !showNextButton) return;
+                if (!showPrevButton && !showNextButton) {
+                    console.log('不需要顯示導航按鈕');
+                    return;
+                }
                 
                 // 創建新的導航按鈕
                 const navigationDiv = document.createElement('div');
@@ -2146,8 +2201,9 @@
                 
                 // 前一章按鈕
                 if (showPrevButton) {
+                    const prevChapter = chapter - 1;
                     buttonsHTML += `
-                        <button class="chapter-nav-btn chapter-nav-btn-prev" data-book-id="${bookId}" data-chapter="${chapter - 1}" title="前一章">
+                        <button class="chapter-nav-btn chapter-nav-btn-prev" onclick="goToChapter(${bookId}, ${prevChapter})" title="前一章 (${prevChapter})">
                             <div class="btn-3d-effect">
                                 <span class="material-icons-outlined">arrow_back</span>
                             </div>
@@ -2168,8 +2224,9 @@
                 
                 // 後一章按鈕
                 if (showNextButton) {
+                    const nextChapter = chapter + 1;
                     buttonsHTML += `
-                        <button class="chapter-nav-btn chapter-nav-btn-next" data-book-id="${bookId}" data-chapter="${chapter + 1}" title="後一章">
+                        <button class="chapter-nav-btn chapter-nav-btn-next" onclick="goToChapter(${bookId}, ${nextChapter})" title="後一章 (${nextChapter})">
                             <div class="btn-3d-effect">
                                 <span class="material-icons-outlined">arrow_forward</span>
                             </div>
@@ -2184,90 +2241,10 @@
                 
                 // 添加到頁面
                 document.body.appendChild(navigationDiv);
-                
-                // 添加按鈕事件監聽器 - 使用更直接的方法
-                const prevBtn = navigationDiv.querySelector('.chapter-nav-btn-prev');
-                const nextBtn = navigationDiv.querySelector('.chapter-nav-btn-next');
-                
-                if (prevBtn) {
-                    prevBtn.onclick = function() {
-                        console.log('前一章按鈕被點擊');
-                        const bookId = parseInt(this.getAttribute('data-book-id'));
-                        const chapter = parseInt(this.getAttribute('data-chapter'));
-                        console.log('前一章按鈕參數:', { bookId, chapter });
-                        
-                        // 直接調用導航函數
-                        try {
-                            navigateChapter(bookId, chapter);
-                        } catch (error) {
-                            console.error('導航失敗:', error);
-                        }
-                    };
-                }
-                
-                if (nextBtn) {
-                    nextBtn.onclick = function() {
-                        console.log('後一章按鈕被點擊');
-                        const bookId = parseInt(this.getAttribute('data-book-id'));
-                        const chapter = parseInt(this.getAttribute('data-chapter'));
-                        console.log('後一章按鈕參數:', { bookId, chapter });
-                        
-                        // 直接調用導航函數
-                        try {
-                            navigateChapter(bookId, chapter);
-                        } catch (error) {
-                            console.error('導航失敗:', error);
-                        }
-                    };
-                }
+                console.log('導航按鈕已添加到頁面');
             }
 
-            // 章節導航功能
-            async function navigateChapter(bookId, chapter) {
-                console.log('navigateChapter 被調用:', { bookId, chapter });
-                
-                try {
-                    // 檢查章節範圍
-                    const allBooks = [...booksOT, ...booksNT];
-                    const book = allBooks.find(b => b.id === bookId);
-                    if (!book) {
-                        console.error('找不到書卷:', bookId);
-                        return;
-                    }
-                    
-                    console.log('找到書卷:', book);
-                    
-                    // 檢查章節是否在有效範圍內
-                    if (chapter < 1 || chapter > book.chapters) {
-                        console.log(`章節 ${chapter} 超出範圍 (1-${book.chapters})`);
-                        return;
-                    }
-                    
-                    console.log('章節範圍檢查通過');
-                    
-                    // 設置頁面狀態為章節頁面，防止被錯誤處理器干擾
-                    window.currentPage = 'bibleChapter';
-                    
-                    // 檢查認證狀態，但不強制跳轉到登入頁面
-                    const authStatus = await checkAuthStatusSilent();
-                    if (!authStatus.authenticated) {
-                        console.log('用戶未登入，但允許查看聖經章節');
-                    }
-                    
-                    console.log('準備跳轉到章節頁面');
-                    
-                    // 更新選擇並跳轉到新章節
-                    updateBibleSelection({ bookId: bookId, chapter: chapter });
-                    await showBibleChapterPage(bookId, chapter);
-                    
-                    console.log('章節導航完成');
-                    
-                } catch (error) {
-                    console.error('章節導航過程中發生錯誤:', error);
-                    // 即使出錯也要確保頁面狀態正確
-                    window.currentPage = 'bibleChapter';
-                }
-            }
+
 
             // 隱藏的節數按鈕功能 - 保留程式碼供未來使用
             /*
