@@ -184,6 +184,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/data', express.static(path.join(__dirname, 'data')));
 
+// 測試靜態檔案服務
+app.get('/test-static', (req, res) => {
+  res.json({ 
+    message: '靜態檔案服務測試',
+    dataPath: path.join(__dirname, 'data'),
+    exists: require('fs').existsSync(path.join(__dirname, 'data', 'bible-versions', 'cuv-sample.txt'))
+  });
+});
+
 // 認證中間件
 function ensureAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
