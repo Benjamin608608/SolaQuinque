@@ -2559,9 +2559,32 @@
                 if (!content || !pane) return;
                 content.innerHTML = '<div class="text-[var(--text-secondary)] text-sm">載入中...</div>';
                 try {
-                    const resp = await fetch(`/data/bible-versions/${version.toLowerCase()}-bible.txt`);
-                    if (!resp.ok) throw new Error('無法載入聖經檔案');
-                    const text = await resp.text();
+                    // 嘗試載入指定版本，失敗則使用備用版本
+                    const tryLoad = async (ver) => {
+                        const r = await fetch(`/data/bible-versions/${ver.toLowerCase()}-bible.txt`);
+                        if (!r.ok) throw new Error('無法載入聖經檔案');
+                        const t = await r.text();
+                        return t;
+                    };
+
+                    let text;
+                    try {
+                        text = await tryLoad(version);
+                    } catch (e) {
+                        // 版本載入失敗，改用備用版本
+                        const fallback = version.toUpperCase() === 'CUV' ? 'KJV' : 'CUV';
+                        try {
+                            text = await tryLoad(fallback);
+                            // 若是下方面板且有選單，更新選單顯示為備用版本
+                            if (contentId === 'compareBottomContent') {
+                                window.compareBottomVersion = fallback;
+                                const sel = document.getElementById('compareBottomVersion');
+                                if (sel) sel.value = fallback;
+                            }
+                        } catch (e2) {
+                            throw e; // 兩個版本都失敗，拋出原始錯誤
+                        }
+                    }
                     const verses = parseBibleTextFromFile(text, bookId, chapter);
                     const html = verses.map(v => `
                       <span class="verse-item" data-verse="${v.verse}" style="display:inline;">
