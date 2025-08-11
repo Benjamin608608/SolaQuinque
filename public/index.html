@@ -1542,26 +1542,24 @@
                 const alternation = englishNames
                     .map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
                     .join('|');
-                const mapLower = Object.create(null);
-                englishNames.forEach(n => { mapLower[n.toLowerCase()] = authorTranslations[n]; });
                 
                 // 處理已在<strong>標籤內的作者名稱
                 const strongRe = new RegExp(`<strong>([^<]*?)(?<![A-Za-z])(${alternation})(?![A-Za-z])([^<]*?)<\/strong>`, 'gi');
                 text = text.replace(strongRe, 
                     (match, before, authorName, after) => {
-                        const translated = mapLower[authorName.toLowerCase()] || authorTranslations[authorName] || authorName;
+                        const translated = getAuthorName(authorName);
                         return `<strong>${before}${translated}${after}</strong>`;
                     });
                 
                 // 處理不在<strong>標籤內的作者名稱
                 const re = new RegExp(`(?<![A-Za-z])(${alternation})(?![A-Za-z])`, 'g');
-                text = text.replace(re, (m, p1) => `<strong>${mapLower[p1.toLowerCase()] || authorTranslations[p1] || p1}</strong>`);
+                text = text.replace(re, (m, p1) => `<strong>${getAuthorName(p1)}</strong>`);
                 
                 // 特別處理段落開頭的作者格式：作者名（年份）
                 // 改進正則表達式，避免跨作者匹配
                 text = text.replace(/^([A-Z][a-zA-Z\s\.'-]{2,40}?)\s*(\(\d{4}-\d{4}\)|\(\d{4}\))/gm, (match, name, years) => {
                     const cleanName = name.trim();
-                    const translated = mapLower[cleanName.toLowerCase()] || authorTranslations[cleanName] || cleanName;
+                    const translated = getAuthorName(cleanName);
                     return `<strong>${translated}${years}</strong>`;
                 });
                 
