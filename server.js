@@ -980,6 +980,99 @@ async function processSearchRequest(question, user, language = 'zh') {
     return processingPromise;
 }
 
+// 串流版本的搜索處理
+async function processSearchRequestStream(question, user, language, res) {
+    console.log('🔄 使用 OpenAI Assistant API 串流方法...');
+    
+    try {
+        // 使用全局 Assistant（重用機制）
+        const assistant = await getOrCreateAssistant();
+        console.log('✅ 使用現有 Assistant');
+
+        // 創建 Thread
+        const thread = await openai.beta.threads.create();
+        console.log('✅ Thread 創建成功');
+
+        // 添加用戶問題到 Thread
+        await openai.beta.threads.messages.create(thread.id, {
+            role: "user",
+            content: question
+        });
+
+        // 創建串流 Run
+        const stream = await openai.beta.threads.runs.stream(thread.id, {
+            assistant_id: assistant.id
+        });
+
+        let fullAnswer = '';
+        let sources = [];
+
+        // 處理串流事件
+        stream.on('textDelta', (textDelta) => {
+            if (textDelta.value) {
+                fullAnswer += textDelta.value;
+                // 發送增量內容
+                res.write(`data: {"type": "delta", "data": ${JSON.stringify(textDelta.value)}}\n\n`);
+            }
+        });
+
+        stream.on('messageDone', async (message) => {
+            if (message.content && message.content.length > 0) {
+                // 處理來源信息
+                const annotations = message.content[0].text?.annotations || [];
+                sources = annotations.map(annotation => {
+                    if (annotation.type === 'file_citation') {
+                        return annotation.text || '';
+                    }
+                    return '';
+                }).filter(Boolean);
+            }
+        });
+
+        stream.on('end', async () => {
+            try {
+                // 發送來源信息
+                res.write(`data: {"type": "sources", "data": ${JSON.stringify(sources)}}\n\n`);
+                
+                // 發送完成信號
+                res.write('data: {"type": "done"}\n\n');
+                res.end();
+
+                // 緩存結果
+                const result = { answer: fullAnswer, sources };
+                setCachedResult(question, result);
+
+                // 記錄到 Google Sheets
+                try {
+                    const userName = user?.name || '';
+                    const userEmail = user?.email || '';
+                    const timestamp = new Date().toISOString();
+                    await appendToGoogleSheet([timestamp, language, userName, userEmail, question, fullAnswer]);
+                } catch (e) {
+                    console.warn('⚠️ 問答寫入表單失敗（不影響回應）:', e.message);
+                }
+
+            } catch (error) {
+                console.error('串流完成處理錯誤:', error);
+                res.write(`data: {"type": "error", "error": "處理完成時發生錯誤"}\n\n`);
+                res.end();
+            }
+        });
+
+        stream.on('error', (error) => {
+            console.error('串流錯誤:', error);
+            res.write(`data: {"type": "error", "error": "串流處理發生錯誤"}\n\n`);
+            res.end();
+        });
+
+    } catch (error) {
+        console.error('串流搜索處理錯誤:', error);
+        res.write(`data: {"type": "error", "error": "搜索處理發生錯誤"}\n\n`);
+        res.end();
+        throw error;
+    }
+}
+
 // 實際的搜索處理邏輯
 async function processSearchRequestInternal(question, user, language = 'zh') {
     
@@ -1203,7 +1296,56 @@ app.post('/api/test-search', async (req, res) => {
 
 
 
-// 主要搜索 API 端點 - 需要認證
+// 主要搜索 API 端點 - 串流版本
+app.post('/api/search/stream', ensureAuthenticated, async (req, res) => {
+  try {
+    const { question, language = 'zh' } = req.body;
+
+    if (!question || !question.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: '請提供有效的問題'
+      });
+    }
+
+    const trimmedQuestion = question.trim();
+    console.log(`收到串流搜索請求: ${trimmedQuestion} (用戶: ${req.user.email}, 語言: ${language})`);
+
+    // 設置 SSE 響應頭
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
+
+    // 發送初始連接確認
+    res.write('data: {"type": "connected"}\n\n');
+
+    // 使用串流處理
+    await processSearchRequestStream(trimmedQuestion, req.user, language, res);
+
+  } catch (error) {
+    console.error('串流搜索錯誤:', error);
+    
+    let errorMessage = '很抱歉，處理您的問題時發生錯誤，請稍後再試。';
+    
+    if (error.message.includes('查詢時間過長') || error.message.includes('timeout')) {
+      errorMessage = '查詢時間過長，請嘗試簡化您的問題或稍後再試。';
+    } else if (error.message.includes('rate limit')) {
+      errorMessage = '目前請求過多，請稍後再試。';
+    } else if (error.message.includes('Assistant run failed')) {
+      errorMessage = '系統處理問題，請稍後再試或聯繫管理員。';
+    } else if (error.message.includes('network') || error.message.includes('connection')) {
+      errorMessage = '網路連線不穩定，請檢查網路後重試。';
+    }
+    
+    // 發送錯誤事件
+    res.write(`data: {"type": "error", "error": "${errorMessage}"}\n\n`);
+    res.end();
+  }
+});
+
+// 主要搜索 API 端點 - 需要認證 (保持兼容)
 app.post('/api/search', ensureAuthenticated, async (req, res) => {
   try {
     const { question, language = 'zh' } = req.body;
@@ -1382,7 +1524,177 @@ async function processBibleExplainRequest(question, targetVectorStoreId, user, l
   }
 }
 
-// 聖經經文解釋（依卷限定向量庫）
+// 串流版本的聖經經文解釋處理
+async function processBibleExplainRequestStream(question, targetVectorStoreId, user, language, res, cacheKey) {
+  try {
+    // 建立 thread 與訊息
+    const thread = await openai.beta.threads.create();
+
+    await openai.beta.threads.messages.create(thread.id, {
+      role: 'user',
+      content: question
+    });
+
+    // 使用全局 Assistant，但在 run 時覆寫 tool_resources.vector_store_ids
+    const assistant = await getOrCreateAssistant();
+
+    // 創建串流 Run
+    const stream = await openai.beta.threads.runs.stream(thread.id, {
+      assistant_id: assistant.id,
+      tool_resources: {
+        file_search: { vector_store_ids: [targetVectorStoreId] }
+      }
+    });
+
+    let fullAnswer = '';
+    let sources = [];
+
+    // 處理串流事件
+    stream.on('textDelta', (textDelta) => {
+      if (textDelta.value) {
+        fullAnswer += textDelta.value;
+        // 發送增量內容
+        res.write(`data: {"type": "delta", "data": ${JSON.stringify(textDelta.value)}}\n\n`);
+      }
+    });
+
+    stream.on('messageDone', async (message) => {
+      if (message.content && message.content.length > 0) {
+        // 處理來源信息
+        const annotations = message.content[0].text?.annotations || [];
+        const { processedText, sourceMap } = await processAnnotationsInText(fullAnswer, annotations, language);
+        fullAnswer = processedText; // 更新處理後的文本
+        
+        sources = Array.from(sourceMap.entries()).map(([index, source]) => ({
+          index,
+          fileName: source.fileName,
+          quote: source.quote && source.quote.length > 120 ? source.quote.substring(0, 120) + '...' : source.quote,
+          fileId: source.fileId
+        }));
+      }
+    });
+
+    stream.on('end', async () => {
+      try {
+        // 發送來源信息
+        res.write(`data: {"type": "sources", "data": ${JSON.stringify(sources)}}\n\n`);
+        
+        // 發送完成信號
+        res.write('data: {"type": "done"}\n\n');
+        res.end();
+
+        // 緩存結果
+        const result = { 
+          answer: fullAnswer || '很抱歉，我在資料庫中找不到相關資訊來回答這個問題。', 
+          sources 
+        };
+        setBibleExplainCached(cacheKey, result);
+
+      } catch (error) {
+        console.error('串流完成處理錯誤:', error);
+        res.write(`data: {"type": "error", "error": "處理完成時發生錯誤"}\n\n`);
+        res.end();
+      }
+    });
+
+    stream.on('error', (error) => {
+      console.error('聖經解釋串流錯誤:', error);
+      res.write(`data: {"type": "error", "error": "串流處理發生錯誤"}\n\n`);
+      res.end();
+    });
+
+  } catch (error) {
+    console.error('串流聖經解釋處理錯誤:', error);
+    res.write(`data: {"type": "error", "error": "解釋處理發生錯誤"}\n\n`);
+    res.end();
+    throw error;
+  }
+}
+
+// 聖經經文解釋 - 串流版本
+app.post('/api/bible/explain/stream', ensureAuthenticated, async (req, res) => {
+  try {
+    const { bookEn, ref, translation, language = 'zh', passageText } = req.body || {};
+
+    if (!bookEn || !ref) {
+      return res.status(400).json({ success: false, error: '缺少必要參數 bookEn 或 ref' });
+    }
+
+    const storePrefix = process.env.BIBLE_STORE_PREFIX || 'Bible-';
+    const targetName = `${storePrefix}${bookEn}`;
+    const vsId = await getVectorStoreIdCachedByName(targetName);
+    if (!vsId) {
+      return res.status(503).json({ success: false, error: `該卷資料庫尚未建立完成，請稍後再試（${targetName}）` });
+    }
+
+    // 設置 SSE 響應頭
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
+
+    // 發送初始連接確認
+    res.write('data: {"type": "connected"}\n\n');
+
+    const zhPrompt = `請嚴格僅根據資料庫內容作答。針對「${ref}」，請在本卷向量庫中「全面檢索所有涉及此段經文的作者」，不要省略任何一位作者。必須展示該經卷資料庫中所有對此段經文有註釋的作者資料。
+
+對每位作者，請按以下格式呈現：
+1. 標題部分：**作者名稱（年代，著作名稱）** - 作者名稱、年代和著作名稱必須加粗顯示
+2. 內文部分：用一段完整的敘述方式詳盡說明這位神學家對這段經文的解釋和觀點，包含其詮釋角度、論據、神學立場等，不得使用條列式或數字清單
+
+要求：
+- 標題部分格式：作者名稱（年代和著作名稱）須加粗
+- 內文必須是敘述性段落，不可用條列
+- 必須包含資料庫中所有對此經文有註釋的作者
+- 著作名稱請保持原文
+
+若無資料，請直接說明找不到相關資料。
+
+以下為選取經文僅用於定位語境（不可作為回答來源）：
+${passageText ? '---\n' + passageText + '\n---' : ''}`;
+
+    const enPrompt = `Answer strictly from the provided vector store only. For "${ref}", perform an exhaustive retrieval of ALL authors in this book who comment on the passage (do not omit any author). Must display all author data from this book's database that have commentary on this passage.
+
+For each author, please present in the following format:
+1. Title section: **Author Name (Year, Work Title)** - Author name, year, and work title must be in bold
+2. Content section: Provide one complete narrative paragraph explaining this theologian's interpretation of this passage, including their interpretive approach, arguments, theological position, etc. No bullet points or numbered lists.
+
+Requirements:
+- Title format: Author name (year and work title) must be bold
+- Content must be narrative paragraphs, not lists
+- Must include ALL authors from the database who comment on this passage
+- Keep work titles in original language
+
+If nothing is found, state it directly.
+
+Passage provided only to locate context (do not use it as a source of facts):
+${passageText ? '---\n' + passageText + '\n---' : ''}`;
+
+    const q = (language === 'en' ? enPrompt : zhPrompt) + (translation ? `\n（版本：${translation}）` : '');
+
+    const cacheKey = `${targetName}|${ref}|${translation || ''}|${language}|${passageText ? 'withPassage' : ''}`.toLowerCase();
+    const cached = getBibleExplainCached(cacheKey);
+    if (cached) {
+      // 即使是快取結果，也要透過串流方式發送
+      res.write(`data: {"type": "content", "data": ${JSON.stringify(cached.answer)}}\n\n`);
+      res.write(`data: {"type": "sources", "data": ${JSON.stringify(cached.sources || [])}}\n\n`);
+      res.write('data: {"type": "done"}\n\n');
+      res.end();
+      return;
+    }
+
+    // 使用串流處理
+    await processBibleExplainRequestStream(q, vsId, req.user, language, res, cacheKey);
+
+  } catch (error) {
+    console.error('串流聖經經文解釋錯誤:', error.message);
+    res.write(`data: {"type": "error", "error": "處理失敗，請稍後再試"}\n\n`);
+    res.end();
+  }
+});
+
+// 聖經經文解釋（依卷限定向量庫）- 保持兼容
 app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
   try {
     const { bookEn, ref, translation, language = 'zh', passageText } = req.body || {};
