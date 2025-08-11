@@ -1515,6 +1515,25 @@
             }
         }
 
+        // 強制書名英文與作者段落化處理：
+        // - 若中文書名《...》後面緊接英文括號（...），保留英文、移除中文書名；同時將英文以 <em> 標示
+        // - 偵測每位作者開頭（含年份）插入段落間距，並將作者＋年份加粗
+        function enforceCommentaryFormatting(html) {
+            try {
+                let out = html;
+                // 書名：移除中文《...》+保留後面英語（...）為斜體
+                out = out.replace(/《[^》]+》\s*（([^）]*[A-Za-z][^）]*)）/g, (m, en) => ` (<em>${en}</em>)`);
+
+                // 作者段落：在句末或換行後出現「人名（含西文與年份）」時，插入段落間距並加粗作者+年份
+                const authorHeaderRe = /(^|[。；;\n]\s*)([\u4e00-\u9fa5A-Za-z ·'\-]+?)(\s*（[^）]*\d{3,4}[^）]*）)/g;
+                out = out.replace(authorHeaderRe, (m, sep, name, years) => `${sep}<br><br><strong>${name}${years}</strong>`);
+
+                return out;
+            } catch (e) {
+                return html;
+            }
+        }
+
         // 顯示錯誤
         function showError(message, canRetry = true) {
             const main = document.getElementById('mainContent');
@@ -2472,6 +2491,8 @@
                     
                     // 處理作者名稱翻譯和格式
                     formattedContent = refineExplanationHtml(formattedContent);
+                    // 追加強制書名英文與作者段落化處理（避免混成一段、標示書名為英文）
+                    formattedContent = enforceCommentaryFormatting(formattedContent);
                     
                     // 移除數字小標（span/sup/[n] 等多種形式）
                     formattedContent = formattedContent
