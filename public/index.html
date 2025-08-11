@@ -2143,7 +2143,7 @@
                 dialog.innerHTML = `
                     <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
                         <div class="flex items-center justify-between p-4 border-b border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-900">${bookName} ${chapter}:${verse} 註釋</h3>
+                            <h3 class="text-lg font-semibold text-gray-900">${bookName} ${chapter}:${verse} 神學家註釋</h3>
                             <button onclick="closeVerseCommentaryDialog()" class="text-gray-400 hover:text-gray-600">
                                 <span class="material-icons-outlined">close</span>
                             </button>
@@ -2206,29 +2206,107 @@
                             <div class="text-gray-800">${targetVerse.text}</div>
                         </div>
                         <div class="mb-4">
-                            <div class="text-sm text-gray-600 mb-2">註釋：</div>
-                            <div class="text-gray-800 leading-relaxed">
-                                <p>這節經文出自${bookName}第${chapter}章第${verse}節。</p>
-                                <p class="mt-2">根據聖經學者們的解釋，這節經文主要表達了以下幾個要點：</p>
-                                <ul class="mt-2 ml-4 list-disc space-y-1">
-                                    <li>經文的歷史背景和上下文</li>
-                                    <li>重要的神學概念和教導</li>
-                                    <li>對信徒生活的實際應用</li>
-                                    <li>與其他經文的關聯性</li>
-                                </ul>
-                                <p class="mt-2">這節經文提醒我們要...</p>
+                            <div class="text-sm text-gray-600 mb-2">📚 神學家註釋（基於 ${bookName} 資料庫）：</div>
+                            <div id="theological-commentary" class="text-gray-800">
+                                <div class="flex items-center justify-center py-4">
+                                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                    <span class="ml-2 text-gray-600">正在搜尋 ${bookName} 資料庫中的神學家註釋...</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="text-xs text-gray-500">
-                            註：這是基礎的註釋內容。完整的註釋功能需要整合神學資料庫和AI解釋功能。
-                        </div>
                     `;
+                    
+                    // 搜尋神學家註釋
+                    await searchTheologicalCommentary(bookName, chapter, verse, targetVerse.text);
                     
                 } catch (error) {
                     console.error('生成註釋失敗:', error);
                     contentDiv.innerHTML = `
                         <div class="text-red-600">
                             生成註釋時發生錯誤：${error.message}
+                        </div>
+                    `;
+                }
+            }
+            
+            // 搜尋神學家註釋
+            async function searchTheologicalCommentary(bookName, chapter, verse, verseText) {
+                const commentaryDiv = document.getElementById('theological-commentary');
+                if (!commentaryDiv) return;
+                
+                try {
+                    // 獲取當前書卷的英文名稱
+                    const allBooks = [...booksOT, ...booksNT];
+                    const book = allBooks.find(b => b.zh === bookName || b.en === bookName);
+                    if (!book) {
+                        throw new Error('無法找到書卷信息');
+                    }
+                    
+                    // 構建經文參考
+                    const ref = `${chapter}:${verse}`;
+                    console.log('搜尋神學家註釋:', { bookName, bookEn: book.engs, ref });
+                    
+                    // 獲取聖經版本
+                    const versionElement = document.getElementById('bibleVersion');
+                    const version = versionElement ? versionElement.value : 'CUV';
+                    
+                    // 使用聖經解釋API搜尋該卷的神學家註釋
+                    const response = await fetch('/api/bible/explain', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            bookEn: book.engs,
+                            ref: ref,
+                            translation: version,
+                            language: window.currentLanguage || 'zh'
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('搜尋請求失敗');
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (!result.success) {
+                        throw new Error(result.error || '搜尋失敗');
+                    }
+                    
+                    const data = result.data;
+                    
+                    if (!data || !data.answer || data.answer.includes('找不到相關資料') || data.answer.includes('nothing is found')) {
+                        commentaryDiv.innerHTML = `
+                            <div class="text-gray-500 text-center py-4">
+                                <div class="mb-2">
+                                    <span class="material-icons-outlined text-4xl text-gray-300">search_off</span>
+                                </div>
+                                <p>在 ${bookName} 的神學資料庫中未找到關於 ${ref} 的直接註釋</p>
+                                <p class="text-sm mt-2">該卷的神學家註釋資料庫可能尚未建立完成</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // 顯示神學家註釋
+                    commentaryDiv.innerHTML = `
+                        <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="text-sm text-blue-600 mb-2">📚 神學家註釋（基於 ${bookName} 資料庫）</div>
+                            <div class="text-gray-800 text-sm leading-relaxed">
+                                ${formatAnswer(data.answer, data.sources)}
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 綁定引用事件
+                    bindCitationEvents();
+                    
+                } catch (error) {
+                    console.error('搜尋神學家註釋失敗:', error);
+                    commentaryDiv.innerHTML = `
+                        <div class="text-red-600 text-center py-4">
+                            <p>搜尋神學家註釋時發生錯誤：${error.message}</p>
                         </div>
                     `;
                 }
