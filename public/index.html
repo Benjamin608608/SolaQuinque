@@ -1895,12 +1895,14 @@
                     const book = allBooks.find(b => b.id === bookId);
                     if (!book) {
                         console.error('找不到書卷:', bookId);
+                        alert('找不到書卷: ' + bookId);
                         return;
                     }
                     
                     // 檢查章節是否在有效範圍內
                     if (chapter < 1 || chapter > book.chapters) {
                         console.log(`章節 ${chapter} 超出範圍 (1-${book.chapters})`);
+                        alert(`章節 ${chapter} 超出範圍 (1-${book.chapters})`);
                         return;
                     }
                     
@@ -1923,6 +1925,7 @@
                     
                 } catch (error) {
                     console.error('章節導航過程中發生錯誤:', error);
+                    alert('章節導航錯誤: ' + error.message);
                     // 即使出錯也要確保頁面狀態正確
                     window.currentPage = 'bibleChapter';
                 }
@@ -3091,15 +3094,27 @@
         });
 
         // 全域錯誤守護：避免整頁中斷
-        window.addEventListener('error', () => {
+        window.addEventListener('error', (event) => {
             try { 
+                // 如果是章節導航相關的錯誤，不要跳轉到登入頁面
+                if (event.message && event.message.includes('goToChapter')) {
+                    console.log('章節導航錯誤，不跳轉到登入頁面');
+                    return;
+                }
+                
                 if (window.currentPage !== 'home' && window.currentPage !== 'bibleChapter') {
                     showLoginUI(); 
                 }
             } catch {}
         });
-        window.addEventListener('unhandledrejection', () => {
+        window.addEventListener('unhandledrejection', (event) => {
             try { 
+                // 如果是章節導航相關的錯誤，不要跳轉到登入頁面
+                if (event.reason && event.reason.message && event.reason.message.includes('goToChapter')) {
+                    console.log('章節導航錯誤，不跳轉到登入頁面');
+                    return;
+                }
+                
                 if (window.currentPage !== 'home' && window.currentPage !== 'bibleChapter') {
                     showLoginUI(); 
                 }
