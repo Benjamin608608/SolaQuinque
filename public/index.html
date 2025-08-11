@@ -2486,45 +2486,32 @@
                 const topVersion = (versionElement ? versionElement.value : 'CUV').toUpperCase();
                 const defaultBottom = topVersion === 'CUV' ? 'KJV' : 'CUV';
 
-                // 建立對照對話框
-                const existing = document.getElementById('verse-compare-dialog');
-                if (existing) existing.remove();
-                const dialog = document.createElement('div');
-                dialog.id = 'verse-compare-dialog';
-                dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]';
-                dialog.innerHTML = `
-                  <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[85vh] overflow-hidden">
-                    <div class="flex items-center justify-between p-3 border-b border-gray-200">
-                      <h3 class="text-base sm:text-lg font-semibold text-gray-900">對照模式（${currentChapter}章 ${start}${end>start?`-${end}`:''}）</h3>
-                      <div class="flex items-center gap-2 text-sm">
-                        <span class="text-gray-600">上方版本：</span>
-                        <span class="px-2 py-1 bg-gray-100 rounded">${topVersion}</span>
-                        <span class="text-gray-600 ml-3">下方版本：</span>
-                        <select id="compareBottomVersion" class="border rounded px-2 py-1 text-sm">
-                          <option value="CUV" ${defaultBottom==='CUV'?'selected':''}>CUV</option>
-                          <option value="KJV" ${defaultBottom==='KJV'?'selected':''}>KJV</option>
-                        </select>
-                        <button id="close-compare-btn" class="ml-3 text-gray-400 hover:text-gray-600"><span class="material-icons-outlined">close</span></button>
-                      </div>
+                // 直接將原本畫面切成上下分割
+                const container = document.getElementById('bibleChapterContent');
+                if (!container) return;
+                container.innerHTML = `
+                  <div class="flex items-center justify-between p-2 border-b border-gray-200 bg-gray-50 rounded-t-md">
+                    <div class="text-sm text-gray-700">對照模式：${currentChapter}章 ${start}${end>start?`-${end}`:''}（上方：${topVersion}）</div>
+                    <div class="flex items-center gap-2 text-sm">
+                      <span class="text-gray-600">下方版本：</span>
+                      <select id="compareBottomVersion" class="border rounded px-2 py-1 text-sm">
+                        <option value="CUV" ${defaultBottom==='CUV'?'selected':''}>CUV</option>
+                        <option value="KJV" ${defaultBottom==='KJV'?'selected':''}>KJV</option>
+                      </select>
+                      <button id="exitCompare" class="ml-2 px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">退出對照</button>
                     </div>
-                    <div class="grid grid-rows-2 divide-y divide-gray-200">
-                      <div class="overflow-auto p-3 h-[38vh]" id="compareTopPane">
-                        <div id="compareTopContent" class="text-gray-800 leading-relaxed text-justify"></div>
-                      </div>
-                      <div class="overflow-auto p-3 h-[38vh]" id="compareBottomPane">
-                        <div id="compareBottomContent" class="text-gray-800 leading-relaxed text-justify"></div>
-                      </div>
+                  </div>
+                  <div class="grid grid-rows-2 divide-y divide-gray-200">
+                    <div class="overflow-auto p-3 h-[38vh]" id="compareTopPane">
+                      <div id="compareTopContent" class="text-gray-800 leading-relaxed text-justify"></div>
+                    </div>
+                    <div class="overflow-auto p-3 h-[38vh]" id="compareBottomPane">
+                      <div id="compareBottomContent" class="text-gray-800 leading-relaxed text-justify"></div>
                     </div>
                   </div>
                 `;
-                document.body.appendChild(dialog);
 
-                // 綁定關閉
-                dialog.querySelector('#close-compare-btn').addEventListener('click', () => dialog.remove());
-                dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.remove(); });
-
-                // 載入與渲染
-                const bottomSelect = dialog.querySelector('#compareBottomVersion');
+                const bottomSelect = document.getElementById('compareBottomVersion');
                 const renderBoth = async () => {
                     await renderComparisonPane('compareTopContent', 'compareTopPane', currentBookId, currentChapter, topVersion, start, end);
                     const bottomVersion = bottomSelect.value.toUpperCase();
@@ -2532,6 +2519,16 @@
                 };
                 bottomSelect.addEventListener('change', renderBoth);
                 await renderBoth();
+
+                // 退出對照，恢復原畫面
+                document.getElementById('exitCompare').addEventListener('click', async () => {
+                    const version = (document.getElementById('bibleVersion')?.value || 'CUV');
+                    await loadBibleChapterContent(currentBookId, currentChapter, version);
+                    if (window.selectedVerseRange) {
+                        const { start, end } = window.selectedVerseRange;
+                        selectVerseRange(start, end);
+                    }
+                });
 
                 // 隱藏選單
                 const menu = document.getElementById('verse-action-menu');
