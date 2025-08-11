@@ -2171,16 +2171,20 @@
                 
                 if (prevBtn) {
                     prevBtn.addEventListener('click', () => {
+                        console.log('前一章按鈕被點擊');
                         const bookId = parseInt(prevBtn.getAttribute('data-book-id'));
                         const chapter = parseInt(prevBtn.getAttribute('data-chapter'));
+                        console.log('前一章按鈕參數:', { bookId, chapter });
                         navigateChapter(bookId, chapter);
                     });
                 }
                 
                 if (nextBtn) {
                     nextBtn.addEventListener('click', () => {
+                        console.log('後一章按鈕被點擊');
                         const bookId = parseInt(nextBtn.getAttribute('data-book-id'));
                         const chapter = parseInt(nextBtn.getAttribute('data-chapter'));
+                        console.log('後一章按鈕參數:', { bookId, chapter });
                         navigateChapter(bookId, chapter);
                     });
                 }
@@ -2188,16 +2192,25 @@
 
             // 章節導航功能
             async function navigateChapter(bookId, chapter) {
+                console.log('navigateChapter 被調用:', { bookId, chapter });
+                
                 // 檢查章節範圍
                 const allBooks = [...booksOT, ...booksNT];
                 const book = allBooks.find(b => b.id === bookId);
-                if (!book) return;
+                if (!book) {
+                    console.error('找不到書卷:', bookId);
+                    return;
+                }
+                
+                console.log('找到書卷:', book);
                 
                 // 檢查章節是否在有效範圍內
                 if (chapter < 1 || chapter > book.chapters) {
                     console.log(`章節 ${chapter} 超出範圍 (1-${book.chapters})`);
                     return;
                 }
+                
+                console.log('章節範圍檢查通過');
                 
                 // 防止觸發頁面級別的認證檢查
                 const currentPage = window.currentPage;
@@ -2208,12 +2221,16 @@
                     console.log('用戶未登入，但允許查看聖經章節');
                 }
                 
+                console.log('準備跳轉到章節頁面');
+                
                 // 更新選擇並跳轉到新章節
                 updateBibleSelection({ bookId: bookId, chapter: chapter });
                 await showBibleChapterPage(bookId, chapter);
                 
                 // 確保頁面狀態保持為章節頁面
                 window.currentPage = 'bibleChapter';
+                
+                console.log('章節導航完成');
             }
 
             // 隱藏的節數按鈕功能 - 保留程式碼供未來使用
