@@ -1930,9 +1930,9 @@
                         <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)]">${title}</h2>
                     </div>
                     ${loginPrompt}
-                    <div class="flex items-center gap-2 justify-end mb-3">
-                        <label class="text-sm text-[var(--text-secondary)]">${(window.translations && window.translations['bible-version']) || (window.currentLanguage==='en'?'Version':'版本')}</label>
-                        <select id="bibleVersion" class="border rounded px-2 py-1 text-sm">
+                    <div class="flex items-center gap-3 justify-end mb-3">
+                        <label for="bibleVersion" class="text-sm text-[var(--text-secondary)] whitespace-nowrap">${(window.translations && window.translations['bible-version']) || (window.currentLanguage==='en'?'Version':'版本')}</label>
+                        <select id="bibleVersion" class="border rounded px-3 py-1.5 text-sm min-w-[180px] appearance-auto">
                             <option value="CUV">${window.currentLanguage==='en'?'CUV':'和合本(CUV)'}</option>
                             <option value="KJV">KJV</option>
                         </select>
@@ -2561,7 +2561,7 @@
                         <span class="verse-number">${v.verse}</span>${v.text}
                       </span>
                     `).join('');
-                    content.innerHTML = `<div class="p-1">${html}</div>`;
+                    content.innerHTML = `<div class="p-1">${html}<br><br><br></div>`;
                     // 標記選中範圍
                     for (let i = startVerse; i <= endVerse; i++) {
                         const el = content.querySelector(`[data-verse="${i}"]`);
