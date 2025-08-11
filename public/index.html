@@ -2424,14 +2424,22 @@
                 // 語言先設為中文（以便渲染登入文案）
                 switchLanguage('zh');
 
-                // 先顯示登入 UI 作為安全預設
-                showLoginUI();
-
                 // 載入作者對照表（失敗不影響主流程）
                 try { await loadAuthorTranslations(); } catch {}
 
                 // 檢查認證狀態（成功會切換到已登入 UI）
-                try { await checkAuthStatus(); } catch {}
+                try { 
+                    await checkAuthStatus(); 
+                } catch (error) {
+                    console.error('認證檢查失敗:', error);
+                    // 確保顯示登入畫面
+                    showLoginUI();
+                }
+
+                // 如果還沒有顯示任何頁面，顯示登入畫面
+                if (window.currentPage === 'login') {
+                    showLoginUI();
+                }
 
                 // 初始化引用標註事件
                 bindCitationEvents();
