@@ -2002,6 +2002,38 @@
                 console.log('選中經節:', verseNumber);
             }
 
+            // 將經文按句號分段格式化
+            function formatVersesIntoParagraphs(verses) {
+                let result = '';
+                let currentParagraph = '';
+                let currentVerseSpans = [];
+                
+                for (let i = 0; i < verses.length; i++) {
+                    const verse = verses[i];
+                    const verseSpan = `<span class="verse-item clickable-verse" data-verse="${verse.verse}">
+                        <span class="verse-number">${verse.verse}</span>${verse.text}
+                    </span>`;
+                    
+                    currentVerseSpans.push(verseSpan);
+                    currentParagraph += verse.text;
+                    
+                    // 檢查是否以句號結尾
+                    if (currentParagraph.trim().endsWith('。') || currentParagraph.trim().endsWith('！') || currentParagraph.trim().endsWith('？')) {
+                        // 段落結束，創建段落HTML
+                        result += `<p class="bible-paragraph">　　${currentVerseSpans.join('')}</p>`;
+                        currentParagraph = '';
+                        currentVerseSpans = [];
+                    }
+                }
+                
+                // 處理最後一個段落（如果沒有以句號結尾）
+                if (currentVerseSpans.length > 0) {
+                    result += `<p class="bible-paragraph">　　${currentVerseSpans.join('')}</p>`;
+                }
+                
+                return result;
+            }
+
             // 載入章節內容
             async function loadBibleChapterContent(bookId, chapter, version) {
                 const container = document.getElementById('bibleChapterContent');
@@ -2034,17 +2066,8 @@
                     const lang = window.currentLanguage || 'zh';
                     const bookName = lang === 'en' ? book.en : book.zh;
                     
-                    // 將整章經文組合成一篇文章，每節前面加上數字，並分段落
-                    const chapterText = verses.map(verse => 
-                        `<span class="verse-item clickable-verse" data-verse="${verse.verse}">
-                            <span class="verse-number">${verse.verse}</span>${verse.text}
-                        </span>`
-                    ).join('');
-                    
-                    // 將經文分成段落，每段開頭空兩格
-                    const paragraphText = chapterText
-                        .replace(/(<span class="verse-item clickable-verse" data-verse="\d+">)/g, '<p class="bible-paragraph">&nbsp;&nbsp;$1')
-                        .replace(/<\/span>/g, '</span></p>');
+                    // 將經文按句號分段，每段開頭空兩格全形空格
+                    const paragraphText = formatVersesIntoParagraphs(verses);
                     
                     const html = `<div class="chapter-content p-6 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
                         <div class="text-gray-800 leading-relaxed text-justify">
