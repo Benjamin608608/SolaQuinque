@@ -1521,8 +1521,12 @@
         function enforceCommentaryFormatting(html) {
             try {
                 let out = html;
-                // 書名：移除中文《...》+保留後面英語（...）為斜體
+                // 書名：移除中文《...》+保留後面英語（...）為斜體（同時支援全形/半形括號）
                 out = out.replace(/《[^》]+》\s*（([^）]*[A-Za-z][^）]*)）/g, (m, en) => ` (<em>${en}</em>)`);
+                out = out.replace(/《[^》]+》\s*\(([^)]*[A-Za-z][^)]*)\)/g, (m, en) => ` (<em>${en}</em>)`);
+
+                // 若仍存在《中文書名》而附近沒有英語括號，直接移除中文書名
+                out = out.replace(/《[^》]+》/g, '');
 
                 // 作者段落：在句末或換行後出現「人名（含西文與年份）」時，插入段落間距並加粗作者+年份
                 const authorHeaderRe = /(^|[。；;\n]\s*)([\u4e00-\u9fa5A-Za-z ·'\-]+?)(\s*（[^）]*\d{3,4}[^）]*）)/g;
