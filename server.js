@@ -1400,8 +1400,8 @@ app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
 
     // 讓回答格式列出「每位作者」對指定經文的解釋，並附註來源（交由檔案引用處理）。
     // 傳入的 passageText 僅作為定位語境，仍然必須只根據資料庫內容回答。
-    const zhPrompt = `請僅根據資料庫內容作答。針對「${ref}」在本卷向量庫中的評論/詮釋，請列出作者清單並為每位作者提供重點條列，段落末尾附上資料庫引用註記（數字方括號）。若無資料，請明確告知找不到相關資料。\n\n供你定位語境的經文（不可作為回答來源，僅輔助理解引用段落）：\n${passageText ? '---\n' + passageText + '\n---' : ''}`;
-    const enPrompt = `Answer strictly from the vector store only. For "${ref}", list the authors in this book who comment on it and provide concise bullet points per author. Append numeric file citations in brackets after each bullet. If nothing is found, say so.\n\nPassage provided to locate context only (do not use as a source of facts):\n${passageText ? '---\n' + passageText + '\n---' : ''}`;
+    const zhPrompt = `請嚴格僅根據資料庫內容作答。針對「${ref}」在本卷向量庫中的評論/詮釋：\n- 以「作者名稱（若可得：年份、著作）」為段落開頭，作者名稱置於段首且醒目。\n- 使用一段完整敘述詳盡說明其重點與論據（不要使用條列符號、數字清單或開場/結語客套）。\n- 每段最後附上資料庫引用註記（數字方括號）。\n若無資料，請直接說明找不到相關資料。\n\n以下為選取經文僅用於定位語境（不可作為回答來源）：\n${passageText ? '---\n' + passageText + '\n---' : ''}`;
+    const enPrompt = `Answer strictly from the provided vector store only. For "${ref}":\n- Start each paragraph with "Author Name (year, work if available)".\n- Provide a single, full narrative paragraph per author (no bullet points, no numbered lists, no boilerplate).\n- End each paragraph with numeric file citations in brackets.\nIf nothing is found, say so directly.\n\nPassage provided only to locate context (do not use it as a source of facts):\n${passageText ? '---\n' + passageText + '\n---' : ''}`;
 
     const q = (language === 'en' ? enPrompt : zhPrompt) + (translation ? `\n（版本：${translation}）` : '');
 

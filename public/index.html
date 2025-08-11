@@ -1435,9 +1435,9 @@
                     out = out.replace(/(\d+\.\s*)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(\s*\([^)]+\))?/g, '$1<strong>$2</strong>$3');
                 }
                 
-                // 進一步規範「序號. 作者（年份）」段落格式，並在中文情況嘗試轉名
-                out = out.replace(/(<p[^>]*>\s*)(\d+\.\s*)([^<\n]+?)(\s*(\([^\)]*\))?)(\s*<\/p>)/g,
-                  (all, pStart, num, name, rest, years, pEnd) => {
+                // 捕捉「序號. 作者（年份）」或「作者（年份）」並確保作者粗體，中文介面轉中文名
+                out = out.replace(/(<p[^>]*>\s*)(?:\d+\.\s*)?([^<\n\(]+?)(\s*(\([^\)]*\))?)(\s*[:：])?/g,
+                  (all, pStart, name, rest, years, colon) => {
                     const cleanName = name.trim().replace(/\*+/g, '');
                     let display = cleanName;
                     if (lang === 'zh' && typeof getAuthorName === 'function') {
@@ -1445,15 +1445,7 @@
                       if (mapped) display = mapped;
                     }
                     const yearText = years ? years : '';
-                    return `${pStart}${num}<strong>${display}${yearText}</strong>${pEnd}`;
-                  }
-                );
-
-                // 兜底：任何行首「數字. 姓名（年份）」若仍未包 strong，統一補強
-                out = out.replace(/(<p[^>]*>\s*\d+\.\s*)([^<\(]+?)(\s*(\([^\)]*\))?)(\s*<\/p>)/g,
-                  (m, head, name, rest, years, tail) => {
-                    const inner = name.includes('<strong>') ? name : `<strong>${name.trim()}${years || ''}</strong>`;
-                    return `${head}${inner}${tail}`;
+                    return `${pStart}<strong>${display}${yearText}</strong>${colon || ''}`;
                 });
 
                 // 每位作者段落前加額外間距
@@ -2080,7 +2072,7 @@
 
             // 全局變數：追蹤選中的經節範圍
             window.selectedVerseRange = null;
-            
+
             // 經文選中功能
             function selectVerse(verseNumber) {
                 const verseNumberInt = parseInt(verseNumber);
@@ -2189,16 +2181,16 @@
                 
                 const { start, end } = window.selectedVerseRange;
                 console.log('顯示經文註釋範圍:', { start, end });
-                
-                // 獲取當前章節信息
-                const currentBookId = window.currentBibleSelection?.bookId;
-                const currentChapter = window.currentBibleSelection?.chapter;
-                
-                if (currentBookId && currentChapter) {
+                    
+                    // 獲取當前章節信息
+                    const currentBookId = window.currentBibleSelection?.bookId;
+                    const currentChapter = window.currentBibleSelection?.chapter;
+                    
+                    if (currentBookId && currentChapter) {
                     showVerseCommentaryDialog(currentBookId, currentChapter, start, end);
-                } else {
-                    alert('無法獲取當前章節信息');
-                }
+                    } else {
+                        alert('無法獲取當前章節信息');
+                    }
                 
                 // 隱藏選單
                 const menu = document.getElementById('verse-action-menu');
@@ -2436,17 +2428,26 @@
                         .replace(/<sup[^>]*>\s*\d+\s*<\/sup>/gi, '')
                         .replace(/\s*\[\d+\]\s*/g, '');
                     
-                    // 確保每位作者內容間有空行
+                    // 將可能的條列項合併為敘述段：去除以 - 、•、數字. 開頭的換行列表，轉為句號+空格
+                    formattedContent = formattedContent
+                        .replace(/\n\s*[-•]\s+/g, ' ')
+                        .replace(/\n\s*\d+\.?\s+/g, ' ')
+                        .replace(/<li[^>]*>/gi, '')
+                        .replace(/<\/li>/gi, ' ')
+                        .replace(/<ul[^>]*>/gi, '')
+                        .replace(/<\/ul>/gi, '')
+                        .replace(/\s{2,}/g, ' ');
+                    // 段與段之間保留一行空白
                     formattedContent = formattedContent.replace(/<\/p><p>/g, '</p><br><p>');
                     
                     commentaryDiv.innerHTML = `
                         <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                             <div class="text-sm text-blue-600 mb-2">📚 神學家註釋（基於 ${bookName} 資料庫）</div>
-                            <div class="text-gray-800 text-sm leading-relaxed">
+                                <div class="text-gray-800 text-sm leading-relaxed">
                                 ${formattedContent}
+                                </div>
                             </div>
-                        </div>
-                    `;
+                        `;
                     // DOM 層級二次清理所有數字小標
                     try {
                         commentaryDiv.querySelectorAll('.citation, sup').forEach(el => el.remove());
