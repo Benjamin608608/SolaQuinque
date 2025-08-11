@@ -2490,23 +2490,23 @@
                 const container = document.getElementById('bibleChapterContent');
                 if (!container) return;
                 container.innerHTML = `
-                  <div class="flex items-center justify-between p-2 border-b border-gray-200 bg-gray-50 rounded-t-md">
-                    <div class="text-sm text-gray-700">對照模式：${currentChapter}章 ${start}${end>start?`-${end}`:''}（上方：${topVersion}）</div>
+                  <div class="flex items-center justify-between p-2">
+                    <div class="text-sm text-[var(--text-primary)]">對照模式：${currentChapter}章 ${start}${end>start?`-${end}`:''}（上方：${topVersion}）</div>
                     <div class="flex items-center gap-2 text-sm">
-                      <span class="text-gray-600">下方版本：</span>
+                      <span class="text-[var(--text-primary)]">下方版本：</span>
                       <select id="compareBottomVersion" class="border rounded px-2 py-1 text-sm">
                         <option value="CUV" ${defaultBottom==='CUV'?'selected':''}>CUV</option>
                         <option value="KJV" ${defaultBottom==='KJV'?'selected':''}>KJV</option>
                       </select>
-                      <button id="exitCompare" class="ml-2 px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">退出對照</button>
+                      <button id="exitCompare" class="ml-2 px-2 py-1 rounded border">退出對照</button>
                     </div>
                   </div>
-                  <div class="grid grid-rows-2 divide-y divide-gray-200">
+                  <div class="grid grid-rows-2">
                     <div class="overflow-auto p-3 h-[38vh]" id="compareTopPane">
-                      <div id="compareTopContent" class="text-gray-800 leading-relaxed text-justify"></div>
+                      <div id="compareTopContent" class="leading-relaxed text-justify text-[var(--text-primary)]"></div>
                     </div>
                     <div class="overflow-auto p-3 h-[38vh]" id="compareBottomPane">
-                      <div id="compareBottomContent" class="text-gray-800 leading-relaxed text-justify"></div>
+                      <div id="compareBottomContent" class="leading-relaxed text-justify text-[var(--text-primary)]"></div>
                     </div>
                   </div>
                 `;
