@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聖經解析測試</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #e8f5e8; color: #2e7d32; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>聖經解析測試</h1>
+    <button onclick="testBibleParsing()">測試聖經解析</button>
+    <div id="result"></div>
+
+    <script>
+        async function testBibleParsing() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result">正在測試...</div>';
+            
+            try {
+                // 測試檔案訪問
+                const response = await fetch('/data/bible-versions/cuv-bible.txt');
+                if (!response.ok) {
+                    throw new Error(`檔案訪問失敗: ${response.status}`);
+                }
+                
+                const text = await response.text();
+                resultDiv.innerHTML += '<div class="success">✅ 檔案訪問成功</div>';
+                
+                // 測試解析
+                const book = { zh: '創世記', en: 'Genesis', engs: 'Gen', id: 1, chapters: 50 };
+                const verses = parseBibleText(text, book, 1);
+                
+                if (verses.length > 0) {
+                    resultDiv.innerHTML += `<div class="success">✅ 解析成功，找到 ${verses.length} 節經文</div>`;
+                    resultDiv.innerHTML += '<div class="result"><h3>前3節經文：</h3>';
+                    verses.slice(0, 3).forEach(verse => {
+                        resultDiv.innerHTML += `<div>${verse.verse}. ${verse.text}</div>`;
+                    });
+                    resultDiv.innerHTML += '</div>';
+                } else {
+                    resultDiv.innerHTML += '<div class="error">❌ 解析失敗，沒有找到經文</div>';
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML += `<div class="error">❌ 錯誤: ${error.message}</div>`;
+                console.error('測試錯誤:', error);
+            }
+        }
+
+        function parseBibleText(text, book, chapter) {
+            const verses = [];
+            const lines = text.split('\n');
+            let inTargetBook = false;
+            let inTargetChapter = false;
+            
+            console.log(`尋找書卷: ${book.zh}, 章節: ${chapter}`);
+            
+            for (let line of lines) {
+                line = line.trim();
+                
+                // 檢查是否進入目標書卷
+                if (line.startsWith('# ') && line.includes(book.zh)) {
+                    inTargetBook = true;
+                    inTargetChapter = false;
+                    console.log(`找到書卷: ${line}`);
+                    continue;
+                }
+                
+                // 如果遇到其他書卷，停止搜索
+                if (inTargetBook && line.startsWith('# ') && !line.includes(book.zh)) {
+                    console.log(`遇到其他書卷，停止搜索: ${line}`);
+                    break;
+                }
+                
+                // 檢查是否進入目標章節
+                if (inTargetBook && line.includes(`===`) && line.includes(`第${chapter}章`)) {
+                    inTargetChapter = true;
+                    console.log(`找到章節: ${line}`);
+                    continue;
+                }
+                
+                // 如果遇到下一章，停止搜索
+                if (inTargetChapter && line.includes('===') && line.includes('第') && line.includes('章') && !line.includes(`第${chapter}章`)) {
+                    console.log(`遇到下一章，停止搜索: ${line}`);
+                    break;
+                }
+                
+                // 解析經文
+                if (inTargetChapter && line.match(/^\d+\./)) {
+                    const match = line.match(/^(\d+)\.\s*(.+)$/);
+                    if (match) {
+                        verses.push({
+                            verse: parseInt(match[1]),
+                            text: match[2].trim()
+                        });
+                        console.log(`解析經文: ${match[1]}. ${match[2].trim()}`);
+                    }
+                }
+            }
+            
+            console.log(`總共找到 ${verses.length} 節經文`);
+            return verses.sort((a, b) => a.verse - b.verse);
+        }
+    </script>
+</body>
+</html> 
