@@ -2090,6 +2090,9 @@
                     return;
                 }
                 
+                // 防止觸發頁面級別的認證檢查
+                const currentPage = window.currentPage;
+                
                 // 檢查認證狀態，但不強制跳轉到登入頁面
                 const authStatus = await checkAuthStatusSilent();
                 if (!authStatus.authenticated) {
@@ -2099,6 +2102,9 @@
                 // 更新選擇並跳轉到新章節
                 updateBibleSelection({ bookId: bookId, chapter: chapter });
                 await showBibleChapterPage(bookId, chapter);
+                
+                // 確保頁面狀態保持為章節頁面
+                window.currentPage = 'bibleChapter';
             }
 
             // 隱藏的節數按鈕功能 - 保留程式碼供未來使用
