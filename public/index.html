@@ -697,6 +697,21 @@
                 font-size: 1.25rem;
             }
         }
+        
+        /* 聖經段落樣式 */
+        .bible-paragraph {
+            margin-bottom: 1rem;
+            text-indent: 0;
+            line-height: 1.8;
+        }
+        
+        .bible-paragraph:first-child {
+            margin-top: 0;
+        }
+        
+        .bible-paragraph:last-child {
+            margin-bottom: 0;
+        }
           
           /* 響應式設計 */
           @media (max-width: 768px) {
@@ -1976,16 +1991,21 @@
                     const lang = window.currentLanguage || 'zh';
                     const bookName = lang === 'en' ? book.en : book.zh;
                     
-                    // 將整章經文組合成一篇文章，每節前面加上數字
+                    // 將整章經文組合成一篇文章，每節前面加上數字，並分段落
                     const chapterText = verses.map(verse => 
                         `<span class="verse-item clickable-verse" data-verse="${verse.verse}">
                             <span class="verse-number">${verse.verse}</span>${verse.text}
                         </span>`
                     ).join('');
                     
+                    // 將經文分成段落，每段開頭空兩格
+                    const paragraphText = chapterText
+                        .replace(/(<span class="verse-item clickable-verse" data-verse="\d+">)/g, '<p class="bible-paragraph">&nbsp;&nbsp;$1')
+                        .replace(/<\/span>/g, '</span></p>');
+                    
                     const html = `<div class="chapter-content p-6 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
                         <div class="text-gray-800 leading-relaxed text-justify">
-                            ${chapterText}
+                            ${paragraphText}
                             <br><br><br>
                         </div>
                     </div>`;
