@@ -1493,9 +1493,14 @@
                   (all, pStart, name, rest, years, colon) => {
                     const cleanName = name.trim().replace(/\*+/g, '');
                     let display = cleanName;
-                    if (lang === 'zh' && typeof getAuthorName === 'function') {
-                      const mapped = getAuthorName(cleanName) || (authorTranslations && authorTranslations[cleanName]);
-                      if (mapped) display = mapped;
+                    if (lang === 'zh') {
+                        // 優先使用 authorTranslations 進行翻譯
+                        if (authorTranslations && authorTranslations[cleanName]) {
+                            display = authorTranslations[cleanName];
+                        } else if (typeof getAuthorName === 'function') {
+                            const mapped = getAuthorName(cleanName);
+                            if (mapped) display = mapped;
+                        }
                     }
                     const yearText = years ? years : '';
                     return `${pStart}<strong>${display}${yearText}</strong>${colon || ''}`;
@@ -1549,7 +1554,16 @@
                 
                 // 處理不在<strong>標籤內的作者名稱
                 const re = new RegExp(`(?<![A-Za-z])(${alternation})(?![A-Za-z])`, 'g');
-                return text.replace(re, (m, p1) => `<strong>${mapLower[p1.toLowerCase()] || authorTranslations[p1] || p1}</strong>`);
+                text = text.replace(re, (m, p1) => `<strong>${mapLower[p1.toLowerCase()] || authorTranslations[p1] || p1}</strong>`);
+                
+                // 特別處理段落開頭的作者格式：作者名（年份）
+                text = text.replace(/^([A-Za-z][A-Za-z\s]+?)(\([^)]*\d{4}[^)]*\))/gm, (match, name, years) => {
+                    const cleanName = name.trim();
+                    const translated = mapLower[cleanName.toLowerCase()] || authorTranslations[cleanName] || cleanName;
+                    return `<strong>${translated}${years}</strong>`;
+                });
+                
+                return text;
             } catch {
                 return text;
             }
@@ -2674,6 +2688,9 @@
                     
                     // 段與段之間保留一行空白
                     formattedContent = formattedContent.replace(/<\/p><p>/g, '</p><br><p>');
+                    
+                    // 最終清理：移除任何剩餘的佔位符
+                    formattedContent = formattedContent.replace(/@@[A-Z]+\d+@@/g, '');
                     
                     commentaryDiv.innerHTML = `
                         <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
