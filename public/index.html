@@ -2508,8 +2508,6 @@
                   <div class="flex items-center justify-between p-2">
                     <div class="text-sm text-[var(--text-primary)]">對照模式：${currentChapter}章 ${start}${end>start?`-${end}`:''}（上方：${topVersion}）</div>
                     <div class="flex items-center gap-3 text-sm">
-                      <button id="comparePrev" class="px-2 py-1 rounded border">上一章</button>
-                      <button id="compareNext" class="px-2 py-1 rounded border">下一章</button>
                       <label for="compareBottomVersion" class="text-[var(--text-primary)] whitespace-nowrap">下方版本：</label>
                       <select id="compareBottomVersion" class="border rounded px-3 py-1.5 pr-8 text-sm min-w-[160px] appearance-auto text-[var(--primary)]">
                         <option value="CUV" ${defaultBottom==='CUV'?'selected':''}>CUV</option>
@@ -2530,45 +2528,22 @@
                 `;
 
                 const bottomSelect = document.getElementById('compareBottomVersion');
+                // 保留先前選擇的下方版本
+                if (window.compareBottomVersion) {
+                    bottomSelect.value = window.compareBottomVersion;
+                }
+                // 對照模式旗標
+                window.isCompareMode = true;
                 const renderBoth = async () => {
                     await renderComparisonPane('compareTopContent', 'compareTopPane', currentBookId, currentChapter, topVersion, start, end);
                     const bottomVersion = bottomSelect.value.toUpperCase();
                     await renderComparisonPane('compareBottomContent', 'compareBottomPane', currentBookId, currentChapter, bottomVersion, start, end);
                 };
-                bottomSelect.addEventListener('change', renderBoth);
+                bottomSelect.addEventListener('change', () => {
+                    window.compareBottomVersion = bottomSelect.value;
+                    renderBoth();
+                });
                 await renderBoth();
-
-                // 上一章 / 下一章，保持對照模式
-                document.getElementById('comparePrev').addEventListener('click', async () => {
-                    const allBooks = [...booksOT, ...booksNT];
-                    const book = allBooks.find(b => b.id === currentBookId);
-                    let prevBookId = currentBookId;
-                    let prevChapter = currentChapter - 1;
-                    if (prevChapter < 1) {
-                        const prevBook = allBooks.find(b => b.id === currentBookId - 1);
-                        if (prevBook) { prevBookId = prevBook.id; prevChapter = prevBook.chapters; }
-                    }
-                    window.currentBibleSelection = { bookId: prevBookId, chapter: prevChapter };
-                    await showBibleChapterPage(prevBookId, prevChapter);
-                    // 重新進入對照模式
-                    window.selectedVerseRange = window.selectedVerseRange || { start: 1, end: 1 };
-                    await showVerseComparison();
-                });
-
-                document.getElementById('compareNext').addEventListener('click', async () => {
-                    const allBooks = [...booksOT, ...booksNT];
-                    const book = allBooks.find(b => b.id === currentBookId);
-                    let nextBookId = currentBookId;
-                    let nextChapter = currentChapter + 1;
-                    if (nextChapter > book.chapters) {
-                        const nb = allBooks.find(b => b.id === currentBookId + 1);
-                        if (nb) { nextBookId = nb.id; nextChapter = 1; }
-                    }
-                    window.currentBibleSelection = { bookId: nextBookId, chapter: nextChapter };
-                    await showBibleChapterPage(nextBookId, nextChapter);
-                    window.selectedVerseRange = window.selectedVerseRange || { start: 1, end: 1 };
-                    await showVerseComparison();
-                });
 
                 // 退出對照，恢復原畫面
                 document.getElementById('exitCompare').addEventListener('click', async () => {
@@ -2884,12 +2859,17 @@
                     `;
                     
                     // 直接添加點擊事件
-                    prevButton.addEventListener('click', function() {
+                    prevButton.addEventListener('click', async function() {
                         console.log('前一章按鈕被點擊');
                         console.log('目標章節:', { bookId: prevBookId, chapter: prevChapter });
-                        
-                        // 直接調用章節導航
-                        navigateToChapter(prevBookId, prevChapter);
+                        // 若在對照模式，保持對照
+                        if (window.isCompareMode) {
+                            window.currentBibleSelection = { bookId: prevBookId, chapter: prevChapter };
+                            await showBibleChapterPage(prevBookId, prevChapter);
+                            await showVerseComparison();
+                        } else {
+                            navigateToChapter(prevBookId, prevChapter);
+                        }
                     });
                     
                     buttonsContainer.appendChild(prevButton);
@@ -2970,12 +2950,16 @@
                     `;
                     
                     // 直接添加點擊事件
-                    nextButton.addEventListener('click', function() {
+                    nextButton.addEventListener('click', async function() {
                         console.log('後一章按鈕被點擊');
                         console.log('目標章節:', { bookId: nextBookId, chapter: nextChapter });
-                        
-                        // 直接調用章節導航
-                        navigateToChapter(nextBookId, nextChapter);
+                        if (window.isCompareMode) {
+                            window.currentBibleSelection = { bookId: nextBookId, chapter: nextChapter };
+                            await showBibleChapterPage(nextBookId, nextChapter);
+                            await showVerseComparison();
+                        } else {
+                            navigateToChapter(nextBookId, nextChapter);
+                        }
                     });
                     
                     buttonsContainer.appendChild(nextButton);
