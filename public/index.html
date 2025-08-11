@@ -1834,22 +1834,7 @@
                         // 收起其他展開列
                         document.querySelectorAll('.chapters-inline-row').forEach(n => n.remove());
                         document.querySelectorAll('.verses-inline-row').forEach(n => n.remove());
-                        // 計算被點書卷所在列的最後一個元素，將展開列插在其後並橫跨全列
-                        const grid = bookGrid;
-                        const cells = Array.from(grid.children);
-                        const w = window.innerWidth;
-                        const cols = w >= 768 ? 12 : (w >= 640 ? 8 : 3);
-                        const clickedCell = btn.closest('div');
-                        const idx = cells.indexOf(clickedCell);
-                        
-                        // 計算被點擊書卷所在行的起始和結束索引
-                        const rowStartIdx = Math.floor(idx / cols) * cols;
-                        const rowEndIdx = Math.min(rowStartIdx + cols - 1, cells.length - 1);
-                        
-                        // 找到該行的最後一個元素作為錨點
-                        const anchor = cells[rowEndIdx];
-                        
-                        // 創建章節展開行
+                        // 創建章節展開行並插入到被點擊的書卷後面
                         const row = document.createElement('div');
                         row.className = 'chapters-inline-row grid-full-row';
                         row.setAttribute('data-parent-book', String(id));
@@ -1857,8 +1842,8 @@
                         chaptersContainer.className = 'bible-grid-chapters';
                         row.appendChild(chaptersContainer);
                         
-                        // 在該行的最後一個元素後面插入章節行
-                        anchor.insertAdjacentElement('afterend', row);
+                        // 直接在被點擊的書卷後面插入章節行
+                        btn.closest('div').insertAdjacentElement('afterend', row);
                         // 渲染章按鈕
                         const chapterCount = parseInt(btn.getAttribute('data-chapters'), 10) || 50;
                         const arr = [];
