@@ -4384,8 +4384,18 @@
                 window.currentQuestion = null;
                 window.currentPage = 'login'; // 默認為登入頁面
 
-                // 語言先設為中文（以便渲染登入文案）
-                switchLanguage('zh');
+                // 初始化語言：若 localStorage 有值則優先使用，否則預設中文
+                try {
+                    const saved = localStorage.getItem('preferredLanguage');
+                    if (saved === 'en' || saved === 'zh') {
+                        window.currentLanguage = saved;
+                        switchLanguage(saved);
+                    } else {
+                        switchLanguage('zh');
+                    }
+                } catch (e) {
+                    switchLanguage('zh');
+                }
 
                 // 載入作者對照表（失敗不影響主流程）
                 try { await loadAuthorTranslations(); } catch {}
