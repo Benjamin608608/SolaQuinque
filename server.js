@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 // 全局變數
 let globalAssistant = null;
 let processingRequests = new Map();
-const CACHE_DURATION = 30 * 60 * 1000; // 30 分鐘
+const CACHE_DURATION = 0; // 暫時禁用緩存以測試修復效果
 let assistantWarmupInterval = null; // 定期保溫計時器
 
 // 作者對照表
@@ -972,6 +972,9 @@ function createSourceList(sourceMap) {
 
 // 簡單的快取機制
 const searchCache = new Map();
+
+// 清空所有緩存（確保使用最新的處理邏輯）
+searchCache.clear();
 
 // 獲取快取結果
 function getCachedResult(question) {
