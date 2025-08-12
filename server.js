@@ -1744,14 +1744,25 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           }
           
           // 使用非串流的方式處理引用（使用重獲取的文本確保準確性）
-          // 用已解析的引用清單作為最終來源
+          // 用已解析的引用清單作為最終來源；若為空，回退到串流過程收集到的 sources
           const { processedText, sourceMap } = await processAnnotationsInText(finalAnswer, [], language);
-          const finalSources = resolved.map((s, idx) => ({
-            index: idx + 1,
-            fileName: s.fileName,
-            quote: s.quote && s.quote.length > 120 ? s.quote.substring(0, 120) + '...' : s.quote,
-            fileId: s.fileId
-          }));
+          let finalSources = [];
+          if (resolved && resolved.length > 0) {
+            finalSources = resolved.map((s, idx) => ({
+              index: idx + 1,
+              fileName: s.fileName,
+              quote: s.quote && s.quote.length > 120 ? s.quote.substring(0, 120) + '...' : s.quote,
+              fileId: s.fileId
+            }));
+          } else if (sources && sources.length > 0) {
+            // sources 可能是字串檔名陣列
+            finalSources = sources.map((s, idx) => ({
+              index: idx + 1,
+              fileName: typeof s === 'string' ? s : (s?.fileName || ''),
+              quote: typeof s === 'string' ? '' : (s?.quote || ''),
+              fileId: s?.fileId || ''
+            }));
+          }
           
           console.log(`✅ 聖經註釋引用處理完成，最終來源數量: ${finalSources.length}`);
           
