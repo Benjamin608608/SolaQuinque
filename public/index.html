@@ -2965,30 +2965,87 @@
                     return;
                 }
 
-                // 處理完整格式化
-                let formattedContent = answer;
+                // 清理答案，移除所有引用標記和AI內容
+                let cleanedAnswer = answer;
+                
+                // 移除所有引用標記
+                cleanedAnswer = cleanedAnswer.replace(/\[\d+\]/g, '');  // 移除 [1], [2] 等標記
+                cleanedAnswer = cleanedAnswer.replace(/【\d+:\d+†[^】]*】/g, '');  // 移除 OpenAI 格式標記
                 
                 // 移除AI生成的開頭和結尾
-                formattedContent = formattedContent
-                    .replace(/根據資料庫內容，針對「[^」]+」的評論\/詮釋作者如下：/g, '')
-                    .replace(/我找到了針對「[^」]+」的評論\/詮釋，以下是相關的作者及其重點概述：/g, '')
-                    .replace(/以下是資料庫中對於[^：]*的註釋作者及其相關觀點：/g, '')
-                    .replace(/如果需要更多詳細的?信息或其他(方面的)?問題，請告知！?/g, '');
+                cleanedAnswer = cleanedAnswer
+                    .replace(/根據資料庫內容，針對「[^」]+」的評論\/詮釋作者如下：?/g, '')
+                    .replace(/我找到了針對「[^」]+」的評論\/詮釋，以下是相關的作者及其重點概述：?/g, '')
+                    .replace(/以下是資料庫中對於[^：]*的註釋作者及其相關觀點：?/g, '')
+                    .replace(/以下是對於[^：]*的註釋作者資料：?/g, '')
+                    .replace(/這些作者的詮釋與觀點[^。]*。/g, '')
+                    .replace(/這些神學家從不同角度[^。]*。/g, '')
+                    .replace(/如果需要更多詳細的?信息或其他(方面的)?問題，請告知！?/g, '')
+                    .replace(/^[\s\n]*/, '')  // 移除開頭空白
+                    .replace(/[\s\n]*$/, ''); // 移除結尾空白
+
+                // 穩定的格式化處理
+                let formattedContent = cleanedAnswer;
                 
-                // 格式化內容
-                formattedContent = refineExplanationHtml(formattedContent);
-                formattedContent = enforceCommentaryFormatting(formattedContent);
-                formattedContent = attachTitlesFromSourcesToHeaders(formattedContent, sources || []);
-                formattedContent = attachEnglishTitleToAuthorHeader(formattedContent);
+                // 確保作者間有正確的分段 - 使用更保守的方法
+                formattedContent = formattedContent
+                    // 處理 **作者名稱** 格式，確保前面有換行
+                    .replace(/([^*])\*\*([^*]+)\*\*/g, '$1\n\n**$2**')
+                    // 處理粗體作者名稱後的破折號
+                    .replace(/\*\*([^*]+)\*\*\s*[-—–]\s*/g, '**$1** - ')
+                    // 清理多餘的換行
+                    .replace(/\n{3,}/g, '\n\n')
+                    .trim();
+
+                // 基本的 Markdown 和 HTML 處理
+                formattedContent = formattedContent
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n/g, '<br>');
+
+                // 包裝段落
+                if (!formattedContent.startsWith('<p>')) {
+                    formattedContent = '<p>' + formattedContent + '</p>';
+                }
+
+                // 清理段落結構
+                formattedContent = formattedContent
+                    .replace(/<p><p>/g, '<p>')
+                    .replace(/<\/p><\/p>/g, '</p>')
+                    .replace(/<p>\s*<\/p>/g, '');
+
+                // 確保作者間有視覺分隔
+                formattedContent = formattedContent.replace(/<\/p><p><strong>/g, '</p><p class="mt-6"><strong>');
+
+                // 生成來源列表
+                let sourcesList = '';
+                if (sources && sources.length > 0) {
+                    sourcesList = `
+                        <div class="sources-section mt-8 pt-6 border-t border-gray-200">
+                            <h4 class="text-lg font-semibold mb-4 text-gray-700">📚 資料來源</h4>
+                            <ol class="space-y-2">
+                                ${sources.map((source, index) => {
+                                    let sourceText = '';
+                                    if (typeof source === 'string') {
+                                        sourceText = source;
+                                    } else if (source && source.fileName) {
+                                        sourceText = source.fileName;
+                                    } else {
+                                        sourceText = '未知來源';
+                                    }
+                                    return `<li class="text-sm text-gray-600 leading-relaxed">${sourceText}</li>`;
+                                }).join('')}
+                            </ol>
+                        </div>
+                    `;
+                }
                 
                 commentaryDiv.innerHTML = `
                     <div class="commentary-content">
                         ${formattedContent}
+                        ${sourcesList}
                     </div>
                 `;
-                
-                // 綁定引用標註事件
-                bindCitationEvents();
             }
             
             // 顯示經文對照（上下分割）
