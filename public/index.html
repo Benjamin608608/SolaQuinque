@@ -3471,6 +3471,31 @@
                 return map[en] || en;
             }
  
+            // 書卷向量資料庫預熱功能
+            async function warmupBookDatabase(bookEn) {
+                try {
+                    console.log(`🔥 預熱 ${bookEn} 資料庫...`);
+                    
+                    const response = await fetch('/api/bible/warmup', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ bookEn })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        console.log(`✅ ${bookEn} 資料庫預熱已啟動 (檔案數: ${result.fileCount})`);
+                    } else {
+                        console.log(`ℹ️ ${bookEn} 資料庫預熱跳過: ${result.message}`);
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ ${bookEn} 資料庫預熱失敗:`, error.message);
+                }
+            }
+
             function renderBooks(list) {
                 const lang = window.currentLanguage || 'zh';
                 bookGrid.innerHTML = list.map(b => {
@@ -3485,6 +3510,9 @@
                         const chapters = parseInt(btn.getAttribute('data-chapters'), 10);
                         const id = parseInt(btn.getAttribute('data-id'), 10);
                         document.getElementById('bibleBookEngs').value = engs;
+                        
+                        // 🔥 用戶點擊書卷時立即預熱該書卷的向量資料庫
+                        warmupBookDatabase(enName).catch(console.warn);
                         // 若同一本已展開，則收起並返回（切換）
                         const existingForThisBook = document.querySelector(`.chapters-inline-row[data-parent-book='${id}']`);
                         if (existingForThisBook) {

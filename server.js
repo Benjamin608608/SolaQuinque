@@ -2431,3 +2431,101 @@ app.get('/api/bible/vector-status', ensureAuthenticated, async (req, res) => {
 app.get('/login', (req, res) => {
   res.redirect('/');
 });
+
+// 在 app.post('/api/bible/explain/stream', ...) 之後添加新的預熱API
+
+app.post('/api/bible/warmup', ensureAuthenticated, async (req, res) => {
+  try {
+    const { bookEn } = req.body || {};
+
+    if (!bookEn) {
+      return res.status(400).json({ success: false, error: '缺少必要參數 bookEn' });
+    }
+
+    const storePrefix = process.env.BIBLE_STORE_PREFIX || 'Bible-';
+    const targetName = `${storePrefix}${bookEn}`;
+    
+    // 檢查向量資料庫是否存在
+    const storeResult = await getVectorStoreIdCachedByName(targetName);
+    if (!storeResult) {
+      return res.json({ 
+        success: false, 
+        message: `${bookEn} 資料庫尚未建立`,
+        cached: false 
+      });
+    }
+    
+    // 檢查是否為空白store
+    const fileCount = storeResult.store?.file_counts?.total || 0;
+    if (fileCount === 0) {
+      return res.json({ 
+        success: false, 
+        message: `${bookEn} 資料庫目前暫無內容`,
+        cached: false 
+      });
+    }
+
+    const vsId = storeResult.id;
+
+    console.log(`🔥 開始預熱 ${bookEn} 資料庫 (${vsId})...`);
+
+    // 執行預熱：發送一個簡單的測試查詢
+    const assistant = await getOrCreateAssistant();
+    const thread = await openai.beta.threads.create();
+    
+    // 使用簡單的預熱查詢
+    const warmupQuery = `Test query for ${bookEn} database warmup`;
+    
+    await openai.beta.threads.messages.create(thread.id, {
+      role: 'user',
+      content: warmupQuery
+    });
+
+    // 創建run來觸發向量搜尋（不需要等待完成）
+    const run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: assistant.id,
+      tool_resources: {
+        file_search: { vector_store_ids: [vsId] }
+      }
+    });
+
+    console.log(`✅ ${bookEn} 資料庫預熱已啟動`);
+
+    // 立即回應，不等待預熱完成
+    res.json({ 
+      success: true, 
+      message: `${bookEn} 資料庫預熱已啟動`,
+      bookEn,
+      vectorStoreId: vsId,
+      fileCount,
+      cached: true
+    });
+
+    // 在背景等待run完成（不阻塞回應）
+    setTimeout(async () => {
+      try {
+        let attempts = 0;
+        let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+        
+        while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
+          if (attempts > 20) break; // 最多等待20次 (10秒)
+          await new Promise(resolve => setTimeout(resolve, 500));
+          runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+          attempts++;
+        }
+        
+        console.log(`🎯 ${bookEn} 資料庫預熱完成 (${runStatus.status})`);
+      } catch (error) {
+        console.warn(`⚠️ ${bookEn} 資料庫預熱背景處理失敗:`, error.message);
+      }
+    }, 0);
+
+  } catch (error) {
+    console.error(`❌ ${bookEn || 'unknown'} 資料庫預熱失敗:`, error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: '預熱處理失敗',
+      message: error.message 
+    });
+  }
+});
