@@ -830,9 +830,27 @@ async function getFileName(fileId, language = 'zh') {
 async function processAnnotationsInText(text, annotations, language = 'zh') {
   let processedText = text;
   const sourceMap = new Map();
-  let citationCounter = 0;
+  let citationCounter = 1; // 修復：從1開始而不是0
 
+  // 即使沒有annotations，也要檢查和處理Railway格式的引用
   if (!annotations || annotations.length === 0) {
+    // 檢查是否有Railway格式的引用需要處理
+    const railwayMatches = text.match(/【[^】]*†[^】]*】/g);
+    if (railwayMatches) {
+      for (const match of railwayMatches) {
+        const replacement = `[${citationCounter}]`;
+        processedText = processedText.replace(match, replacement);
+        
+        // 為Railway格式創建一個基本的source entry
+        sourceMap.set(citationCounter, {
+          fileName: '來源',
+          quote: '',
+          fileId: `railway_${citationCounter}`
+        });
+        
+        citationCounter++;
+      }
+    }
     return { processedText, sourceMap };
   }
 
@@ -1238,6 +1256,12 @@ async function processSearchRequestStream(question, user, language, res) {
                     // 發送最終處理後的文本和來源
                     res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
                     res.write(`data: {"type": "final", "data": ${JSON.stringify(processedText)}}\n\n`);
+                } else {
+                    // 如果沒有獲取到消息，使用串流的數據但也要處理引用
+                    const { processedText: processedStreamText, sourceMap } = await processAnnotationsInText(fullAnswer, [], language);
+                    
+                    res.write(`data: {"type": "sources", "data": ${JSON.stringify(sources)}}\n\n`);
+                    res.write(`data: {"type": "final", "data": ${JSON.stringify(processedStreamText)}}\n\n`);
                 }
                 
                 res.write('data: {"type": "done"}\n\n');
