@@ -2986,6 +2986,9 @@
                         ${formattedContent}
                     </div>
                 `;
+                
+                // 綁定引用標註事件
+                bindCitationEvents();
             }
             
             // 顯示經文對照（上下分割）
@@ -4080,13 +4083,21 @@
 
         // 綁定引用標註事件
         function bindCitationEvents() {
-            const scope = document.getElementById('mainContent') || document;
-            scope.addEventListener('click', (e) => {
+            // 移除舊的事件監聽器（如果存在）
+            if (window.citationClickHandler) {
+                document.removeEventListener('click', window.citationClickHandler);
+            }
+            
+            // 創建新的事件處理器
+            window.citationClickHandler = (e) => {
                 const target = e.target.closest('.citation');
                 if (target) {
                     showCitationTooltip(target);
                 }
-            });
+            };
+            
+            // 綁定到整個 document，確保所有地方的引用都能點擊
+            document.addEventListener('click', window.citationClickHandler);
         }
 
         // 顯示引用工具提示
