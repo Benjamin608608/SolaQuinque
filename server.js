@@ -1795,36 +1795,34 @@ app.post('/api/bible/explain/stream', ensureAuthenticated, async (req, res) => {
     // 發送初始連接確認
     res.write('data: {"type": "connected"}\n\n');
 
-    const zhPrompt = `請嚴格僅根據資料庫內容作答。針對「${ref}」，請在本卷向量庫中「全面檢索所有涉及此段經文的作者」，不要省略任何一位作者。必須展示該經卷資料庫中所有對此段經文有註釋的作者資料。
+    const zhPrompt = `請嚴格僅根據資料庫內容作答。針對「${ref}」，請在本卷向量庫中「全面檢索所有涉及此段經文的作者」，不可省略任何作者，逐一輸出。
 
-對每位作者，請按以下格式呈現：
-1. 標題部分：**作者名稱（年代）** - 只顯示「作者名稱（年代）」，不要出現著作名稱或其他資訊；作者名稱須依照介面語言做對應翻譯
-2. 內文部分：用一段完整的敘述方式詳盡說明這位神學家對這段經文的解釋和觀點，包含其詮釋角度、論據、神學立場等，不得使用條列式或數字清單
+輸出格式（嚴格遵守）：
+- 第一行（標題）：**作者名稱（年代）**
+- 緊接下一行：該作者的完整敘述性解釋（不可條列、不可編號）
+- 每位作者之間以一個空行分隔
+- 不要在文末輸出任何「資料來源」清單（來源由系統處理）
 
-要求：
-- 標題僅包含作者與年代並加粗
-- 內文必須是敘述性段落，不可用條列
-- 必須包含資料庫中所有對此經文有註釋的作者
-
-若無資料，請直接說明找不到相關資料。
+其他要求：
+- 只根據向量庫內容作答；若無資料，請明確輸出「找不到相關資料」。
+- 作者名稱請以原文輸出，系統將負責依介面語言轉換。
 
 以下為選取經文僅用於定位語境（不可作為回答來源）：
 ${passageText ? '---\n' + passageText + '\n---' : ''}`;
 
-    const enPrompt = `Answer strictly from the provided vector store only. For "${ref}", perform an exhaustive retrieval of ALL authors in this book who comment on the passage (do not omit any author). Must display all author data from this book's database that have commentary on this passage.
+    const enPrompt = `Answer strictly from the provided vector store only. For "${ref}", perform an exhaustive retrieval of ALL authors in this book who comment on the passage (do not omit any author) and output each one.
 
-For each author, please present in the following format:
-1. Title section: **Author Name (Years)** - Only show "Author Name (Years)"; do NOT include work titles or any other information
-2. Content section: Provide one complete narrative paragraph explaining this theologian's interpretation of this passage, including their interpretive approach, arguments, theological position, etc. No bullet points or numbered lists.
+Output format (follow exactly):
+- First line (title): **Author Name (Years)**
+- Next line: one complete narrative paragraph for this author's interpretation (no lists, no numbering)
+- Separate each author by one blank line
+- Do NOT output any sources list at the end (sources will be handled by the system)
 
-Requirements:
-- Title must contain only author and years, in bold
-- Content must be narrative paragraphs, not lists
-- Must include ALL authors from the database who comment on this passage
+Other rules:
+- Answer only from the vector store; if nothing is found, say so explicitly.
+- Keep author names in original language; the system will localize them.
 
-If nothing is found, state it directly.
-
-Passage provided only to locate context (do not use it as a source of facts):
+Passage is provided only to locate context (do not use it as a source of facts):
 ${passageText ? '---\n' + passageText + '\n---' : ''}`;
 
     const q = (language === 'en' ? enPrompt : zhPrompt) + (translation ? `\n（版本：${translation}）` : '');

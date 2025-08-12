@@ -2965,8 +2965,11 @@
                     return;
                 }
 
+                // 先做作者名稱正規化：嚴格使用對照表
+                let normalized = refineExplanationHtml(formatAnswer(answer));
+
                 // 清理答案，移除所有引用標記和AI內容
-                let cleanedAnswer = answer;
+                let cleanedAnswer = normalized;
                 
                 // 移除所有引用標記
                 cleanedAnswer = cleanedAnswer.replace(/\[\d+\]/g, '');  // 移除 [1], [2] 等標記
@@ -3017,7 +3020,7 @@
                 // 確保作者間有視覺分隔
                 formattedContent = formattedContent.replace(/<\/p><p><strong>/g, '</p><p class="mt-6"><strong>');
 
-                // 生成來源列表
+                // 生成來源列表（完整列出）
                 let sourcesList = '';
                 if (sources && sources.length > 0) {
                     sourcesList = `
