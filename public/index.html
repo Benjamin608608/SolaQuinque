@@ -2132,21 +2132,49 @@
                 }
             }
             
-            // 更新標題和副標題
-            const title = document.querySelector('h1');
-            if (title) {
-                title.textContent = currentLang.title;
-            }
-            
-            const subtitle = document.querySelector('p');
-            if (subtitle) {
-                subtitle.textContent = currentLang.subtitle;
+            // 更新標題和副標題（只在首頁時）
+            if (window.currentPage === 'home') {
+                const title = document.querySelector('.ec-title');
+                if (title) {
+                    title.textContent = currentLang.title;
+                }
+                
+                const subtitle = document.querySelector('.ec-subtitle');
+                if (subtitle) {
+                    subtitle.textContent = currentLang.subtitle;
+                }
+                
+                // 更新初始的靜態標題
+                const initialSubtitle = document.getElementById('initialSubtitle');
+                if (initialSubtitle) {
+                    initialSubtitle.textContent = currentLang.subtitle;
+                }
             }
             
             // 更新輸入框佔位符
             const input = document.getElementById('searchInput');
             if (input) {
                 input.placeholder = currentLang.placeholder;
+            }
+            
+            // 更新聖經頁面標題
+            const biblePageTitle = document.querySelector('.bible-page-title');
+            if (biblePageTitle && window.currentPage === 'bible') {
+                biblePageTitle.textContent = currentLang['bible'];
+            }
+            
+            // 更新聖經章節頁面標題（如果需要重新載入）
+            if (window.currentPage === 'bibleChapter' && window.currentBibleSelection) {
+                const bibleChapterTitle = document.querySelector('.bible-chapter-title');
+                if (bibleChapterTitle) {
+                    const sel = window.currentBibleSelection;
+                    const allBooks = [...window.booksOT || [], ...window.booksNT || []];
+                    const book = allBooks.find(b => b.id === sel.bookId);
+                    if (book) {
+                        const bookName = lang === 'en' ? book.en : book.zh;
+                        bibleChapterTitle.textContent = `${bookName} 第${sel.chapter}章`;
+                    }
+                }
             }
             
             // 更新參考書目頁面標題
@@ -2441,9 +2469,9 @@
             
             const title = window.translations ? window.translations['bible'] : '聖經';
             main.innerHTML = `
-                <div class="w-full max-w-5xl mx-auto px-3">
+                <div class="w-full max-w-5xl mx-auto px-3 bible-page">
                     <div class="text-center mt-6 mb-3">
-                        <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)]">${title}</h2>
+                        <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)] bible-page-title">${title}</h2>
                     </div>
                     ${loginPrompt}
                     <div class="flex items-center gap-3 justify-end mb-3">
@@ -2474,8 +2502,8 @@
                 </div>
             `;
  
-            // 書卷資料（含 bolls bookId）
-            const booksOT = [
+            // 書卷資料（含 bolls bookId）- 設置為全局變數以便語言切換時使用
+            window.booksOT = [
                 { zh: '創世記', en: 'Genesis', engs: 'Gen', id: 1, chapters: 50 }, { zh: '出埃及記', en: 'Exodus', engs: 'Exo', id: 2, chapters: 40 }, { zh: '利未記', en: 'Leviticus', engs: 'Lev', id: 3, chapters: 27 }, { zh: '民數記', en: 'Numbers', engs: 'Num', id: 4, chapters: 36 }, { zh: '申命記', en: 'Deuteronomy', engs: 'Deu', id: 5, chapters: 34 },
                 { zh: '約書亞記', en: 'Joshua', engs: 'Jos', id: 6, chapters: 24 }, { zh: '士師記', en: "Judges", engs: 'Jdg', id: 7, chapters: 21 }, { zh: '路得記', en: 'Ruth', engs: 'Rth', id: 8, chapters: 4 }, { zh: '撒母耳記上', en: '1 Samuel', engs: '1Sa', id: 9, chapters: 31 }, { zh: '撒母耳記下', en: '2 Samuel', engs: '2Sa', id: 10, chapters: 24 },
                 { zh: '列王紀上', en: '1 Kings', engs: '1Ki', id: 11, chapters: 22 }, { zh: '列王紀下', en: '2 Kings', engs: '2Ki', id: 12, chapters: 25 }, { zh: '歷代志上', en: '1 Chronicles', engs: '1Ch', id: 13, chapters: 29 }, { zh: '歷代志下', en: '2 Chronicles', engs: '2Ch', id: 14, chapters: 36 }, { zh: '以斯拉記', en: 'Ezra', engs: 'Ezr', id: 15, chapters: 10 },
@@ -2485,7 +2513,7 @@
                 { zh: '俄巴底亞書', en: 'Obadiah', engs: 'Oba', id: 31, chapters: 1 }, { zh: '約拿書', en: 'Jonah', engs: 'Jon', id: 32, chapters: 4 }, { zh: '彌迦書', en: 'Micah', engs: 'Mic', id: 33, chapters: 7 }, { zh: '那鴻書', en: 'Nahum', engs: 'Nah', id: 34, chapters: 3 }, { zh: '哈巴谷書', en: 'Habakkuk', engs: 'Hab', id: 35, chapters: 3 },
                 { zh: '西番雅書', en: 'Zephaniah', engs: 'Zep', id: 36, chapters: 3 }, { zh: '哈該書', en: 'Haggai', engs: 'Hag', id: 37, chapters: 2 }, { zh: '撒迦利亞書', en: 'Zechariah', engs: 'Zec', id: 38, chapters: 14 }, { zh: '瑪拉基書', en: 'Malachi', engs: 'Mal', id: 39, chapters: 4 }
             ];
-            const booksNT = [
+            window.booksNT = [
                 { zh: '馬太福音', en: 'Matthew', engs: 'Mat', id: 40, chapters: 28 }, { zh: '馬可福音', en: 'Mark', engs: 'Mar', id: 41, chapters: 16 }, { zh: '路加福音', en: 'Luke', engs: 'Luk', id: 42, chapters: 24 }, { zh: '約翰福音', en: 'John', engs: 'Joh', id: 43, chapters: 21 }, { zh: '使徒行傳', en: 'Acts', engs: 'Act', id: 44, chapters: 28 },
                 { zh: '羅馬書', en: 'Romans', engs: 'Rom', id: 45, chapters: 16 }, { zh: '哥林多前書', en: '1 Corinthians', engs: '1Co', id: 46, chapters: 16 }, { zh: '哥林多後書', en: '2 Corinthians', engs: '2Co', id: 47, chapters: 13 }, { zh: '加拉太書', en: 'Galatians', engs: 'Gal', id: 48, chapters: 6 }, { zh: '以弗所書', en: 'Ephesians', engs: 'Eph', id: 49, chapters: 6 },
                 { zh: '腓立比書', en: 'Philippians', engs: 'Php', id: 50, chapters: 4 }, { zh: '歌羅西書', en: 'Colossians', engs: 'Col', id: 51, chapters: 4 }, { zh: '帖撒羅尼迦前書', en: '1 Thessalonians', engs: '1Th', id: 52, chapters: 5 }, { zh: '帖撒羅尼迦後書', en: '2 Thessalonians', engs: '2Th', id: 53, chapters: 3 }, { zh: '提摩太前書', en: '1 Timothy', engs: '1Ti', id: 54, chapters: 6 },
@@ -2500,7 +2528,7 @@
                 
                 try {
                     // 檢查章節範圍
-                    const allBooks = [...booksOT, ...booksNT];
+                    const allBooks = [...window.booksOT, ...window.booksNT];
                     const book = allBooks.find(b => b.id === bookId);
                     if (!book) {
                         console.error('找不到書卷:', bookId);
@@ -2552,7 +2580,7 @@
                 const main = document.getElementById('mainContent');
                 if (main) {
                     // 獲取書卷和版本資訊
-                    const allBooks = [...booksOT, ...booksNT];
+                    const allBooks = [...window.booksOT, ...window.booksNT];
                     const book = allBooks.find(b => b.id === bookId);
                     const versionElement = document.getElementById('bibleVersion');
                     const version = versionElement ? versionElement.value : 'CUV';
@@ -2574,12 +2602,12 @@
                     ` : '';
                     
                     main.innerHTML = `
-                        <div class="w-full max-w-4xl mx-auto px-3 pt-20">
+                        <div class="w-full max-w-4xl mx-auto px-3 pt-20 bible-chapter-page">
                             ${loginPrompt}
                             
                             <!-- 章節標題 -->
                             <div class="bible-chapter-header mb-6 text-center">
-                                <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)] mb-2">${bookName} 第${chapter}章</h2>
+                                <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)] mb-2 bible-chapter-title">${bookName} 第${chapter}章</h2>
                                 <div class="w-16 h-1 bg-[var(--primary)] mx-auto rounded-full"></div>
                             </div>
                             
@@ -2729,7 +2757,7 @@
                 }
                 
                 // 獲取書卷信息
-                const allBooks = [...booksOT, ...booksNT];
+                const allBooks = [...window.booksOT, ...window.booksNT];
                 const book = allBooks.find(b => b.id === bookId);
                 const bookName = book ? book.zh : '';
                 
@@ -2866,7 +2894,7 @@
                     // 確保作者對照表已載入
                     try { if (!window.authorTranslations) { await loadAuthorTranslations(); } } catch {}
                     // 獲取當前書卷的英文名稱
-                    const allBooks = [...booksOT, ...booksNT];
+                    const allBooks = [...window.booksOT, ...window.booksNT];
                     const book = allBooks.find(b => b.zh === bookName || b.en === bookName);
                     if (!book) {
                         throw new Error('無法找到書卷信息');
@@ -3346,7 +3374,7 @@
                     }
                     
                     // 渲染章節內容
-                    const allBooks = [...booksOT, ...booksNT];
+                    const allBooks = [...window.booksOT, ...window.booksNT];
                     const book = allBooks.find(b => b.id === bookId);
                     const lang = window.currentLanguage || 'zh';
                     const bookName = lang === 'en' ? book.en : book.zh;
@@ -3493,7 +3521,7 @@
                 }
                 
                 // 檢查章節範圍
-                const allBooks = [...booksOT, ...booksNT];
+                const allBooks = [...window.booksOT, ...window.booksNT];
                 const book = allBooks.find(b => b.id === bookId);
                 if (!book) {
                     console.error('找不到書卷:', bookId);
@@ -3748,7 +3776,7 @@
                 let inTargetChapter = false;
                 
                 // 根據 bookId 找到對應的書卷名稱
-                const allBooks = [...booksOT, ...booksNT];
+                const allBooks = [...window.booksOT, ...window.booksNT];
                 const book = allBooks.find(b => b.id === bookId);
                 if (!book) {
                     console.error('找不到書卷:', bookId);
@@ -3880,7 +3908,7 @@
                 const main = document.getElementById('mainContent');
                 if (!main) return;
                 const lang = window.currentLanguage || 'zh';
-                const displayBook = [...booksOT, ...booksNT].find(b => b.engs === engs);
+                const displayBook = [...window.booksOT, ...window.booksNT].find(b => b.engs === engs);
                 const ref = lang === 'en' ? `${displayBook.en} ${chapter}:${verse}` : `${getZhAbbrByEn(displayBook.en)}${chapter}:${verse}`;
                 main.innerHTML = `
                     <div class=\"w-full max-w-3xl mx-auto px-3\">
@@ -4030,9 +4058,9 @@
             // 預設顯示舊約
             const tabOT = document.getElementById('tabOT');
             const tabNT = document.getElementById('tabNT');
-            if (tabOT) tabOT.addEventListener('click', () => renderBooks(booksOT));
-            if (tabNT) tabNT.addEventListener('click', () => renderBooks(booksNT));
-            renderBooks(booksOT);
+            if (tabOT) tabOT.addEventListener('click', () => renderBooks(window.booksOT));
+            if (tabNT) tabNT.addEventListener('click', () => renderBooks(window.booksNT));
+            renderBooks(window.booksOT);
 
             // 隱藏生成解釋功能 - 保留程式碼供未來使用
             // document.getElementById('explainBibleBtn').addEventListener('click', explainBiblePassage);
@@ -4437,7 +4465,7 @@
 
         // ... existing code ...
         function engsToEnglish(engs) {
-            const all = [...booksOT, ...booksNT];
+            const all = [...window.booksOT, ...window.booksNT];
             const f = all.find(b => b.engs === engs);
             return f ? f.en : engs;
         }
