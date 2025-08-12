@@ -794,10 +794,13 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
           // 嘗試翻譯註解文本中的作者名稱
           let translatedText = originalText;
           
+          console.log(`🔍 開始處理註解文本: "${originalText}"`);
+          
           // 檢查是否包含作者名稱格式 [Author Name (Year)]
           const authorMatch = originalText.match(/\[([^(]+?)\s*\([^)]+\)\]/);
           if (authorMatch) {
             const fullAuthorName = authorMatch[1].trim();
+            console.log(`📝 提取的作者名: "${fullAuthorName}"`);
             
             // 嘗試多種匹配方式來找到翻譯
             let translatedAuthorName = null;
@@ -805,21 +808,27 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
             // 1. 嘗試完整匹配（包含年份）
             const fullNameWithYear = originalText.match(/\[([^(]+?\([^)]+\))\]/);
             if (fullNameWithYear) {
+              console.log(`🔍 完整匹配嘗試: "${fullNameWithYear[1]}"`);
               translatedAuthorName = getAuthorName(fullNameWithYear[1], language);
+              console.log(`📖 完整匹配結果: "${translatedAuthorName}"`);
             }
             
             // 2. 如果沒有找到，嘗試只匹配作者名（不含年份）
             if (!translatedAuthorName || translatedAuthorName === fullNameWithYear[1]) {
+              console.log(`🔍 部分匹配嘗試: "${fullAuthorName}"`);
               translatedAuthorName = getAuthorName(fullAuthorName, language);
+              console.log(`📖 部分匹配結果: "${translatedAuthorName}"`);
             }
             
             if (translatedAuthorName && translatedAuthorName !== fullAuthorName) {
               // 替換作者名稱，保持年份和格式
               translatedText = originalText.replace(fullAuthorName, translatedAuthorName);
+              console.log(`✅ 部分翻譯成功: "${originalText}" -> "${translatedText}"`);
             } else if (fullNameWithYear) {
               // 如果完整匹配有翻譯，使用完整匹配的翻譯
               const fullName = fullNameWithYear[1];
               const translatedFullName = getAuthorName(fullName, language);
+              console.log(`🔍 嘗試完整翻譯: "${fullName}" -> "${translatedFullName}"`);
               if (translatedFullName && translatedFullName !== fullName) {
                 // 替換整個完整名稱，但保持年份格式
                 const yearMatch = fullName.match(/\(([^)]+)\)/);
@@ -827,11 +836,15 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
                   const year = yearMatch[1];
                   const translatedWithYear = `${translatedFullName} (${year})`;
                   translatedText = originalText.replace(fullName, translatedWithYear);
+                  console.log(`✅ 完整翻譯成功: "${originalText}" -> "${translatedText}"`);
                 } else {
                   translatedText = originalText.replace(fullName, translatedFullName);
+                  console.log(`✅ 翻譯成功: "${originalText}" -> "${translatedText}"`);
                 }
               }
             }
+          } else {
+            console.log(`⚠️ 註解文本不匹配作者格式: "${originalText}"`);
           }
           
           // 檢查 Railway 格式的註解 【4:7†source】
