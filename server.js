@@ -1857,11 +1857,52 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           const citationSources = finalSources;
           const extractedSources = extractAuthorsFromContent(finalAnswer, language);
           
-          // 如果引用來源少於提取來源，使用提取來源補充
-          if (citationSources.length < extractedSources.length) {
-            finalSources = extractedSources;
+          console.log(`📚 註釋來源統計 - 檔案引用: ${citationSources.length}, 內容提取: ${extractedSources.length}`);
+          
+          // 改進的混合邏輯：合併兩種來源以確保信息完整性
+          if (extractedSources.length > 0) {
+            // 如果檔案引用為空，直接使用提取的來源
+            if (citationSources.length === 0) {
+              finalSources = extractedSources;
+              console.log(`✅ 使用內容提取的來源 (檔案引用為空)`);
+            } else {
+              // 合併兩種來源：檔案引用提供基礎信息，內容提取提供書名詳情
+              const mergedSources = [];
+              
+              // 首先添加檔案引用來源
+              citationSources.forEach(source => {
+                mergedSources.push(source);
+              });
+              
+              // 然後添加內容提取的來源（包含書名）
+              extractedSources.forEach(extractedSource => {
+                // 檢查是否已有相似的作者
+                const isDuplicate = mergedSources.some(existing => {
+                  const existingName = existing.fileName.toLowerCase();
+                  const extractedName = extractedSource.fileName.toLowerCase();
+                  return existingName.includes(extractedName.split(' - ')[0].toLowerCase()) ||
+                         extractedName.includes(existingName.toLowerCase());
+                });
+                
+                if (!isDuplicate) {
+                  mergedSources.push({
+                    ...extractedSource,
+                    index: mergedSources.length + 1
+                  });
+                }
+              });
+              
+              finalSources = mergedSources;
+              console.log(`✅ 合併來源完成 - 最終數量: ${finalSources.length}`);
+            }
           } else if (citationSources.length === 0) {
-            finalSources = extractedSources;
+            // 兩種來源都為空的情況
+            finalSources = [];
+            console.log(`⚠️ 無可用來源`);
+          } else {
+            // 只有檔案引用的情況
+            finalSources = citationSources;
+            console.log(`✅ 使用檔案引用來源`);
           }
           
           // 發送來源後再發送文本
