@@ -821,9 +821,22 @@
         .compare-divider {
             height: 4px;
             width: 100%;
-            background: var(--primary);
+            background: linear-gradient(90deg, var(--primary), var(--gold-leaf), var(--primary));
             opacity: 0.9;
             box-shadow: 0 1px 0 rgba(0,0,0,0.06), 0 -1px 0 rgba(0,0,0,0.06);
+            position: relative;
+        }
+        
+        .compare-divider::after {
+            content: "✦";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--background);
+            padding: 0 6px;
+            color: var(--primary);
+            font-size: 10px;
         }
         
         /* 響應式設計 */
@@ -3183,7 +3196,10 @@
                 const currentBookId = window.currentBibleSelection?.bookId;
                 const currentChapter = window.currentBibleSelection?.chapter;
                 if (!currentBookId || !currentChapter) {
-                    alert('無法獲取當前章節信息');
+                    const errorMsg = window.currentLanguage === 'en' 
+                        ? 'Unable to get current chapter information' 
+                        : '無法獲取當前章節信息';
+                    alert(errorMsg);
                     return;
                 }
 
@@ -3198,20 +3214,23 @@
                 container.innerHTML = `
                   <div class="flex items-center justify-end p-2">
                     <div class="flex items-center gap-3 text-sm">
-                      <label for="compareBottomVersion" class="text-[var(--text-primary)] whitespace-nowrap">下方版本：</label>
+                      <label for="compareBottomVersion" class="text-[var(--text-primary)] whitespace-nowrap">${window.currentLanguage === 'en' ? 'Bottom Version:' : '下方版本：'}</label>
                       <select id="compareBottomVersion" class="border rounded px-3 py-1.5 pr-8 text-sm min-w-[160px] appearance-auto text-[var(--primary)]">
                         <option value="CUV" ${defaultBottom==='CUV'?'selected':''}>CUV</option>
                         <option value="KJV" ${defaultBottom==='KJV'?'selected':''}>KJV</option>
                       </select>
-                      <button id="exitCompare" class="ml-2 px-3 py-1.5 rounded border">退出對照</button>
+                      <button id="exitCompare" class="ml-2 px-3 py-1.5 rounded border">${window.currentLanguage === 'en' ? 'Exit Compare' : '退出對照'}</button>
                     </div>
                   </div>
-                  <div class="grid grid-rows-[1fr_auto_1fr]">
-                    <div class="overflow-auto p-3 h-[38vh]" id="compareTopPane">
+                  <div class="grid grid-rows-[auto_1fr_auto_1fr]">
+                    <div class="bg-[var(--secondary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] border-b border-[var(--accent)]">
+                      ${topVersion} ${window.currentLanguage === 'en' ? 'Version' : '版本'}
+                    </div>
+                    <div class="overflow-auto p-3 h-[35vh]" id="compareTopPane">
                       <div id="compareTopContent" class="leading-relaxed text-justify text-[var(--text-primary)]"></div>
                     </div>
                     <div class="compare-divider"></div>
-                    <div class="overflow-auto p-3 h-[38vh]" id="compareBottomPane">
+                    <div class="overflow-auto p-3 h-[35vh]" id="compareBottomPane">
                       <div id="compareBottomContent" class="leading-relaxed text-justify text-[var(--text-primary)]"></div>
                     </div>
                   </div>
@@ -3242,12 +3261,22 @@
 
                 // 退出對照，恢復原畫面
                 document.getElementById('exitCompare').addEventListener('click', async () => {
+                    console.log('退出對照模式');
+                    
+                    // 重置對照模式狀態
+                    window.isCompareMode = false;
+                    window.compareBottomVersion = null;
+                    
                     const version = (document.getElementById('bibleVersion')?.value || 'CUV');
                     await loadBibleChapterContent(currentBookId, currentChapter, version);
+                    
+                    // 恢復選中範圍
                     if (window.selectedVerseRange) {
                         const { start, end } = window.selectedVerseRange;
                         selectVerseRange(start, end);
                     }
+                    
+                    console.log('對照模式已退出，恢復正常模式');
                 });
 
                 // 隱藏選單
@@ -3260,7 +3289,8 @@
                 const content = document.getElementById(contentId);
                 const pane = document.getElementById(paneId);
                 if (!content || !pane) return;
-                content.innerHTML = '<div class="text-[var(--text-secondary)] text-sm">載入中...</div>';
+                const loadingText = window.currentLanguage === 'en' ? 'Loading...' : '載入中...';
+                content.innerHTML = `<div class="text-[var(--text-secondary)] text-sm">${loadingText}</div>`;
                 try {
                     // 嘗試載入指定版本，失敗則使用備用版本
                     const tryLoad = async (ver) => {
@@ -3308,7 +3338,8 @@
                         pane.scrollTop = Math.max(0, offset);
                     }
                 } catch (e) {
-                    content.innerHTML = `<div class="text-red-600 text-sm">載入失敗：${e.message}</div>`;
+                    const errorPrefix = window.currentLanguage === 'en' ? 'Load failed: ' : '載入失敗：';
+                    content.innerHTML = `<div class="text-red-600 text-sm">${errorPrefix}${e.message}</div>`;
                 }
             }
             
@@ -3583,11 +3614,14 @@
                         console.log('目標章節:', { bookId: prevBookId, chapter: prevChapter });
                         // 若在對照模式，保持對照
                         if (window.isCompareMode) {
+                            console.log('對照模式下切換到前一章:', { bookId: prevBookId, chapter: prevChapter });
                             window.currentBibleSelection = { bookId: prevBookId, chapter: prevChapter };
+                            // 重置選中範圍到第一節
+                            window.selectedVerseRange = { start: 1, end: 1 };
                             await showBibleChapterPage(prevBookId, prevChapter);
                             await showVerseComparison();
                         } else {
-                        navigateToChapter(prevBookId, prevChapter);
+                            navigateToChapter(prevBookId, prevChapter);
                         }
                     });
                     
@@ -3622,7 +3656,7 @@
                     </button>
                     <button class="verse-action-menu-item" id="comparison-btn">
                         <span class="material-icons-outlined">compare_arrows</span>
-                        <span>對照</span>
+                        <span>${window.currentLanguage === 'en' ? 'Compare' : '對照'}</span>
                     </button>
                 `;
                 
@@ -3673,11 +3707,14 @@
                         console.log('後一章按鈕被點擊');
                         console.log('目標章節:', { bookId: nextBookId, chapter: nextChapter });
                         if (window.isCompareMode) {
+                            console.log('對照模式下切換到下一章:', { bookId: nextBookId, chapter: nextChapter });
                             window.currentBibleSelection = { bookId: nextBookId, chapter: nextChapter };
+                            // 重置選中範圍到第一節
+                            window.selectedVerseRange = { start: 1, end: 1 };
                             await showBibleChapterPage(nextBookId, nextChapter);
                             await showVerseComparison();
                         } else {
-                        navigateToChapter(nextBookId, nextChapter);
+                            navigateToChapter(nextBookId, nextChapter);
                         }
                     });
                     
