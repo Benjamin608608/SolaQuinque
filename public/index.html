@@ -2892,14 +2892,23 @@
                     const streamingContent = document.getElementById('streamingCommentary');
                     renderer.setContainer(streamingContent);
 
+                    // 設置超時控制
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => {
+                        controller.abort();
+                        console.log('聖經註釋請求超時');
+                    }, 30000); // 30秒超時
+                    
                     fetch('/api/bible/explain/stream', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify(params)
+                        body: JSON.stringify(params),
+                        signal: controller.signal
                     })
                     .then(response => {
+                        clearTimeout(timeoutId); // 清除超時器
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
@@ -2967,19 +2976,43 @@
                                 }
                                 
                                 return processStream();
+                            }).catch(error => {
+                                console.error('串流讀取錯誤:', error);
+                                commentaryDiv.innerHTML = `
+                                    <div class="text-red-600 text-center py-4">
+                                        <p>串流讀取發生錯誤：${error.message}</p>
+                                    </div>
+                                `;
+                                reject(error);
                             });
                         }
                         
                         return processStream();
                     })
                     .catch(error => {
+                        clearTimeout(timeoutId); // 確保清除超時器
                         console.error('註釋串流請求錯誤:', error);
+                        
+                        let errorMsg = '連接失敗，請稍後再試';
+                        if (error.name === 'AbortError') {
+                            errorMsg = '請求超時，請稍後再試';
+                        } else if (error.message.includes('Failed to fetch')) {
+                            errorMsg = '網路連線不穩定，請檢查網路後重試';
+                        } else if (error.message.includes('network')) {
+                            errorMsg = 'network error';
+                        } else if (error.message.includes('HTTP error')) {
+                            errorMsg = `伺服器錯誤：${error.message}`;
+                        }
+                        
                         commentaryDiv.innerHTML = `
                             <div class="text-red-600 text-center py-4">
-                                <p>連接失敗，請稍後再試</p>
+                                <p>搜尋神學家註釋時發生錯誤：${errorMsg}</p>
+                                <button onclick="location.reload()" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                    重新載入
+                                </button>
                             </div>
                         `;
-                        reject(error);
+                        reject(new Error(errorMsg));
                     });
                 });
             }
