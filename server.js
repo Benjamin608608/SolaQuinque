@@ -24,19 +24,18 @@ let authorTranslations = {};
 // 載入作者對照表
 async function loadAuthorTranslations() {
     try {
-        const fs = await import('fs');
-        const path = await import('path');
-        const filePath = path.join(process.cwd(), 'config', 'author-translations.json');
-        
+        const filePath = path.join(__dirname, 'data', 'author_translations.json');
         if (fs.existsSync(filePath)) {
             const data = fs.readFileSync(filePath, 'utf8');
             authorTranslations = JSON.parse(data);
             console.log(`✅ 已載入作者對照表 (${Object.keys(authorTranslations).length} 位作者)`);
         } else {
             console.warn('⚠️ 作者對照表文件不存在');
+            authorTranslations = {};
         }
     } catch (error) {
         console.error('❌ 載入作者對照表失敗:', error.message);
+        authorTranslations = {};
     }
 }
 
@@ -771,144 +770,98 @@ async function getFileName(fileId, language = 'zh') {
 
 // 處理引用標記並轉換為網頁格式的函數
 async function processAnnotationsInText(text, annotations, language = 'zh') {
-  console.log(`🔍 processAnnotationsInText 被調用 - 語言: ${language}`);
-  console.log(`📝 原始文本長度: ${text.length}`);
-  console.log(`📝 註解數量: ${annotations ? annotations.length : 0}`);
-  
   let processedText = text;
   const sourceMap = new Map();
-  const usedSources = new Map();
-  let citationCounter = 1;
-  
-  if (annotations && annotations.length > 0) {
-    // 並行預處理所有檔案名稱
-    const fileProcessingPromises = [];
-    const annotationMap = new Map();
-    
+  let citationCounter = 0;
+
+  if (!annotations || annotations.length === 0) {
+    return { processedText, sourceMap };
+  }
+
+  try {
+    // 建立檔案ID到檔案物件的對應
+    const fileIdToFileMap = new Map();
+
     for (const annotation of annotations) {
-      if (annotation.type === 'file_citation' && annotation.file_citation) {
-        const fileId = annotation.file_citation.file_id;
-        const quote = annotation.file_citation.quote || '';
+      if (annotation.type === 'file_citation') {
+        const fileId = annotation.file_citation?.file_id;
         
-        // 並行處理檔案名稱
-        const fileNamePromise = getFileName(fileId, language);
-        fileProcessingPromises.push(fileNamePromise);
-        annotationMap.set(annotation, { fileId, quote, fileNamePromise });
+        if (fileId && !fileIdToFileMap.has(fileId)) {
+          try {
+            const file = await openai.files.retrieve(fileId);
+            fileIdToFileMap.set(fileId, file);
+          } catch (fileError) {
+            console.warn(`⚠️ 無法檢索檔案 ${fileId}:`, fileError.message);
+          }
+        }
       }
     }
-    
-    // 等待所有檔案名稱處理完成
-    const fileNames = await Promise.all(fileProcessingPromises);
-    let fileNameIndex = 0;
-    
+
+    // 處理引用
     for (const annotation of annotations) {
-      if (annotation.type === 'file_citation' && annotation.file_citation) {
-        const { fileId, quote } = annotationMap.get(annotation);
-        const fileName = fileNames[fileNameIndex++];
+      if (annotation.type === 'file_citation') {
+        const fileId = annotation.file_citation?.file_id;
+        const quote = annotation.file_citation?.quote || '';
         
-        let citationIndex;
-        if (usedSources.has(fileId)) {
-          citationIndex = usedSources.get(fileId);
-        } else {
-          citationIndex = citationCounter++;
-          usedSources.set(fileId, citationIndex);
-          sourceMap.set(citationIndex, {
-            fileName,
-            quote,
-            fileId
-          });
-        }
-        
-        const originalText = annotation.text;
-        console.log(`📄 處理註解 ${citationCounter}: "${originalText}"`);
-        
-        if (originalText) {
-          // 嘗試翻譯註解文本中的作者名稱
+        if (fileId && fileIdToFileMap.has(fileId)) {
+          citationCounter++;
+          const citationIndex = `[${citationCounter}]`;
+          
+          const file = fileIdToFileMap.get(fileId);
+          let fileName = file.filename || '未知來源';
+          
+          // 翻譯檔案名稱
+          fileName = translateFileName(fileName, language);
+          
+          const originalText = annotation.text;
           let translatedText = originalText;
           
-          // 檢查是否包含作者名稱格式 [Author Name (Year)]
-          const authorMatch = originalText.match(/\[([^(]+?)\s*\([^)]+\)\]/);
-          if (authorMatch) {
-            const fullAuthorName = authorMatch[1].trim();
+          // 嘗試翻譯作者名稱
+          const fullAuthorMatch = originalText.match(/([A-Z][a-zA-Z\s\.'-]{2,40}?)\s*(\(\d{4}(?:[-–—]\d{4})?\))?/);
+          const fullNameWithYear = originalText.match(/([A-Z][a-zA-Z\s\.'-]{2,40}?\s*\(\d{4}(?:[-–—]\d{4})?\))/);
+          
+          if (fullAuthorMatch) {
+            const fullAuthorName = fullAuthorMatch[1].trim();
+            const yearPart = fullAuthorMatch[2] || '';
             
-            // 嘗試多種匹配方式來找到翻譯
-            let translatedAuthorName = null;
-            
-            // 1. 嘗試完整匹配（包含年份）
-            const fullNameWithYear = originalText.match(/\[([^(]+?\([^)]+\))\]/);
-            if (fullNameWithYear) {
-              translatedAuthorName = getAuthorName(fullNameWithYear[1], language);
-            }
-            
-            // 2. 如果沒有找到，嘗試只匹配作者名（不含年份）
-            if (!translatedAuthorName || translatedAuthorName === fullNameWithYear[1]) {
-              translatedAuthorName = getAuthorName(fullAuthorName, language);
-            }
-            
-            if (translatedAuthorName && translatedAuthorName !== fullAuthorName) {
-              // 替換作者名稱，保持年份和格式
+            if (language === 'zh' && authorTranslations && authorTranslations[fullAuthorName]) {
+              const translatedAuthorName = authorTranslations[fullAuthorName];
               translatedText = originalText.replace(fullAuthorName, translatedAuthorName);
-              console.log(`✅ 部分翻譯成功: "${originalText}" -> "${translatedText}"`);
             } else if (fullNameWithYear) {
               // 如果完整匹配有翻譯，使用完整匹配的翻譯
               const fullName = fullNameWithYear[1];
-              const translatedFullName = getAuthorName(fullName, language);
-              if (translatedFullName && translatedFullName !== fullName) {
-                // 替換整個完整名稱，但保持年份格式
-                const yearMatch = fullName.match(/\(([^)]+)\)/);
-                if (yearMatch) {
-                  const year = yearMatch[1];
+              if (language === 'zh' && authorTranslations && authorTranslations[fullName]) {
+                const translatedFullName = authorTranslations[fullName];
+                const year = fullName.match(/\((\d{4}(?:[-–—]\d{4})?)\)/);
+                if (year) {
                   const translatedWithYear = `${translatedFullName} (${year})`;
                   translatedText = originalText.replace(fullName, translatedWithYear);
-                  console.log(`✅ 完整翻譯成功: "${originalText}" -> "${translatedText}"`);
                 } else {
                   translatedText = originalText.replace(fullName, translatedFullName);
-                  console.log(`✅ 翻譯成功: "${originalText}" -> "${translatedText}"`);
                 }
               }
             }
           }
           
-          // 檢查 Railway 格式的註解 【4:7†source】
+          // 檢查是否為 Railway 格式的註解
           const railwayMatch = originalText.match(/【([^】]+?)】/);
           if (railwayMatch) {
-            console.log(`🔍 發現 Railway 格式註解: "${railwayMatch[1]}"`);
             // Railway 格式的註解不需要翻譯，直接使用
             translatedText = originalText;
           }
           
           const replacement = `${translatedText}[${citationIndex}]`;
-          console.log(`📄 最終替換: "${originalText}" -> "${replacement}"`);
           processedText = processedText.replace(originalText, replacement);
         }
       }
     }
     
-    // 清理格式問題並改善排版
-    processedText = processedText
-      .replace(/【[^】]*】/g, '')
-      .replace(/†[^†\s]*†?/g, '')
-      .replace(/,\s*\n/g, '\n')
-      .replace(/,\s*$/, '')
-      .replace(/\n\s*,/g, '\n')
-      .replace(/(\[\d+\])(\[\d+\])*\1+/g, '$1$2')
-      .replace(/(\[\d+\])+/g, (match) => {
-        const citations = match.match(/\[\d+\]/g);
-        const uniqueCitations = [...new Set(citations)];
-        return uniqueCitations.join('');
-      })
-      .replace(/(\d+)\.\s*([^：。！？\n]+[：])/g, '\n\n**$1. $2**\n')
-      .replace(/([。！？])\s+(\d+\.)/g, '$1\n\n**$2')
-      .replace(/([。！？])\s*([A-Za-z][^。！？]*：)/g, '$1\n\n**$2**\n')
-      .replace(/\*\s*([^*\n]+)\s*：\s*\*/g, '**$1：**')
-      .replace(/[ \t]+/g, ' ')
-      .replace(/\n{3,}/g, '\n\n')
-      .replace(/^\s+|\s+$/g, '')
-      .replace(/([。！？])(?=\s*(?!\*\*\d+\.)[^\n])/g, '$1\n\n')
-      .trim();
+    return { processedText, sourceMap };
+    
+  } catch (error) {
+    console.error('❌ 處理引用失敗:', error.message);
+    return { processedText, sourceMap };
   }
-  
-  return { processedText, sourceMap };
 }
 
 // 創建來源列表的函數
@@ -1150,16 +1103,12 @@ async function processSearchRequest(question, user, language = 'zh') {
 
 // 串流版本的搜索處理
 async function processSearchRequestStream(question, user, language, res) {
-    console.log('🔄 使用 OpenAI Assistant API 串流方法...');
-    
     try {
         // 使用全局 Assistant（重用機制）
         const assistant = await getOrCreateAssistant();
-        console.log('✅ 使用現有 Assistant');
 
         // 創建 Thread
         const thread = await openai.beta.threads.create();
-        console.log('✅ Thread 創建成功');
 
         // 添加用戶問題到 Thread
         await openai.beta.threads.messages.create(thread.id, {
@@ -1207,82 +1156,46 @@ async function processSearchRequestStream(question, user, language, res) {
                     const finalAnswer = lastMessage.content[0].text.value || '';
                     const annotations = lastMessage.content[0].text.annotations || [];
                     
-                    console.log(`🔄 非串流方式處理引用，文本長度: ${finalAnswer.length}, 註解數量: ${annotations.length}`);
-                    
                     // 驗證數據一致性
                     if (finalAnswer !== fullAnswer) {
-                        console.warn(`⚠️ 數據不一致！`);
-                        console.warn(`串流文本長度: ${fullAnswer.length}`);
-                        console.warn(`重獲文本長度: ${finalAnswer.length}`);
-                        console.warn(`串流文本片段: "${fullAnswer.substring(0, 100)}..."`);
-                        console.warn(`重獲文本片段: "${finalAnswer.substring(0, 100)}..."`);
-                        
-                        // 使用重新獲取的完整文本（更可靠）
-                        console.log(`✅ 使用重獲取的完整文本以確保引用準確性`);
-                    } else {
-                        console.log(`✅ 串流文本與重獲取文本一致`);
+                        console.warn(`⚠️ 串流與重獲取文本不一致，使用重獲取的完整文本`);
                     }
                     
-                    // 使用非串流的方式處理引用（使用重獲取的文本確保準確性）
+                    // 處理引用
                     const { processedText, sourceMap } = await processAnnotationsInText(finalAnswer, annotations, language);
                     
-                    const finalSources = Array.from(sourceMap.entries()).map(([index, source]) => ({
+                    let finalSources = Array.from(sourceMap.entries()).map(([index, source]) => ({
                         index,
                         fileName: source.fileName,
                         quote: source.quote && source.quote.length > 120 ? source.quote.substring(0, 120) + '...' : source.quote,
                         fileId: source.fileId
                     }));
                     
-                    console.log(`✅ 引用處理完成，最終來源數量: ${finalSources.length}`);
-                    
                     // 發送最終處理後的文本和來源
-                    res.write(`data: {"type": "final", "data": ${JSON.stringify(processedText)}}\n\n`);
-                    res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
-                    
-                    // 緩存結果使用處理後的數據
-                    const result = { answer: processedText, sources: finalSources };
-                    setCachedResult(question, result);
-                    
-                    // 記錄到 Google Sheets 使用處理後的數據
-                    try {
-                        const userName = user?.name || '';
-                        const userEmail = user?.email || '';
-                        const timestamp = new Date().toISOString();
-                        await appendToGoogleSheet([timestamp, language, userName, userEmail, question, processedText]);
-                    } catch (e) {
-                        console.warn('⚠️ 問答寫入表單失敗（不影響回應）:', e.message);
-                    }
-                } else {
-                    // 如果沒有獲取到消息，使用串流的數據
-                    res.write(`data: {"type": "sources", "data": ${JSON.stringify(sources)}}\n\n`);
-                    res.write(`data: {"type": "final", "data": ${JSON.stringify(fullAnswer)}}\n\n`);
-                    
-                    const result = { answer: fullAnswer, sources };
-                    setCachedResult(question, result);
+                    res.write(`data: {"type": "sources", "sources": ${JSON.stringify(finalSources)}}\n\n`);
+                    res.write(`data: {"type": "processed_text", "text": ${JSON.stringify(processedText)}}\n\n`);
                 }
                 
-                // 發送完成信號
                 res.write('data: {"type": "done"}\n\n');
                 res.end();
-
+                
             } catch (error) {
-                console.error('串流完成處理錯誤:', error);
-                res.write(`data: {"type": "error", "error": "處理完成時發生錯誤"}\n\n`);
+                console.error('❌ 串流結束處理失敗:', error.message);
+                res.write(`data: {"type": "error", "error": "處理最終結果時發生錯誤"}\n\n`);
                 res.end();
             }
         });
 
         stream.on('error', (error) => {
-            console.error('串流錯誤:', error);
-            res.write(`data: {"type": "error", "error": "串流處理發生錯誤"}\n\n`);
+            console.error('❌ 串流錯誤:', error.message);
+            res.write(`data: {"type": "error", "error": "串流處理錯誤"}\n\n`);
             res.end();
         });
 
     } catch (error) {
-        console.error('串流搜索處理錯誤:', error);
-        res.write(`data: {"type": "error", "error": "搜索處理發生錯誤"}\n\n`);
+        console.error('❌ 串流搜索處理失敗:', error.message);
+        res.write(`data: {"type": "error", "error": "搜索處理失敗"}\n\n`);
         res.end();
-        throw error;
     }
 }
 
