@@ -2244,15 +2244,16 @@
                 const sel = window.currentBibleSelection;
                 showBiblePage().then(() => {
                     if (sel && sel.bookId) {
-                        // 重新套用選擇：打開書卷與章
+                        // 重新套用選擇：只打開書卷，不自動跳轉到章節
                         requestAnimationFrame(() => {
                             const bookBtn = document.querySelector(`#bookGrid button[data-id='${sel.bookId}']`);
                             if (bookBtn) {
                                 bookBtn.click();
-                                setTimeout(() => {
-                                    const chapBtn = document.querySelector(`.chapters-inline-row [data-bookid='${sel.bookId}'][data-chap='${sel.chapter}']`);
-                                    if (chapBtn) chapBtn.click();
-                                }, 0);
+                                // 移除自動章節點擊，避免語言切換時意外跳轉
+                                // setTimeout(() => {
+                                //     const chapBtn = document.querySelector(`.chapters-inline-row [data-bookid='${sel.bookId}'][data-chap='${sel.chapter}']`);
+                                //     if (chapBtn) chapBtn.click();
+                                // }, 0);
                             }
                         });
                     }
