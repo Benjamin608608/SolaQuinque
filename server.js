@@ -100,22 +100,42 @@ async function getVectorStoreIdCachedByName(name) {
 // 從聖經註釋內容中提取作者名稱作為來源（備用機制）
 function extractAuthorsFromContent(content, language = 'zh') {
   const sources = [];
+  const seenAuthors = new Set();
   let index = 1;
   
   try {
-    // 匹配 **作者名稱** 格式
-    const authorMatches = content.match(/\*\*([^*]+)\*\*/g);
+    // 匹配 **作者名稱** 格式，包含年代
+    const authorMatches = content.match(/\*\*([^*]+?(?:\([^)]+\))?[^*]*?)\*\*/g);
     if (authorMatches) {
+      console.log(`🔍 找到 ${authorMatches.length} 個粗體標記:`, authorMatches);
+      
       for (const match of authorMatches) {
         const authorName = match.replace(/\*\*/g, '').trim();
         
-        // 過濾掉一些非作者名稱的粗體文字
-        if (authorName && 
-            !authorName.includes('神的兒子') && 
-            !authorName.includes('創世紀') &&
-            !authorName.includes('聖經') &&
-            authorName.length > 2 && 
-            authorName.length < 50) {
+        // 更嚴格的作者名稱檢測
+        const isAuthor = (
+          authorName.length > 3 && 
+          authorName.length < 100 &&
+          // 包含年代格式 (YYYY-YYYY) 或常見神學家名稱
+          (authorName.includes('(') && authorName.includes(')')) ||
+          authorName.includes('亨利') ||
+          authorName.includes('加爾文') ||
+          authorName.includes('萊奧波德') ||
+          authorName.includes('馬丁路德') ||
+          authorName.includes('Henry') ||
+          authorName.includes('Calvin') ||
+          authorName.includes('Leopold') ||
+          authorName.includes('Luther')
+        ) && 
+        // 排除非作者名稱
+        !authorName.includes('神的兒子') && 
+        !authorName.includes('創世紀') &&
+        !authorName.includes('聖經') &&
+        !authorName.includes('經文') &&
+        !seenAuthors.has(authorName);
+        
+        if (isAuthor) {
+          seenAuthors.add(authorName);
           
           // 嘗試翻譯作者名稱
           const translatedName = getAuthorName(authorName, language);
@@ -127,6 +147,10 @@ function extractAuthorsFromContent(content, language = 'zh') {
             quote: '',
             fileId: `extracted_${index}`
           });
+          
+          console.log(`✅ 提取作者 ${index - 1}: ${displayName}`);
+        } else {
+          console.log(`❌ 跳過非作者: ${authorName}`);
         }
       }
     }
@@ -1800,10 +1824,19 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
             fileId: source.fileId
           }));
           
-          // 如果正常註解處理沒有產生來源，使用備用機制從內容中提取作者名稱
-          if (finalSources.length === 0 && finalAnswer) {
-            console.log(`⚠️ 正常註解處理無來源，啟用備用作者提取機制`);
-            finalSources = extractAuthorsFromContent(finalAnswer, language);
+          // 使用混合機制確保來源完整性
+          const citationSources = finalSources;
+          const extractedSources = extractAuthorsFromContent(finalAnswer, language);
+          
+          console.log(`📊 引用來源數量: ${citationSources.length}, 提取來源數量: ${extractedSources.length}`);
+          
+          // 如果引用來源少於提取來源，使用提取來源補充
+          if (citationSources.length < extractedSources.length) {
+            console.log(`⚠️ 引用來源不完整 (${citationSources.length}/${extractedSources.length})，使用提取來源`);
+            finalSources = extractedSources;
+          } else if (citationSources.length === 0) {
+            console.log(`⚠️ 無引用來源，完全使用提取來源`);
+            finalSources = extractedSources;
           }
           
           console.log(`✅ 聖經註釋引用處理完成，最終來源數量: ${finalSources.length}`);
