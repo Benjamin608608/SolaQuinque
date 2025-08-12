@@ -971,7 +971,7 @@
                 神學知識庫
             </h1>
         </div>
-        <p class="text-[var(--text-secondary)] mt-5 text-lg max-w-md font-light leading-relaxed">
+        <p class="text-[var(--text-secondary)] mt-5 text-lg max-w-md font-light leading-relaxed" id="initialSubtitle">
             探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。
         </p>
     </main>
@@ -2216,6 +2216,12 @@
                         });
                     }
                 }).catch(console.error);
+            } else if (window.currentPage === 'bibleChapter' && window.currentBibleSelection) {
+                // 處理聖經章節頁面的語言切換
+                const sel = window.currentBibleSelection;
+                if (sel && sel.bookId && sel.chapter) {
+                    showBibleChapterPage(sel.bookId, sel.chapter).catch(console.error);
+                }
             } else if (window.currentPage === 'bibleExplain' && window.currentBibleSelection) {
                 const s = window.currentBibleSelection;
                                         // 隱藏經文解釋功能 - 保留程式碼供未來使用
