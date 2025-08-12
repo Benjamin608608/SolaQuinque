@@ -3546,6 +3546,9 @@
             function addChapterNavigationButtons(bookId, chapter) {
                 console.log('添加章節導航按鈕:', { bookId, chapter });
                 
+                // 獲取當前語言設置
+                const lang = window.currentLanguage || 'zh';
+                
                 // 移除現有的導航按鈕
                 const existingButtons = document.getElementById('chapterNavigationButtons');
                 if (existingButtons) {
@@ -3601,7 +3604,6 @@
                     }
                     
                     const prevBook = allBooks.find(b => b.id === prevBookId);
-                    const lang = window.currentLanguage || 'zh';
                     const prevBookName = prevBook ? (lang === 'en' ? prevBook.en : prevBook.zh) : '';
                     const prevTitle = lang === 'en' 
                         ? `Previous Chapter (${prevBookName} ${prevChapter})`
