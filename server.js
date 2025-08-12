@@ -1733,9 +1733,12 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
     // 使用全局 Assistant（不覆寫 tool_resources 以確保 file_citation 正常）
     const assistant = await getOrCreateAssistant();
 
-    // 創建串流 Run（不覆寫 tool_resources，確保 file_citation 正常運作）
+    // 創建串流 Run（必須覆寫 tool_resources 指定正確的書卷資料庫）
     const stream = await openai.beta.threads.runs.stream(thread.id, {
-      assistant_id: assistant.id
+      assistant_id: assistant.id,
+      tool_resources: {
+        file_search: { vector_store_ids: [targetVectorStoreId] }
+      }
     });
 
     let fullAnswer = '';
@@ -1892,7 +1895,7 @@ app.post('/api/bible/explain/stream', ensureAuthenticated, async (req, res) => {
 
     const zhPrompt = `請嚴格僅根據資料庫內容作答。針對「${bookEn} ${ref}」，請專門搜尋「${bookEn}」書卷相關的註釋資料，「全面檢索所有涉及此段經文的作者」，不可省略任何作者，逐一輸出。
 
-【重要】請確保引用資料來源並產生完整的 file_citation 標註。
+【重要】請確保引用資料來源並產生完整的 file_citation 標註。每段引用的資料都必須包含檔案引用標記。
 
 輸出格式（嚴格遵守）：
 - 第一行（標題）：**作者名稱（年代）**
@@ -1910,7 +1913,7 @@ ${passageText ? '---\n' + passageText + '\n---' : ''}`;
 
     const enPrompt = `Answer strictly from the provided vector store only. For "${bookEn} ${ref}", specifically search for "${bookEn}" book commentary data, perform an exhaustive retrieval of ALL authors in this book who comment on the passage (do not omit any author) and output each one.
 
-【IMPORTANT】Please ensure you cite sources and generate complete file_citation annotations.
+【IMPORTANT】Please ensure you cite sources and generate complete file_citation annotations. Every cited piece of data must include file reference markers.
 
 Output format (follow exactly):
 - First line (title): **Author Name (Years)**
@@ -1932,6 +1935,7 @@ ${passageText ? '---\n' + passageText + '\n---' : ''}`;
     // 不使用快取：每次重新生成
 
     // 使用串流處理
+    console.log(`🔄 使用向量庫: ${targetName} (ID: ${vsId})`);
     await processBibleExplainRequestStream(q, vsId, req.user, language, res, cacheKey);
 
   } catch (error) {
