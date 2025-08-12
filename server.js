@@ -44,7 +44,7 @@ async function loadAuthorTranslations() {
 function getAuthorName(englishName, language = 'zh') {
   if (!englishName) return '';
   
-  if (language === 'zh' && authorTranslations.authors[englishName]) {
+  if (language === 'zh' && authorTranslations && authorTranslations.authors && authorTranslations.authors[englishName]) {
     return authorTranslations.authors[englishName];
   }
   return englishName;
@@ -98,6 +98,14 @@ async function getVectorStoreIdCachedByName(name) {
 }
 
 // 解析訊息中的所有檔案引用，並解析為 { fileId, fileName, quote }
+function cleanFileName(name) {
+  try {
+    if (!name) return '';
+    // 去副檔名、底線轉空白、修剪
+    return String(name).replace(/\.[^./\\\s]+$/,'').replace(/[_]+/g,' ').trim();
+  } catch { return name || ''; }
+}
+
 async function resolveMessageFileCitations(message) {
   try {
     if (!message || !Array.isArray(message.content)) return [];
@@ -126,7 +134,7 @@ async function resolveMessageFileCitations(message) {
     for (const [fid, quote] of idToQuote.entries()) {
       try {
         const f = await openai.files.retrieve(fid);
-        results.push({ fileId: fid, fileName: f?.filename || '', quote: quote });
+        results.push({ fileId: fid, fileName: cleanFileName(f?.filename || ''), quote: quote });
       } catch {
         results.push({ fileId: fid, fileName: '', quote: quote });
       }
