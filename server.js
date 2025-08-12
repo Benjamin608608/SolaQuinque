@@ -24,7 +24,7 @@ let authorTranslations = {};
 // 載入作者對照表
 async function loadAuthorTranslations() {
     try {
-        const filePath = path.join(__dirname, 'data', 'author_translations.json');
+        const filePath = path.join(__dirname, 'config', 'author-translations.json');
         if (fs.existsSync(filePath)) {
             const data = fs.readFileSync(filePath, 'utf8');
             authorTranslations = JSON.parse(data);
@@ -55,8 +55,8 @@ function translateFileName(fileName, language = 'zh') {
 function getAuthorName(englishName, language = 'zh') {
   if (!englishName) return '';
   
-  if (language === 'zh' && authorTranslations && authorTranslations[englishName]) {
-    return authorTranslations[englishName];
+  if (language === 'zh' && authorTranslations && authorTranslations.authors && authorTranslations.authors[englishName]) {
+    return authorTranslations.authors[englishName];
   }
   return englishName;
 }
