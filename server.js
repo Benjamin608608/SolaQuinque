@@ -97,6 +97,48 @@ async function getVectorStoreIdCachedByName(name) {
   return result;
 }
 
+// 從聖經註釋內容中提取作者名稱作為來源（備用機制）
+function extractAuthorsFromContent(content, language = 'zh') {
+  const sources = [];
+  let index = 1;
+  
+  try {
+    // 匹配 **作者名稱** 格式
+    const authorMatches = content.match(/\*\*([^*]+)\*\*/g);
+    if (authorMatches) {
+      for (const match of authorMatches) {
+        const authorName = match.replace(/\*\*/g, '').trim();
+        
+        // 過濾掉一些非作者名稱的粗體文字
+        if (authorName && 
+            !authorName.includes('神的兒子') && 
+            !authorName.includes('創世紀') &&
+            !authorName.includes('聖經') &&
+            authorName.length > 2 && 
+            authorName.length < 50) {
+          
+          // 嘗試翻譯作者名稱
+          const translatedName = getAuthorName(authorName, language);
+          const displayName = translatedName !== authorName ? translatedName : authorName;
+          
+          sources.push({
+            index: index++,
+            fileName: displayName,
+            quote: '',
+            fileId: `extracted_${index}`
+          });
+        }
+      }
+    }
+    
+    console.log(`📚 從內容中提取到 ${sources.length} 位作者`);
+    return sources;
+  } catch (error) {
+    console.error('提取作者名稱時發生錯誤:', error);
+    return [];
+  }
+}
+
 // 解析訊息中的所有檔案引用，並解析為 { fileId, fileName, quote }
 function cleanFileName(name) {
   try {
@@ -1688,15 +1730,12 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
       content: question
     });
 
-    // 使用全局 Assistant，但在 run 時覆寫 tool_resources.vector_store_ids
+    // 使用全局 Assistant（不覆寫 tool_resources 以確保 file_citation 正常）
     const assistant = await getOrCreateAssistant();
 
-    // 創建串流 Run
+    // 創建串流 Run（不覆寫 tool_resources，確保 file_citation 正常運作）
     const stream = await openai.beta.threads.runs.stream(thread.id, {
-      assistant_id: assistant.id,
-      tool_resources: {
-        file_search: { vector_store_ids: [targetVectorStoreId] }
-      }
+      assistant_id: assistant.id
     });
 
     let fullAnswer = '';
@@ -1751,12 +1790,18 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           const { processedText, sourceMap } = await processAnnotationsInText(finalAnswer, annotations, language);
           console.log(`🔍 processAnnotationsInText 返回的 sourceMap 大小: ${sourceMap.size}`);
           
-          const finalSources = Array.from(sourceMap.entries()).map(([index, source]) => ({
+          let finalSources = Array.from(sourceMap.entries()).map(([index, source]) => ({
             index,
             fileName: source.fileName,
             quote: source.quote && source.quote.length > 120 ? source.quote.substring(0, 120) + '...' : source.quote,
             fileId: source.fileId
           }));
+          
+          // 如果正常註解處理沒有產生來源，使用備用機制從內容中提取作者名稱
+          if (finalSources.length === 0 && finalAnswer) {
+            console.log(`⚠️ 正常註解處理無來源，啟用備用作者提取機制`);
+            finalSources = extractAuthorsFromContent(finalAnswer, language);
+          }
           
           console.log(`✅ 聖經註釋引用處理完成，最終來源數量: ${finalSources.length}`);
           console.log(`🔍 最終來源詳細內容:`, JSON.stringify(finalSources, null, 2));
@@ -1845,7 +1890,9 @@ app.post('/api/bible/explain/stream', ensureAuthenticated, async (req, res) => {
     // 發送初始連接確認
     res.write('data: {"type": "connected"}\n\n');
 
-    const zhPrompt = `請嚴格僅根據資料庫內容作答。針對「${ref}」，請在本卷向量庫中「全面檢索所有涉及此段經文的作者」，不可省略任何作者，逐一輸出。
+    const zhPrompt = `請嚴格僅根據資料庫內容作答。針對「${bookEn} ${ref}」，請專門搜尋「${bookEn}」書卷相關的註釋資料，「全面檢索所有涉及此段經文的作者」，不可省略任何作者，逐一輸出。
+
+【重要】請確保引用資料來源並產生完整的 file_citation 標註。
 
 輸出格式（嚴格遵守）：
 - 第一行（標題）：**作者名稱（年代）**
@@ -1854,13 +1901,16 @@ app.post('/api/bible/explain/stream', ensureAuthenticated, async (req, res) => {
 - 不要在文末輸出任何「資料來源」清單（來源由系統處理）
 
 其他要求：
-- 只根據向量庫內容作答；若無資料，請明確輸出「找不到相關資料」。
+- 只根據「${bookEn}」相關的向量庫內容作答；若無資料，請明確輸出「找不到相關資料」。
 - 作者名稱請以原文輸出，系統將負責依介面語言轉換。
+- 確保所有引用都附帶完整的檔案引用標註。
 
 以下為選取經文僅用於定位語境（不可作為回答來源）：
 ${passageText ? '---\n' + passageText + '\n---' : ''}`;
 
-    const enPrompt = `Answer strictly from the provided vector store only. For "${ref}", perform an exhaustive retrieval of ALL authors in this book who comment on the passage (do not omit any author) and output each one.
+    const enPrompt = `Answer strictly from the provided vector store only. For "${bookEn} ${ref}", specifically search for "${bookEn}" book commentary data, perform an exhaustive retrieval of ALL authors in this book who comment on the passage (do not omit any author) and output each one.
+
+【IMPORTANT】Please ensure you cite sources and generate complete file_citation annotations.
 
 Output format (follow exactly):
 - First line (title): **Author Name (Years)**
@@ -1869,8 +1919,9 @@ Output format (follow exactly):
 - Do NOT output any sources list at the end (sources will be handled by the system)
 
 Other rules:
-- Answer only from the vector store; if nothing is found, say so explicitly.
+- Answer only from "${bookEn}" related vector store content; if nothing is found, say so explicitly.
 - Keep author names in original language; the system will localize them.
+- Ensure all quotes include complete file citation annotations.
 
 Passage is provided only to locate context (do not use it as a source of facts):
 ${passageText ? '---\n' + passageText + '\n---' : ''}`;
