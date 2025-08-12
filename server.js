@@ -1747,7 +1747,9 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           }
           
           // 使用穩定的引用處理邏輯（與首頁搜尋一致）
+          console.log(`🔍 聖經註釋原始註解數量: ${annotations.length}`);
           const { processedText, sourceMap } = await processAnnotationsInText(finalAnswer, annotations, language);
+          console.log(`🔍 processAnnotationsInText 返回的 sourceMap 大小: ${sourceMap.size}`);
           
           const finalSources = Array.from(sourceMap.entries()).map(([index, source]) => ({
             index,
@@ -1757,6 +1759,7 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           }));
           
           console.log(`✅ 聖經註釋引用處理完成，最終來源數量: ${finalSources.length}`);
+          console.log(`🔍 最終來源詳細內容:`, JSON.stringify(finalSources, null, 2));
           
           // 發送來源後再發送文本
           res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
