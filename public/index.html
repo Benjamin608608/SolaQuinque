@@ -1996,6 +1996,7 @@
                 }
             });
             
+            try { localStorage.setItem('preferredLanguage', lang); } catch {}
             // 更新頁面文字
             updatePageLanguage(lang);
         }
@@ -2201,6 +2202,21 @@
             }
             setFooterVisibility();
         }
+
+        // 初始化語言（從 localStorage 讀取）
+        (function initLanguageFromStorage() {
+            try {
+                const saved = localStorage.getItem('preferredLanguage');
+                if (saved === 'en' || saved === 'zh') {
+                    window.currentLanguage = saved;
+                    // 同步按鈕狀態與文案
+                    switchLanguage(saved);
+                    return;
+                }
+            } catch {}
+            // 若無紀錄，維持預設 zh
+            window.currentLanguage = window.currentLanguage || 'zh';
+        })();
 
         // 添加導航處理器
         function addNavigationHandlers() {
