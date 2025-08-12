@@ -1626,40 +1626,12 @@
                 formatted = '<p>' + formatted + '</p>';
             }
             
-            // 處理引用標註
-            const allSources = sources || [];
-            let citationCounter = 1;
-            
-            // 先收集所有的 OpenAI 引用並替換為臨時標記
-            const openAICitations = [];
-            formatted = formatted.replace(/【(\d+:\d+)†([^】]*)】/g, (match, reference, sourceInfo) => {
-                const placeholder = `__CITATION_${citationCounter}__`;
-                openAICitations.push({ counter: citationCounter, reference, sourceInfo });
-                citationCounter++;
-                return placeholder;
-            });
-            
-            // 將 OpenAI 引用的臨時標記替換為實際的引用標註
-            openAICitations.forEach(({ counter, reference, sourceInfo }) => {
-                const sourceIndex = counter - 1;
-                let sourceText = '引用來源';
-                
-                if (allSources[sourceIndex]) {
-                    const source = allSources[sourceIndex];
-                    if (typeof source === 'string') {
-                        sourceText = source;
-                    } else if (source && source.fileName) {
-                        sourceText = source.fileName;
-                    }
-                }
-                
-                const citationHtml = `<span class="citation" data-citation="${counter}" title="${sourceText}" style="display: inline; margin: 0;">${counter}</span>`;
-                formatted = formatted.replace(`__CITATION_${counter}__`, citationHtml);
-            });
+            // 清理 OpenAI 格式的引用標註（移除而不處理）
+            formatted = formatted.replace(/【\d+:\d+†[^】]*】/g, '');
             
             // 處理標準引用標註 [1], [2] 等
-            if (allSources.length > 0) {
-                allSources.forEach((source, index) => {
+            if (sources && sources.length > 0) {
+                sources.forEach((source, index) => {
                     const citationNumber = index + 1;
                     const citationRegex = new RegExp(`\\[${citationNumber}\\]`, 'g');
                     
