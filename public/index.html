@@ -186,16 +186,17 @@
         
         .message.user .message-content {
             background: linear-gradient(135deg, var(--primary), #5D4037);
-            color: white;
+            color: #FFFFFF;
             border: 2px solid var(--gold-leaf);
-            box-shadow: 0 4px 15px rgba(109, 76, 65, 0.3);
+            box-shadow: 0 6px 18px rgba(109, 76, 65, 0.35);
         }
         
         .message.assistant .message-content {
-            background: linear-gradient(135deg, var(--secondary), #E8E8E8);
+            /* 高可讀性：取消漸層，改為高對比淺底 */
+            background: #FFFFFF;
             color: var(--text-primary);
-            border: 2px solid var(--accent);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
             line-height: 1.8;
             text-align: justify;
         }
@@ -203,6 +204,16 @@
         .message.assistant .message-content p {
             margin-bottom: 1rem;
             text-indent: 2em;
+        }
+
+        /* 深色模式下自動調整卡片底色/邊框對比 */
+        @media (prefers-color-scheme: dark) {
+            .message.assistant .message-content {
+                background: #121212;
+                color: #F2F2F2;
+                border-color: rgba(255,255,255,0.12);
+                box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            }
         }
         
         .message.assistant .message-content p:last-child {
