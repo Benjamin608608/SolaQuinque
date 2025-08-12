@@ -2259,9 +2259,20 @@
                 }).catch(console.error);
             } else if (window.currentPage === 'bibleChapter' && window.currentBibleSelection) {
                 // 處理聖經章節頁面的語言切換
-                const sel = window.currentBibleSelection;
-                if (sel && sel.bookId && sel.chapter) {
-                    showBibleChapterPage(sel.bookId, sel.chapter).catch(console.error);
+                // 增加額外檢查：確保當前確實在章節頁面而不是書卷列表頁面
+                const bibleChapterTitle = document.querySelector('.bible-chapter-title');
+                const bookGrid = document.getElementById('bookGrid');
+                
+                // 只有當確實在章節內容頁面時才重新載入章節
+                if (bibleChapterTitle && !bookGrid) {
+                    const sel = window.currentBibleSelection;
+                    if (sel && sel.bookId && sel.chapter) {
+                        showBibleChapterPage(sel.bookId, sel.chapter).catch(console.error);
+                    }
+                } else {
+                    // 如果實際在書卷列表頁面，糾正頁面狀態
+                    window.currentPage = 'bible';
+                    console.log('糾正頁面狀態：從 bibleChapter 改為 bible');
                 }
             } else if (window.currentPage === 'bibleExplain' && window.currentBibleSelection) {
                 const s = window.currentBibleSelection;
