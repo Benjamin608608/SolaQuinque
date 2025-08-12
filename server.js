@@ -1798,14 +1798,13 @@ app.post('/api/bible/explain/stream', ensureAuthenticated, async (req, res) => {
     const zhPrompt = `請嚴格僅根據資料庫內容作答。針對「${ref}」，請在本卷向量庫中「全面檢索所有涉及此段經文的作者」，不要省略任何一位作者。必須展示該經卷資料庫中所有對此段經文有註釋的作者資料。
 
 對每位作者，請按以下格式呈現：
-1. 標題部分：**作者名稱（年代，著作名稱）** - 作者名稱、年代和著作名稱必須加粗顯示
+1. 標題部分：**作者名稱（年代）** - 只顯示「作者名稱（年代）」，不要出現著作名稱或其他資訊；作者名稱須依照介面語言做對應翻譯
 2. 內文部分：用一段完整的敘述方式詳盡說明這位神學家對這段經文的解釋和觀點，包含其詮釋角度、論據、神學立場等，不得使用條列式或數字清單
 
 要求：
-- 標題部分格式：作者名稱（年代和著作名稱）須加粗
+- 標題僅包含作者與年代並加粗
 - 內文必須是敘述性段落，不可用條列
 - 必須包含資料庫中所有對此經文有註釋的作者
-- 著作名稱請保持原文
 
 若無資料，請直接說明找不到相關資料。
 
@@ -1815,14 +1814,13 @@ ${passageText ? '---\n' + passageText + '\n---' : ''}`;
     const enPrompt = `Answer strictly from the provided vector store only. For "${ref}", perform an exhaustive retrieval of ALL authors in this book who comment on the passage (do not omit any author). Must display all author data from this book's database that have commentary on this passage.
 
 For each author, please present in the following format:
-1. Title section: **Author Name (Year, Work Title)** - Author name, year, and work title must be in bold
+1. Title section: **Author Name (Years)** - Only show "Author Name (Years)"; do NOT include work titles or any other information
 2. Content section: Provide one complete narrative paragraph explaining this theologian's interpretation of this passage, including their interpretive approach, arguments, theological position, etc. No bullet points or numbered lists.
 
 Requirements:
-- Title format: Author name (year and work title) must be bold
+- Title must contain only author and years, in bold
 - Content must be narrative paragraphs, not lists
 - Must include ALL authors from the database who comment on this passage
-- Keep work titles in original language
 
 If nothing is found, state it directly.
 
