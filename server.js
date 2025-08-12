@@ -64,6 +64,8 @@ const openai = new OpenAI({
 const PREFERRED_ASSISTANT_MODEL = process.env.OPENAI_ASSISTANT_MODEL || process.env.OPENAI_MODEL || 'gpt-5';
 
 // 簡易 LRU/TTL 快取：聖經經文解釋 & 每卷向量庫 ID
+// 需求：經文解釋不使用快取 → 直接關閉即可
+const DISABLE_BIBLE_EXPLAIN_CACHE = true;
 const bibleExplainCache = new Map(); // key => { data, ts }
 const BIBLE_EXPLAIN_TTL_MS = 1000 * 60 * 30; // 30 分鐘
 
@@ -71,6 +73,7 @@ const vectorStoreIdCache = new Map(); // name(lowercased) => { id, ts }
 const VECTOR_STORE_ID_TTL_MS = 1000 * 60 * 60 * 6; // 6 小時
 
 function getBibleExplainCached(key) {
+  if (DISABLE_BIBLE_EXPLAIN_CACHE) return null;
   const item = bibleExplainCache.get(key);
   if (!item) return null;
   if (Date.now() - item.ts > BIBLE_EXPLAIN_TTL_MS) {
@@ -81,6 +84,7 @@ function getBibleExplainCached(key) {
 }
 
 function setBibleExplainCached(key, data) {
+  if (DISABLE_BIBLE_EXPLAIN_CACHE) return;
   bibleExplainCache.set(key, { data, ts: Date.now() });
 }
 
@@ -1828,15 +1832,7 @@ ${passageText ? '---\n' + passageText + '\n---' : ''}`;
     const q = (language === 'en' ? enPrompt : zhPrompt) + (translation ? `\n（版本：${translation}）` : '');
 
     const cacheKey = `${targetName}|${ref}|${translation || ''}|${language}|${passageText ? 'withPassage' : ''}`.toLowerCase();
-    const cached = getBibleExplainCached(cacheKey);
-    if (cached) {
-      // 即使是快取結果，也要透過串流方式發送
-      res.write(`data: {"type": "content", "data": ${JSON.stringify(cached.answer)}}\n\n`);
-      res.write(`data: {"type": "sources", "data": ${JSON.stringify(cached.sources || [])}}\n\n`);
-      res.write('data: {"type": "done"}\n\n');
-      res.end();
-      return;
-    }
+    // 不使用快取：每次重新生成
 
     // 使用串流處理
     await processBibleExplainRequestStream(q, vsId, req.user, language, res, cacheKey);
