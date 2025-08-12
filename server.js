@@ -1020,12 +1020,15 @@ async function processSearchRequestStream(question, user, language, res) {
             if (message.content && message.content.length > 0) {
                 // 處理來源信息
                 const annotations = message.content[0].text?.annotations || [];
-                sources = annotations.map(annotation => {
-                    if (annotation.type === 'file_citation') {
-                        return annotation.text || '';
-                    }
-                    return '';
-                }).filter(Boolean);
+                const { processedText, sourceMap } = await processAnnotationsInText(fullAnswer, annotations, language);
+                fullAnswer = processedText; // 更新處理後的文本
+                
+                sources = Array.from(sourceMap.entries()).map(([index, source]) => ({
+                    index,
+                    fileName: source.fileName,
+                    quote: source.quote && source.quote.length > 120 ? source.quote.substring(0, 120) + '...' : source.quote,
+                    fileId: source.fileId
+                }));
             }
         });
 
@@ -1033,6 +1036,9 @@ async function processSearchRequestStream(question, user, language, res) {
             try {
                 // 發送來源信息
                 res.write(`data: {"type": "sources", "data": ${JSON.stringify(sources)}}\n\n`);
+                
+                // 發送最終處理後的文本（用於替換前端的原始文本）
+                res.write(`data: {"type": "final", "data": ${JSON.stringify(fullAnswer)}}\n\n`);
                 
                 // 發送完成信號
                 res.write('data: {"type": "done"}\n\n');

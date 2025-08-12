@@ -1461,26 +1461,31 @@
                                     try {
                                         const data = JSON.parse(line.slice(6));
                                         
-                                        switch (data.type) {
-                                            case 'connected':
-                                                console.log('串流連接已建立');
-                                                break;
-                                                
-                                            case 'delta':
-                                                renderer.addContent(data.data);
-                                                break;
-                                                
-                                            case 'sources':
-                                                sources = data.data;
-                                                break;
-                                                
-                                            case 'done':
-                                                renderer.finalize(sources);
-                                                
-                                                // 重新綁定引用標註事件
-                                                bindCitationEvents();
-                                                resolve();
-                                                return;
+                                                                switch (data.type) {
+                            case 'connected':
+                                console.log('串流連接已建立');
+                                break;
+                                
+                            case 'delta':
+                                renderer.addContent(data.data);
+                                break;
+                                
+                            case 'sources':
+                                sources = data.data;
+                                break;
+                                
+                            case 'final':
+                                // 用處理後的最終文本替換原始文本
+                                renderer.buffer = data.data;
+                                break;
+                                
+                            case 'done':
+                                renderer.finalize(sources);
+                                
+                                // 重新綁定引用標註事件
+                                bindCitationEvents();
+                                resolve();
+                                return;
                                                 
                                             case 'error':
                                                 showError(data.error || '搜索過程中發生錯誤');
@@ -1625,9 +1630,6 @@
             if (!formatted.startsWith('<p>')) {
                 formatted = '<p>' + formatted + '</p>';
             }
-            
-            // 清理 OpenAI 格式的引用標註（移除而不處理）
-            formatted = formatted.replace(/【\d+:\d+†[^】]*】/g, '');
             
             // 處理標準引用標註 [1], [2] 等
             if (sources && sources.length > 0) {
