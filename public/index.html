@@ -2269,6 +2269,13 @@
         function showHomePage() {
             // 設置當前頁面狀態
             window.currentPage = 'home';
+            // 清除聖經頁面殘留的浮動導航/選單
+            try {
+                const nav = document.getElementById('chapterNavigationButtons');
+                if (nav) nav.remove();
+                const menu = document.getElementById('verse-action-menu');
+                if (menu) menu.remove();
+            } catch {}
             
             const main = document.getElementById('mainContent');
             if (main) {
