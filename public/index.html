@@ -1360,11 +1360,10 @@
             renderTypewriter() {
                 if (!this.renderContainer) return;
 
-                // 在串流過程中移除所有引用標註，只顯示純文字內容
+                // 在串流過程中顯示內容，但不處理引用（引用在finalize時處理）
                 let displayText = this.buffer;
                 
-                // 移除各種引用格式，避免在串流中顯示不完整的引用
-                displayText = displayText.replace(/\[\d+\]/g, '');
+                // 只移除Railway格式，保留已處理的[1][2]格式
                 displayText = displayText.replace(/【\d+:\d+†[^】]*】/g, '');
                 
                 // 處理基本的 Markdown 格式
@@ -1691,7 +1690,7 @@
 
                 // 書名強制英文：避免將含有 Bible/bible 的書名被翻譯為「聖經」
                 // 只作用於引號內或斜體/書名格式常見片段，保留大小寫
-                out = out.replace(/([“"'\(\[])([^\1\)\]“”"']*?\b[Bb]ible\b[^\1\)\]“”"']*?)([”"'\)\]])/g, (m, l, mid, r) => `${l}${mid.replace(/聖經/g, 'Bible')}${r}`);
+                out = out.replace(/(["'\(\[])([^\1\)\]"'"]*?\b[Bb]ible\b[^\1\)\]"'"]*?)(["')\]])/g, (m, l, mid, r) => `${l}${mid.replace(/聖經/g, 'Bible')}${r}`);
                 // 再保守處理：若已存在英文 Bible 被錯誤替換為中文，也還原
                 out = out.replace(/\b聖經\b\s*(\([^)]*\))?/g, 'Bible$1');
 
@@ -1710,9 +1709,9 @@
                 protect(/<cite[\s\S]*?<\/cite>/gi);
                 // 引號形式的書名
                 protect(/"[\s\S]*?"/g);
-                protect(/“[\s\S]*?”/g);
+                protect(/"'[^']*?'/g);
                 protect(/'[^']*?'/g);
-                protect(/‘[\s\S]*?’/g);
+                protect(/'[^']*?'/g);
                 protect(/「[\s\S]*?」/g);
                 protect(/『[\s\S]*?』/g);
 
@@ -3107,8 +3106,7 @@
                 // 清理答案，移除所有引用標記和AI內容
                 let cleanedAnswer = normalized;
                 
-                // 移除所有引用標記
-                cleanedAnswer = cleanedAnswer.replace(/\[\d+\]/g, '');  // 移除 [1], [2] 等標記
+                // 只移除Railway格式，保留已處理的[1][2]格式
                 cleanedAnswer = cleanedAnswer.replace(/【\d+:\d+†[^】]*】/g, '');  // 移除 OpenAI 格式標記
                 
                 // 移除AI生成的開頭和結尾
