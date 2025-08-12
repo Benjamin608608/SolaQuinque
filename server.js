@@ -1020,7 +1020,13 @@ async function processSearchRequestStream(question, user, language, res) {
             if (message.content && message.content.length > 0) {
                 // 處理來源信息
                 const annotations = message.content[0].text?.annotations || [];
+                console.log(`🔄 處理引用標註，原始文本長度: ${fullAnswer.length}, 註解數量: ${annotations.length}`);
+                
                 const { processedText, sourceMap } = await processAnnotationsInText(fullAnswer, annotations, language);
+                console.log(`✅ 引用處理完成，處理後文本長度: ${processedText.length}`);
+                console.log(`📝 處理前文本片段: ${fullAnswer.substring(0, 200)}...`);
+                console.log(`📝 處理後文本片段: ${processedText.substring(0, 200)}...`);
+                
                 fullAnswer = processedText; // 更新處理後的文本
                 
                 sources = Array.from(sourceMap.entries()).map(([index, source]) => ({
@@ -1029,6 +1035,8 @@ async function processSearchRequestStream(question, user, language, res) {
                     quote: source.quote && source.quote.length > 120 ? source.quote.substring(0, 120) + '...' : source.quote,
                     fileId: source.fileId
                 }));
+                
+                console.log(`📋 來源數量: ${sources.length}`);
             }
         });
 
