@@ -24,6 +24,7 @@
     "test-bible-sample": "node scripts/test-fetch-sample.js",
     "check-bible-versions": "node scripts/check-available-versions.js",
     "check-bolls-versions": "node scripts/check-bolls-versions.js",
+    "verify-deployment": "node scripts/verify-deployment.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
