@@ -270,9 +270,20 @@
             animation: pulse 1.5s ease-in-out infinite;
         }
 
+        .typewriter-cursor {
+            color: #3b82f6;
+            font-weight: bold;
+            animation: blink 1s infinite;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 0.8; }
             50% { opacity: 0.4; }
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
         }
 
         /* 引用標註樣式 */
@@ -1295,12 +1306,10 @@
             }
         }
 
-        // 簡單的Markdown解析器
+        // 打字機效果的Markdown渲染器
         class SmartMarkdownRenderer {
             constructor() {
                 this.buffer = '';
-                this.lastStableIndex = 0;
-                this.pendingElements = [];
                 this.throttleTimer = null;
                 this.renderContainer = null;
             }
@@ -1315,126 +1324,73 @@
             }
 
             throttledRender() {
-                // 節流：每50ms最多渲染一次
+                // 節流：每30ms最多渲染一次，提供更流暢的打字機效果
                 if (this.throttleTimer) {
                     clearTimeout(this.throttleTimer);
                 }
                 this.throttleTimer = setTimeout(() => {
-                    this.renderIncremental();
-                }, 50);
+                    this.renderTypewriter();
+                }, 30);
             }
 
-            renderIncremental() {
+            renderTypewriter() {
                 if (!this.renderContainer) return;
 
-                // 檢查是否有完整的段落（以兩個換行或句點結尾）
-                const stableParagraphs = this.extractStableParagraphs();
-                const pendingContent = this.buffer.slice(this.lastStableIndex);
-
-                let html = '';
-
-                // 渲染穩定的段落
-                stableParagraphs.forEach(paragraph => {
-                    html += this.renderParagraph(paragraph, true);
-                });
-
-                // 渲染暫掛內容
-                if (pendingContent.trim()) {
-                    html += this.renderParagraph(pendingContent, false);
-                }
-
-                this.renderContainer.innerHTML = html;
-            }
-
-            extractStableParagraphs() {
-                const text = this.buffer;
-                const stableParagraphs = [];
+                // 在串流過程中移除所有引用標註，只顯示純文字內容
+                let displayText = this.buffer;
                 
-                // 尋找完整段落（以句點+空格、兩個換行、或問號/感嘆號結尾）
-                const paragraphRegex = /([^]*?)(\.\s+|\n\s*\n|[?!]\s+)/g;
-                let match;
-                let lastIndex = this.lastStableIndex;
-
-                while ((match = paragraphRegex.exec(text.slice(this.lastStableIndex))) !== null) {
-                    const fullMatch = match[0];
-                    const content = match[1];
-                    const ending = match[2];
-                    
-                    if (content.trim()) {
-                        stableParagraphs.push(content.trim() + ending.trim());
-                        lastIndex = this.lastStableIndex + match.index + fullMatch.length;
-                    }
-                }
-
-                this.lastStableIndex = lastIndex;
-                return stableParagraphs;
-            }
-
-            renderParagraph(text, isStable) {
-                if (!text.trim()) return '';
-
-                // 處理粗體（**text**）
-                let processed = text;
+                // 移除各種引用格式，避免在串流中顯示不完整的引用
+                displayText = displayText.replace(/\[\d+\]/g, '');
+                displayText = displayText.replace(/【\d+:\d+†[^】]*】/g, '');
                 
-                if (isStable) {
-                    // 穩定段落：正常處理markdown
-                    processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                } else {
-                    // 暫掛段落：處理暫掛樣式
-                    processed = this.handlePendingStyles(processed);
-                }
-
-                // 處理code blocks
-                processed = this.handleCodeBlocks(processed, isStable);
-
-                return `<p class="${isStable ? 'stable-paragraph' : 'pending-paragraph'}">${processed}</p>`;
+                // 處理基本的 Markdown 格式
+                displayText = this.handleBasicMarkdown(displayText);
+                
+                // 將換行轉換為 <br> 以保持格式
+                displayText = displayText.replace(/\n/g, '<br>');
+                
+                // 添加打字機光標效果
+                displayText += '<span class="typewriter-cursor">|</span>';
+                
+                this.renderContainer.innerHTML = displayText;
             }
 
-            handlePendingStyles(text) {
-                // 處理已完成的粗體
+            handleBasicMarkdown(text) {
+                // 處理完整的粗體標記
                 text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                 
                 // 處理未完成的粗體（optimistic styling）
                 const openBoldRegex = /\*\*([^*]*)$/;
-                text = text.replace(openBoldRegex, '<span class="pending-strong">**$1</span>');
-                
-                return text;
-            }
-
-            handleCodeBlocks(text, isStable) {
-                if (isStable) {
-                    // 穩定段落：正常處理code blocks
-                    text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>');
-                    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-                } else {
-                    // 暫掛段落：避免破損的code blocks
-                    const openCodeBlockRegex = /```(\w*)\n([\s\S]*)$/;
-                    if (openCodeBlockRegex.test(text)) {
-                        text = text.replace(openCodeBlockRegex, '<div class="pending-code-block">```$1\n$2</div>');
-                    } else {
-                        // 處理完整的inline code
-                        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-                    }
+                if (openBoldRegex.test(text)) {
+                    text = text.replace(openBoldRegex, '<span class="pending-strong">$1</span>');
                 }
+                
+                // 處理完整的代碼塊
+                text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>');
+                
+                // 處理完整的行內代碼
+                text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+                
+                // 處理未完成的代碼塊
+                const openCodeBlockRegex = /```(\w*)\n([\s\S]*)$/;
+                if (openCodeBlockRegex.test(text)) {
+                    text = text.replace(openCodeBlockRegex, '<div class="pending-code-block">```$1<br>$2</div>');
+                }
+                
                 return text;
             }
 
             finalize(sources = []) {
-                // 最終渲染，處理所有剩餘內容
-                this.lastStableIndex = 0;
-                const finalContent = this.buffer;
+                // 最終渲染，處理所有內容並添加引用標註
+                if (!this.renderContainer) return;
                 
-                if (this.renderContainer) {
-                    // 使用現有的 formatAnswer 函數處理引用標註
-                    const formattedHtml = formatAnswer(finalContent, sources);
-                    this.renderContainer.innerHTML = formattedHtml;
-                }
+                // 使用現有的 formatAnswer 函數處理引用標註
+                const formattedHtml = formatAnswer(this.buffer, sources);
+                this.renderContainer.innerHTML = formattedHtml;
             }
 
             reset() {
                 this.buffer = '';
-                this.lastStableIndex = 0;
-                this.pendingElements = [];
                 if (this.throttleTimer) {
                     clearTimeout(this.throttleTimer);
                     this.throttleTimer = null;
