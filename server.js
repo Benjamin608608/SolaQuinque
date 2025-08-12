@@ -138,9 +138,19 @@ function extractAuthorsFromContent(content, language = 'zh') {
           const translatedName = getAuthorName(authorName, language);
           const displayName = translatedName !== authorName ? translatedName : authorName;
           
+          // 嘗試從內容中找到與作者相關的書名信息
+          const authorSection = extractAuthorSection(content, authorName);
+          const bookTitle = extractBookTitleFromSection(authorSection);
+          
+          // 構建完整的來源信息
+          let fullSourceInfo = displayName;
+          if (bookTitle) {
+            fullSourceInfo += ` - ${bookTitle}`;
+          }
+          
           sources.push({
             index: index++,
-            fileName: displayName,
+            fileName: fullSourceInfo,
             quote: '',
             fileId: `extracted_${index}`
           });
@@ -148,12 +158,60 @@ function extractAuthorsFromContent(content, language = 'zh') {
       }
     }
     
-
     return sources;
+    
   } catch (error) {
-    console.error('提取作者名稱時發生錯誤:', error);
+    console.error('提取作者信息失敗:', error.message);
     return [];
   }
+}
+
+// 新增：從內容中提取作者段落
+function extractAuthorSection(content, authorName) {
+  try {
+    const authorPattern = new RegExp(`\\*\\*${escapeRegex(authorName)}\\*\\*([\\s\\S]*?)(?=\\*\\*[^*]+\\*\\*|$)`, 'i');
+    const match = content.match(authorPattern);
+    return match ? match[1] : '';
+  } catch (error) {
+    return '';
+  }
+}
+
+// 新增：從段落中提取書名
+function extractBookTitleFromSection(section) {
+  try {
+    // 匹配常見的書名格式
+    const titlePatterns = [
+      /《([^》]+)》/g,  // 中文書名 《...》
+      /"([^"]+)"/g,     // 英文書名 "..."
+      /《([^》]+)》/g,  // 全形書名
+      /Commentary on ([^,\.]+)/gi,  // Commentary on ...
+      /on ([A-Z][a-z]+ \d+)/g      // on Matthew 5
+    ];
+    
+    for (const pattern of titlePatterns) {
+      const matches = section.match(pattern);
+      if (matches && matches[0]) {
+        // 提取第一個找到的書名
+        let title = matches[0];
+        title = title.replace(/[《》"]/g, '').trim();
+        if (title.startsWith('Commentary on ')) {
+          title = title.replace('Commentary on ', '');
+        }
+        if (title.length > 5 && title.length < 100) {  // 合理的書名長度
+          return title;
+        }
+      }
+    }
+    return '';
+  } catch (error) {
+    return '';
+  }
+}
+
+// 新增：正則表達式轉義函數
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // 解析訊息中的所有檔案引用，並解析為 { fileId, fileName, quote }
@@ -805,13 +863,20 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
         
         if (fileId && fileIdToFileMap.has(fileId)) {
           citationCounter++;
-          const citationIndex = `[${citationCounter}]`;
+          const citationIndex = citationCounter;
           
           const file = fileIdToFileMap.get(fileId);
           let fileName = file.filename || '未知來源';
           
           // 翻譯檔案名稱
           fileName = translateFileName(fileName, language);
+          
+          // 設置sourceMap
+          sourceMap.set(citationIndex, {
+            fileName,
+            quote: quote && quote.length > 120 ? quote.substring(0, 120) + '...' : quote,
+            fileId
+          });
           
           const originalText = annotation.text;
           let translatedText = originalText;
@@ -834,7 +899,7 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
                 const translatedFullName = authorTranslations[fullName];
                 const year = fullName.match(/\((\d{4}(?:[-–—]\d{4})?)\)/);
                 if (year) {
-                  const translatedWithYear = `${translatedFullName} (${year})`;
+                  const translatedWithYear = `${translatedFullName} (${year[1]})`;
                   translatedText = originalText.replace(fullName, translatedWithYear);
                 } else {
                   translatedText = originalText.replace(fullName, translatedFullName);
@@ -843,11 +908,10 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
             }
           }
           
-          // 檢查是否為 Railway 格式的註解
+          // 移除Railway格式標記，但保留翻譯後的內容
           const railwayMatch = originalText.match(/【([^】]+?)】/);
           if (railwayMatch) {
-            // Railway 格式的註解不需要翻譯，直接使用
-            translatedText = originalText;
+            translatedText = translatedText.replace(railwayMatch[0], '');
           }
           
           const replacement = `${translatedText}[${citationIndex}]`;
