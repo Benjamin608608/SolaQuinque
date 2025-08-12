@@ -1604,36 +1604,82 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
     });
 
     stream.on('messageDone', async (message) => {
+      // 在串流模式下，我們只收集基本的來源信息，詳細處理在 end 事件中進行
       if (message.content && message.content.length > 0) {
-        // 處理來源信息
         const annotations = message.content[0].text?.annotations || [];
-        const { processedText, sourceMap } = await processAnnotationsInText(fullAnswer, annotations, language);
-        fullAnswer = processedText; // 更新處理後的文本
-        
-        sources = Array.from(sourceMap.entries()).map(([index, source]) => ({
-          index,
-          fileName: source.fileName,
-          quote: source.quote && source.quote.length > 120 ? source.quote.substring(0, 120) + '...' : source.quote,
-          fileId: source.fileId
-        }));
+        sources = annotations.map(annotation => {
+          if (annotation.type === 'file_citation') {
+            return annotation.text || '';
+          }
+          return '';
+        }).filter(Boolean);
       }
     });
 
     stream.on('end', async () => {
       try {
-        // 發送來源信息
-        res.write(`data: {"type": "sources", "data": ${JSON.stringify(sources)}}\n\n`);
+        // 重新獲取完整的消息以進行引用處理（非串流方式）
+        const messages = await openai.beta.threads.messages.list(thread.id);
+        const lastMessage = messages.data[0];
+        
+        if (lastMessage && lastMessage.role === 'assistant') {
+          const finalAnswer = lastMessage.content[0].text.value || '';
+          const annotations = lastMessage.content[0].text.annotations || [];
+          
+          console.log(`🔄 聖經註釋非串流方式處理引用，文本長度: ${finalAnswer.length}, 註解數量: ${annotations.length}`);
+          
+          // 驗證數據一致性
+          if (finalAnswer !== fullAnswer) {
+            console.warn(`⚠️ 聖經註釋數據不一致！`);
+            console.warn(`串流文本長度: ${fullAnswer.length}`);
+            console.warn(`重獲文本長度: ${finalAnswer.length}`);
+            console.warn(`串流文本片段: "${fullAnswer.substring(0, 100)}..."`);
+            console.warn(`重獲文本片段: "${finalAnswer.substring(0, 100)}..."`);
+            
+            // 使用重新獲取的完整文本（更可靠）
+            console.log(`✅ 使用重獲取的完整文本以確保聖經註釋引用準確性`);
+          } else {
+            console.log(`✅ 聖經註釋串流文本與重獲取文本一致`);
+          }
+          
+          // 使用非串流的方式處理引用（使用重獲取的文本確保準確性）
+          const { processedText, sourceMap } = await processAnnotationsInText(finalAnswer, annotations, language);
+          
+          const finalSources = Array.from(sourceMap.entries()).map(([index, source]) => ({
+            index,
+            fileName: source.fileName,
+            quote: source.quote && source.quote.length > 120 ? source.quote.substring(0, 120) + '...' : source.quote,
+            fileId: source.fileId
+          }));
+          
+          console.log(`✅ 聖經註釋引用處理完成，最終來源數量: ${finalSources.length}`);
+          
+          // 發送最終處理後的文本和來源
+          res.write(`data: {"type": "final", "data": ${JSON.stringify(processedText)}}\n\n`);
+          res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
+          
+          // 緩存結果使用處理後的數據
+          const result = { 
+            answer: processedText || '很抱歉，我在資料庫中找不到相關資訊來回答這個問題。', 
+            sources: finalSources 
+          };
+          setBibleExplainCached(cacheKey, result);
+          
+        } else {
+          // 如果沒有獲取到消息，使用串流的數據
+          res.write(`data: {"type": "sources", "data": ${JSON.stringify(sources)}}\n\n`);
+          res.write(`data: {"type": "final", "data": ${JSON.stringify(fullAnswer)}}\n\n`);
+          
+          const result = { 
+            answer: fullAnswer || '很抱歉，我在資料庫中找不到相關資訊來回答這個問題。', 
+            sources 
+          };
+          setBibleExplainCached(cacheKey, result);
+        }
         
         // 發送完成信號
         res.write('data: {"type": "done"}\n\n');
         res.end();
-
-        // 緩存結果
-        const result = { 
-          answer: fullAnswer || '很抱歉，我在資料庫中找不到相關資訊來回答這個問題。', 
-          sources 
-        };
-        setBibleExplainCached(cacheKey, result);
 
       } catch (error) {
         console.error('串流完成處理錯誤:', error);

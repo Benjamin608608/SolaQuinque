@@ -2905,6 +2905,12 @@
                                                     sources = data.data;
                                                     break;
                                                     
+                                                case 'final':
+                                                    // 用處理後的最終文本替換原始文本
+                                                    console.log('收到聖經註釋最終處理文本:', data.data);
+                                                    renderer.buffer = data.data;
+                                                    break;
+                                                    
                                                 case 'done':
                                                     renderer.finalize();
                                                     finalizeCommentaryContent(renderer.buffer, sources, commentaryDiv);
