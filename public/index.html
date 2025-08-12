@@ -1628,18 +1628,32 @@
             
             // 處理引用標註
             let citationCounter = 1;
+            const allSources = sources || [];
             
             // 先處理 OpenAI 特殊格式的引用標註 【4:16†source】
             formatted = formatted.replace(/【(\d+:\d+)†([^】]*)】/g, (match, reference, sourceInfo) => {
+                // 獲取對應的 source 數據
+                const sourceIndex = citationCounter - 1;
+                let sourceText = '引用來源';
+                
+                if (allSources[sourceIndex]) {
+                    const source = allSources[sourceIndex];
+                    if (typeof source === 'string') {
+                        sourceText = source;
+                    } else if (source && source.fileName) {
+                        sourceText = source.fileName;
+                    }
+                }
+                
                 // 轉換為標準的數字小標格式
-                const citationHtml = `<span class="citation" data-citation="${citationCounter}" title="${sourceInfo || '引用來源'}" style="display: inline; margin: 0;">${citationCounter}</span>`;
+                const citationHtml = `<span class="citation" data-citation="${citationCounter}" title="${sourceText}" style="display: inline; margin: 0;">${citationCounter}</span>`;
                 citationCounter++;
                 return citationHtml;
             });
             
             // 處理標準引用標註 [1], [2] 等
-            if (sources && sources.length > 0) {
-                sources.forEach((source, index) => {
+            if (allSources.length > 0) {
+                allSources.forEach((source, index) => {
                     const citationNumber = index + 1;
                     const citationRegex = new RegExp(`\\[${citationNumber}\\]`, 'g');
                     
