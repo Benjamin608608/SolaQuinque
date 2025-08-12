@@ -1041,7 +1041,21 @@ async function processSearchRequestStream(question, user, language, res) {
                     
                     console.log(`🔄 非串流方式處理引用，文本長度: ${finalAnswer.length}, 註解數量: ${annotations.length}`);
                     
-                    // 使用非串流的方式處理引用
+                    // 驗證數據一致性
+                    if (finalAnswer !== fullAnswer) {
+                        console.warn(`⚠️ 數據不一致！`);
+                        console.warn(`串流文本長度: ${fullAnswer.length}`);
+                        console.warn(`重獲文本長度: ${finalAnswer.length}`);
+                        console.warn(`串流文本片段: "${fullAnswer.substring(0, 100)}..."`);
+                        console.warn(`重獲文本片段: "${finalAnswer.substring(0, 100)}..."`);
+                        
+                        // 使用重新獲取的完整文本（更可靠）
+                        console.log(`✅ 使用重獲取的完整文本以確保引用準確性`);
+                    } else {
+                        console.log(`✅ 串流文本與重獲取文本一致`);
+                    }
+                    
+                    // 使用非串流的方式處理引用（使用重獲取的文本確保準確性）
                     const { processedText, sourceMap } = await processAnnotationsInText(finalAnswer, annotations, language);
                     
                     const finalSources = Array.from(sourceMap.entries()).map(([index, source]) => ({
