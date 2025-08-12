@@ -2241,23 +2241,8 @@
             } else if (window.currentPage === 'catalog') {
                 showCatalogPage().catch(console.error);
             } else if (window.currentPage === 'bible') {
-                const sel = window.currentBibleSelection;
-                showBiblePage().then(() => {
-                    if (sel && sel.bookId) {
-                        // 重新套用選擇：只打開書卷，不自動跳轉到章節
-                        requestAnimationFrame(() => {
-                            const bookBtn = document.querySelector(`#bookGrid button[data-id='${sel.bookId}']`);
-                            if (bookBtn) {
-                                bookBtn.click();
-                                // 移除自動章節點擊，避免語言切換時意外跳轉
-                                // setTimeout(() => {
-                                //     const chapBtn = document.querySelector(`.chapters-inline-row [data-bookid='${sel.bookId}'][data-chap='${sel.chapter}']`);
-                                //     if (chapBtn) chapBtn.click();
-                                // }, 0);
-                            }
-                        });
-                    }
-                }).catch(console.error);
+                // 語言切換時只重新載入聖經頁面，不自動恢復任何選擇狀態
+                showBiblePage().catch(console.error);
             } else if (window.currentPage === 'bibleChapter' && window.currentBibleSelection) {
                 // 處理聖經章節頁面的語言切換
                 // 增加額外檢查：確保當前確實在章節頁面而不是書卷列表頁面
