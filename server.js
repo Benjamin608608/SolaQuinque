@@ -39,17 +39,27 @@ async function loadAuthorTranslations() {
     }
 }
 
+// 翻譯檔案名稱
+function translateFileName(fileName, language = 'zh') {
+  if (!fileName || language !== 'zh') return fileName;
+  
+  // 簡化版本：基本翻譯
+  return fileName
+    .replace(/Commentary/gi, '註釋')
+    .replace(/Sermons/gi, '講道集')
+    .replace(/Letters/gi, '書信集')
+    .replace(/Works/gi, '作品集');
+}
+
 // 獲取作者名稱（根據語言）
 function getAuthorName(englishName, language = 'zh') {
   if (!englishName) return '';
   
-  if (language === 'zh' && authorTranslations && authorTranslations.authors && authorTranslations.authors[englishName]) {
-    return authorTranslations.authors[englishName];
+  if (language === 'zh' && authorTranslations && authorTranslations[englishName]) {
+    return authorTranslations[englishName];
   }
   return englishName;
 }
-
-
 
 // 讓 express-session 支援 proxy (如 Railway/Heroku/Render)
 app.set('trust proxy', 1);
@@ -722,103 +732,9 @@ async function getFileName(fileId, language = 'zh') {
     let fileName = file.filename || `檔案-${fileId.substring(0, 8)}`;
     fileName = fileName.replace(/\.(txt|pdf|docx?|rtf|md)$/i, '');
     
-    console.log(`🔍 原始文件名: "${fileName}"`);
+    // 簡化版本：直接翻譯檔案名稱
+    fileName = translateFileName(fileName, language);
     
-    // 嘗試從檔案名稱中提取作者名稱並翻譯
-    // 支援兩種格式：
-    // 1. 開頭格式：Herman Bavinck (1854-1921) Philosophy of Revelation
-    // 2. 方括號格式：[Charles Haddon Spurgeon (1834-1892)] Spurgeon's Sermons
-    
-    let translatedAuthorName = null;
-    
-    // 檢查方括號格式 [Author Name (Year)] 或 [Author Name]
-    const bracketMatch = fileName.match(/\[([^\]\n]+?)\]/);
-    if (bracketMatch) {
-      const bracketContent = bracketMatch[1].trim();
-      console.log(`🔍 方括號格式 - 提取到內容: "${bracketContent}"`);
-      
-      // 檢查是否包含年份格式 (Year)
-      const yearMatch = bracketContent.match(/\(([^)]+)\)/);
-      if (yearMatch) {
-        // 有年份的格式：[Author Name (Year)]
-        const englishAuthorName = bracketContent.replace(/\([^)]+\)/, '').trim();
-        console.log(`🔍 方括號格式（有年份）- 提取到作者名稱: "${englishAuthorName}"`);
-        
-        // 嘗試完整匹配（包含年份）
-        const fullNameWithYear = bracketContent;
-        let translatedAuthorName = getAuthorName(fullNameWithYear, language);
-        console.log(`🔍 方括號完整匹配: "${fullNameWithYear}" -> "${translatedAuthorName}"`);
-        
-        // 如果完整匹配沒有翻譯，嘗試只匹配作者名（不含年份）
-        if (!translatedAuthorName || translatedAuthorName === fullNameWithYear) {
-          translatedAuthorName = getAuthorName(englishAuthorName, language);
-          console.log(`🔍 方括號部分匹配: "${englishAuthorName}" -> "${translatedAuthorName}"`);
-        }
-        
-        // 如果找到了翻譯，替換檔案名稱
-        if (translatedAuthorName && translatedAuthorName !== englishAuthorName) {
-          // 替換方括號內的作者名稱，保持年份
-          const year = yearMatch[1];
-          const originalBracket = `[${bracketContent}]`;
-          const translatedBracket = `[${translatedAuthorName} (${year})]`;
-          fileName = fileName.replace(originalBracket, translatedBracket);
-          console.log(`✅ 方括號翻譯成功: "${originalBracket}" -> "${translatedBracket}"`);
-        }
-      } else {
-        // 沒有年份的格式：[Author Name]
-        const englishAuthorName = bracketContent;
-        console.log(`🔍 方括號格式（無年份）- 提取到作者名稱: "${englishAuthorName}"`);
-        
-        const translatedAuthorName = getAuthorName(englishAuthorName, language);
-        console.log(`🔍 方括號無年份匹配: "${englishAuthorName}" -> "${translatedAuthorName}"`);
-        
-        // 如果找到了翻譯，替換檔案名稱
-        if (translatedAuthorName && translatedAuthorName !== englishAuthorName) {
-          const originalBracket = `[${englishAuthorName}]`;
-          const translatedBracket = `[${translatedAuthorName}]`;
-          fileName = fileName.replace(originalBracket, translatedBracket);
-          console.log(`✅ 方括號翻譯成功: "${originalBracket}" -> "${translatedBracket}"`);
-        }
-      }
-    } else {
-      // 檢查開頭格式 Author Name (Year)
-      const authorMatch = fileName.match(/^([^(]+?)\s*\(/);
-      if (authorMatch) {
-        const englishAuthorName = authorMatch[1].trim();
-        console.log(`🔍 開頭格式 - 提取到作者名稱: "${englishAuthorName}"`);
-        
-        // 嘗試完整匹配（包含年份）
-        const fullNameWithYear = fileName.match(/^([^(]+?\([^)]+\))/);
-        if (fullNameWithYear) {
-          translatedAuthorName = getAuthorName(fullNameWithYear[1], language);
-          console.log(`🔍 開頭完整匹配: "${fullNameWithYear[1]}" -> "${translatedAuthorName}"`);
-        }
-        
-        // 如果沒有找到，嘗試只匹配作者名（不含年份）
-        if (!translatedAuthorName || translatedAuthorName === fullNameWithYear[1]) {
-          translatedAuthorName = getAuthorName(englishAuthorName, language);
-          console.log(`🔍 開頭部分匹配: "${englishAuthorName}" -> "${translatedAuthorName}"`);
-        }
-        
-        // 如果找到了翻譯，替換檔案名稱
-        if (translatedAuthorName && translatedAuthorName !== englishAuthorName) {
-          // 替換作者名部分（保持年份不變）
-          fileName = fileName.replace(englishAuthorName, translatedAuthorName);
-          console.log(`✅ 開頭格式翻譯成功: "${englishAuthorName}" -> "${translatedAuthorName}"`);
-        } else if (fullNameWithYear) {
-          // 如果完整匹配有翻譯，使用完整匹配的翻譯
-          const fullName = fullNameWithYear[1];
-          const translatedFullName = getAuthorName(fullName, language);
-          if (translatedFullName && translatedFullName !== fullName) {
-            // 替換整個完整名稱
-            fileName = fileName.replace(fullName, translatedFullName);
-            console.log(`✅ 開頭完整翻譯成功: "${fullName}" -> "${translatedFullName}"`);
-          }
-        }
-      }
-    }
-    
-    console.log(`📄 最終文件名: "${fileName}"`);
     return fileName;
   } catch (error) {
     console.warn(`無法獲取檔案名稱 ${fileId}:`, error.message);
@@ -830,94 +746,86 @@ async function getFileName(fileId, language = 'zh') {
 async function processAnnotationsInText(text, annotations, language = 'zh') {
   let processedText = text;
   const sourceMap = new Map();
-  let citationCounter = 1; // 修復：從1開始而不是0
-
-  // 即使沒有annotations，也要檢查和處理Railway格式的引用
-  if (!annotations || annotations.length === 0) {
-    // 檢查是否有Railway格式的引用需要處理
-    const railwayMatches = text.match(/【[^】]*†[^】]*】/g);
-    if (railwayMatches) {
-      for (const match of railwayMatches) {
-        const replacement = `[${citationCounter}]`;
-        processedText = processedText.replace(match, replacement);
+  const usedSources = new Map();
+  let citationCounter = 1;
+  
+  if (annotations && annotations.length > 0) {
+    // 並行預處理所有檔案名稱
+    const fileProcessingPromises = [];
+    const annotationMap = new Map();
+    
+    for (const annotation of annotations) {
+      if (annotation.type === 'file_citation' && annotation.file_citation) {
+        const fileId = annotation.file_citation.file_id;
+        const quote = annotation.file_citation.quote || '';
         
-        // 為Railway格式創建一個基本的source entry
-        sourceMap.set(citationCounter, {
-          fileName: '來源',
-          quote: '',
-          fileId: `railway_${citationCounter}`
-        });
-        
-        citationCounter++;
+        // 並行處理檔案名稱
+        const fileNamePromise = getFileName(fileId, language);
+        fileProcessingPromises.push(fileNamePromise);
+        annotationMap.set(annotation, { fileId, quote, fileNamePromise });
       }
     }
-    return { processedText, sourceMap };
-  }
-
-  try {
-    // 建立檔案ID到檔案物件的對應
-    const fileIdToFileMap = new Map();
-
+    
+    // 等待所有檔案名稱處理完成
+    const fileNames = await Promise.all(fileProcessingPromises);
+    let fileNameIndex = 0;
+    
     for (const annotation of annotations) {
-      if (annotation.type === 'file_citation') {
-        const fileId = annotation.file_citation?.file_id;
+      if (annotation.type === 'file_citation' && annotation.file_citation) {
+        const { fileId, quote } = annotationMap.get(annotation);
+        const fileName = fileNames[fileNameIndex++];
         
-        if (fileId && !fileIdToFileMap.has(fileId)) {
-          try {
-            const file = await openai.files.retrieve(fileId);
-            fileIdToFileMap.set(fileId, file);
-          } catch (fileError) {
-            console.warn(`⚠️ 無法檢索檔案 ${fileId}:`, fileError.message);
-          }
-        }
-      }
-    }
-
-    // 處理引用
-    for (const annotation of annotations) {
-      if (annotation.type === 'file_citation') {
-        const fileId = annotation.file_citation?.file_id;
-        const quote = annotation.file_citation?.quote || '';
-        
-        if (fileId && fileIdToFileMap.has(fileId)) {
-          citationCounter++;
-          const citationIndex = citationCounter;
-          
-          const file = fileIdToFileMap.get(fileId);
-          let fileName = file.filename || '未知來源';
-          
-          // 翻譯檔案名稱
-          fileName = translateFileName(fileName, language);
-          
-          // 設置sourceMap
+        let citationIndex;
+        if (usedSources.has(fileId)) {
+          citationIndex = usedSources.get(fileId);
+        } else {
+          citationIndex = citationCounter++;
+          usedSources.set(fileId, citationIndex);
           sourceMap.set(citationIndex, {
             fileName,
-            quote: quote && quote.length > 120 ? quote.substring(0, 120) + '...' : quote,
+            quote,
             fileId
           });
-          
-          const originalText = annotation.text;
+        }
+        
+        const originalText = annotation.text;
+        
+        if (originalText) {
+          // 嘗試翻譯註解文本中的作者名稱
           let translatedText = originalText;
           
-          // 嘗試翻譯作者名稱
-          const fullAuthorMatch = originalText.match(/([A-Z][a-zA-Z\s\.'-]{2,40}?)\s*(\(\d{4}(?:[-–—]\d{4})?\))?/);
-          const fullNameWithYear = originalText.match(/([A-Z][a-zA-Z\s\.'-]{2,40}?\s*\(\d{4}(?:[-–—]\d{4})?\))/);
-          
-          if (fullAuthorMatch) {
-            const fullAuthorName = fullAuthorMatch[1].trim();
-            const yearPart = fullAuthorMatch[2] || '';
+          // 檢查是否包含作者名稱格式 [Author Name (Year)]
+          const authorMatch = originalText.match(/\[([^(]+?)\s*\([^)]+\)\]/);
+          if (authorMatch) {
+            const fullAuthorName = authorMatch[1].trim();
             
-            if (language === 'zh' && authorTranslations && authorTranslations[fullAuthorName]) {
-              const translatedAuthorName = authorTranslations[fullAuthorName];
+            // 嘗試多種匹配方式來找到翻譯
+            let translatedAuthorName = null;
+            
+            // 1. 嘗試完整匹配（包含年份）
+            const fullNameWithYear = originalText.match(/\[([^(]+?\([^)]+\))\]/);
+            if (fullNameWithYear) {
+              translatedAuthorName = getAuthorName(fullNameWithYear[1], language);
+            }
+            
+            // 2. 如果沒有找到，嘗試只匹配作者名（不含年份）
+            if (!translatedAuthorName || translatedAuthorName === fullNameWithYear[1]) {
+              translatedAuthorName = getAuthorName(fullAuthorName, language);
+            }
+            
+            if (translatedAuthorName && translatedAuthorName !== fullAuthorName) {
+              // 替換作者名稱，保持年份和格式
               translatedText = originalText.replace(fullAuthorName, translatedAuthorName);
             } else if (fullNameWithYear) {
               // 如果完整匹配有翻譯，使用完整匹配的翻譯
               const fullName = fullNameWithYear[1];
-              if (language === 'zh' && authorTranslations && authorTranslations[fullName]) {
-                const translatedFullName = authorTranslations[fullName];
-                const year = fullName.match(/\((\d{4}(?:[-–—]\d{4})?)\)/);
-                if (year) {
-                  const translatedWithYear = `${translatedFullName} (${year[1]})`;
+              const translatedFullName = getAuthorName(fullName, language);
+              if (translatedFullName && translatedFullName !== fullName) {
+                // 替換整個完整名稱，但保持年份格式
+                const yearMatch = fullName.match(/\(([^)]+)\)/);
+                if (yearMatch) {
+                  const year = yearMatch[1];
+                  const translatedWithYear = `${translatedFullName} (${year})`;
                   translatedText = originalText.replace(fullName, translatedWithYear);
                 } else {
                   translatedText = originalText.replace(fullName, translatedFullName);
@@ -926,10 +834,11 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
             }
           }
           
-          // 移除Railway格式標記，但保留翻譯後的內容
+          // 檢查 Railway 格式的註解 【4:7†source】
           const railwayMatch = originalText.match(/【([^】]+?)】/);
           if (railwayMatch) {
-            translatedText = translatedText.replace(railwayMatch[0], '');
+            // Railway 格式的註解不需要翻譯，直接使用
+            translatedText = originalText;
           }
           
           const replacement = `${translatedText}[${citationIndex}]`;
@@ -938,12 +847,31 @@ async function processAnnotationsInText(text, annotations, language = 'zh') {
       }
     }
     
-    return { processedText, sourceMap };
-    
-  } catch (error) {
-    console.error('❌ 處理引用失敗:', error.message);
-    return { processedText, sourceMap };
+    // 清理格式問題並改善排版
+    processedText = processedText
+      .replace(/【[^】]*】/g, '')
+      .replace(/†[^†\s]*†?/g, '')
+      .replace(/,\s*\n/g, '\n')
+      .replace(/,\s*$/, '')
+      .replace(/\n\s*,/g, '\n')
+      .replace(/(\[\d+\])(\[\d+\])*\1+/g, '$1$2')
+      .replace(/(\[\d+\])+/g, (match) => {
+        const citations = match.match(/\[\d+\]/g);
+        const uniqueCitations = [...new Set(citations)];
+        return uniqueCitations.join('');
+      })
+      .replace(/(\d+)\.\s*([^：。！？\n]+[：])/g, '\n\n**$1. $2**\n')
+      .replace(/([。！？])\s+(\d+\.)/g, '$1\n\n**$2')
+      .replace(/([。！？])\s*([A-Za-z][^。！？]*：)/g, '$1\n\n**$2**\n')
+      .replace(/\*\s*([^*\n]+)\s*：\s*\*/g, '**$1：**')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/^\s+|\s+$/g, '')
+      .replace(/([。！？])(?=\s*(?!\*\*\d+\.)[^\n])/g, '$1\n\n')
+      .trim();
   }
+  
+  return { processedText, sourceMap };
 }
 
 // 創建來源列表的函數
