@@ -97,6 +97,46 @@ async function getVectorStoreIdCachedByName(name) {
   return result;
 }
 
+// 解析訊息中的所有檔案引用，並解析為 { fileId, fileName, quote }
+async function resolveMessageFileCitations(message) {
+  try {
+    if (!message || !Array.isArray(message.content)) return [];
+    const annotations = [];
+    for (const part of message.content) {
+      const anns = part?.text?.annotations || [];
+      for (const a of anns) {
+        if (a?.type === 'file_citation') annotations.push(a);
+      }
+    }
+    if (annotations.length === 0) return [];
+
+    // 依 file_id 去重
+    const idToQuote = new Map();
+    for (const a of annotations) {
+      const id = a?.file_citation?.file_id || a?.file_id || a?.id || a?.text || '';
+      if (!id) continue;
+      // 優先保留第一段 quote（避免過長）
+      if (!idToQuote.has(id)) {
+        const quote = (a?.quote || a?.text || '').toString();
+        idToQuote.set(id, quote);
+      }
+    }
+
+    const results = [];
+    for (const [fid, quote] of idToQuote.entries()) {
+      try {
+        const f = await openai.files.retrieve(fid);
+        results.push({ fileId: fid, fileName: f?.filename || '', quote: quote });
+      } catch {
+        results.push({ fileId: fid, fileName: '', quote: quote });
+      }
+    }
+    return results;
+  } catch {
+    return [];
+  }
+}
+
 // 你的向量資料庫 ID
 const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID || 'vs_6886f711eda0819189b6c017d6b96d23';
 
@@ -1684,7 +1724,8 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
         
         if (lastMessage && lastMessage.role === 'assistant') {
           const finalAnswer = lastMessage.content[0].text.value || '';
-          const annotations = lastMessage.content[0].text.annotations || [];
+          // 以訊息中的 annotations 解析來源，避免串流時遺失
+          const resolved = await resolveMessageFileCitations(lastMessage);
           
           console.log(`🔄 聖經註釋非串流方式處理引用，文本長度: ${finalAnswer.length}, 註解數量: ${annotations.length}`);
           
@@ -1703,13 +1744,13 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           }
           
           // 使用非串流的方式處理引用（使用重獲取的文本確保準確性）
-          const { processedText, sourceMap } = await processAnnotationsInText(finalAnswer, annotations, language);
-          
-          const finalSources = Array.from(sourceMap.entries()).map(([index, source]) => ({
-            index,
-            fileName: source.fileName,
-            quote: source.quote && source.quote.length > 120 ? source.quote.substring(0, 120) + '...' : source.quote,
-            fileId: source.fileId
+          // 用已解析的引用清單作為最終來源
+          const { processedText, sourceMap } = await processAnnotationsInText(finalAnswer, [], language);
+          const finalSources = resolved.map((s, idx) => ({
+            index: idx + 1,
+            fileName: s.fileName,
+            quote: s.quote && s.quote.length > 120 ? s.quote.substring(0, 120) + '...' : s.quote,
+            fileId: s.fileId
           }));
           
           console.log(`✅ 聖經註釋引用處理完成，最終來源數量: ${finalSources.length}`);
