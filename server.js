@@ -1714,9 +1714,9 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           
           console.log(`✅ 聖經註釋引用處理完成，最終來源數量: ${finalSources.length}`);
           
-          // 發送最終處理後的文本和來源
-          res.write(`data: {"type": "final", "data": ${JSON.stringify(processedText)}}\n\n`);
+          // 發送來源後再發送文本，避免前端在 done 前拿不到 sources
           res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
+          res.write(`data: {"type": "final", "data": ${JSON.stringify(processedText)}}\n\n`);
           
           // 緩存結果使用處理後的數據
           const result = { 
