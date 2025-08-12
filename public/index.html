@@ -3094,6 +3094,7 @@
                 // 生成來源列表（完整列出）
                 let sourcesList = '';
                 if (sources && sources.length > 0) {
+                    console.log('正在生成來源列表，來源數量:', sources.length, '詳細內容:', sources);
                     sourcesList = `
                         <div class="sources-section mt-8 pt-6 border-t border-gray-200">
                             <h4 class="text-lg font-semibold mb-4 text-gray-700">📚 資料來源</h4>
@@ -3107,11 +3108,14 @@
                                     } else {
                                         sourceText = '未知來源';
                                     }
+                                    console.log(`來源 ${index + 1}:`, sourceText);
                                     return `<li class="text-sm text-gray-600 leading-relaxed">${sourceText}</li>`;
                                 }).join('')}
                             </ol>
                         </div>
                     `;
+                } else {
+                    console.log('沒有來源資料可顯示');
                 }
                 
                 commentaryDiv.innerHTML = `
