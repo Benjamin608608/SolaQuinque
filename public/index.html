@@ -2920,6 +2920,7 @@
                         function processStream() {
                             return reader.read().then(({ done, value }) => {
                                 if (done) {
+                                    console.log('聖經註釋串流結束，最終來源數量:', sources ? sources.length : 0);
                                     renderer.finalize();
                                     finalizeCommentaryContent(renderer.buffer, sources, commentaryDiv);
                                     resolve();
@@ -2946,6 +2947,7 @@
                                                     
                                                 case 'sources':
                                                     sources = data.data;
+                                                    console.log('收到聖經註釋來源資料:', sources);
                                                     break;
                                                     
                                                 case 'final':
@@ -2955,6 +2957,7 @@
                                                     break;
                                                     
                                                 case 'done':
+                                                    console.log('聖經註釋處理完成，最終來源數量:', sources ? sources.length : 0);
                                                     renderer.finalize();
                                                     finalizeCommentaryContent(renderer.buffer, sources, commentaryDiv);
                                                     resolve();
@@ -3019,6 +3022,7 @@
 
             // 完成註釋內容的最終處理
             function finalizeCommentaryContent(answer, sources, commentaryDiv) {
+                console.log('finalizeCommentaryContent 被調用，來源數量:', sources ? sources.length : 0, '來源內容:', sources);
                 if (!answer || answer.includes('找不到相關資料') || answer.includes('nothing is found')) {
                     commentaryDiv.innerHTML = `
                         <div class="text-gray-500 text-center py-4">
