@@ -1236,8 +1236,8 @@ async function processSearchRequestStream(question, user, language, res) {
                     }));
                     
                     // 發送最終處理後的文本和來源
-                    res.write(`data: {"type": "sources", "sources": ${JSON.stringify(finalSources)}}\n\n`);
-                    res.write(`data: {"type": "processed_text", "text": ${JSON.stringify(processedText)}}\n\n`);
+                    res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
+                    res.write(`data: {"type": "final", "data": ${JSON.stringify(processedText)}}\n\n`);
                 }
                 
                 res.write('data: {"type": "done"}\n\n');
@@ -1799,7 +1799,7 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           res.write(`data: {"type": "final", "data": ${JSON.stringify(processedText)}}\n\n`);
           
         } else {
-          // 如果沒有獲取到訊息，使用串流收集的資料
+          // 如果沒有獲取到訊息，使用串流收集的資料但也要處理引用
           const finalSources = [];
           const entries = Array.from(fileIdToQuote.entries());
           for (let i = 0; i < entries.length; i++) {
@@ -1811,8 +1811,12 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
               finalSources.push({ index: i + 1, fileName: '', quote, fileId: fid });
             }
           }
+          
+          // 對fullAnswer也進行引用處理
+          const { processedText: processedFullAnswer, sourceMap } = await processAnnotationsInText(fullAnswer, [], language);
+          
           res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
-          res.write(`data: {"type": "final", "data": ${JSON.stringify(fullAnswer)}}\n\n`);
+          res.write(`data: {"type": "final", "data": ${JSON.stringify(processedFullAnswer)}}\n\n`);
         }
         
         // 發送完成信號
