@@ -2185,7 +2185,8 @@
                     const book = allBooks.find(b => b.id === sel.bookId);
                     if (book) {
                         const bookName = lang === 'en' ? book.en : book.zh;
-                        bibleChapterTitle.textContent = `${bookName} 第${sel.chapter}章`;
+                        const chapterText = lang === 'en' ? `Chapter ${sel.chapter}` : `第${sel.chapter}章`;
+                        bibleChapterTitle.textContent = `${bookName} ${chapterText}`;
                     }
                 }
             }
@@ -2620,7 +2621,7 @@
                             
                             <!-- 章節標題 -->
                             <div class="bible-chapter-header mb-6 text-center">
-                                <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)] mb-2 bible-chapter-title">${bookName} 第${chapter}章</h2>
+                                <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)] mb-2 bible-chapter-title">${lang === 'en' ? `${bookName} Chapter ${chapter}` : `${bookName} 第${chapter}章`}</h2>
                                 <div class="w-16 h-1 bg-[var(--primary)] mx-auto rounded-full"></div>
                             </div>
                             
@@ -2628,7 +2629,7 @@
                             <div id="bibleChapterContent" class="bible-chapter-content">
                                 <div class="text-center p-8">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)] mx-auto mb-4"></div>
-                                    <p class="text-[var(--text-secondary)]">載入章節內容中...</p>
+                                    <p class="text-[var(--text-secondary)]">${lang === 'en' ? 'Loading chapter content...' : '載入章節內容中...'}</p>
                                 </div>
                             </div>
                         </div>
@@ -3600,8 +3601,12 @@
                     }
                     
                     const prevBook = allBooks.find(b => b.id === prevBookId);
-                    const prevBookName = prevBook ? prevBook.zh : '';
-                    prevButton.title = `前一章 (${prevBookName} ${prevChapter})`;
+                    const lang = window.currentLanguage || 'zh';
+                    const prevBookName = prevBook ? (lang === 'en' ? prevBook.en : prevBook.zh) : '';
+                    const prevTitle = lang === 'en' 
+                        ? `Previous Chapter (${prevBookName} ${prevChapter})`
+                        : `前一章 (${prevBookName} ${prevChapter})`;
+                    prevButton.title = prevTitle;
                     prevButton.innerHTML = `
                         <div class="btn-3d-effect">
                             <span class="material-icons-outlined">arrow_back</span>
@@ -3694,8 +3699,11 @@
                     }
                     
                     const nextBook = allBooks.find(b => b.id === nextBookId);
-                    const nextBookName = nextBook ? nextBook.zh : '';
-                    nextButton.title = `後一章 (${nextBookName} ${nextChapter})`;
+                    const nextBookName = nextBook ? (lang === 'en' ? nextBook.en : nextBook.zh) : '';
+                    const nextTitle = lang === 'en' 
+                        ? `Next Chapter (${nextBookName} ${nextChapter})`
+                        : `後一章 (${nextBookName} ${nextChapter})`;
+                    nextButton.title = nextTitle;
                     nextButton.innerHTML = `
                         <div class="btn-3d-effect">
                             <span class="material-icons-outlined">arrow_forward</span>
