@@ -1727,7 +1727,7 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           // 以訊息中的 annotations 解析來源，避免串流時遺失
           const resolved = await resolveMessageFileCitations(lastMessage);
           
-          console.log(`🔄 聖經註釋非串流方式處理引用，文本長度: ${finalAnswer.length}, 註解數量: ${annotations.length}`);
+          console.log(`🔄 聖經註釋非串流方式處理引用，文本長度: ${finalAnswer.length}, 註解數量: ${resolved.length}`);
           
           // 驗證數據一致性
           if (finalAnswer !== fullAnswer) {
