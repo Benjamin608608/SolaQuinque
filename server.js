@@ -1712,6 +1712,7 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
     });
 
     stream.on('messageDone', async (message) => {
+      // 串流收集引用，但在 end 時會重新取得完整資料確保準確性
       try {
         const anns = message?.content?.[0]?.text?.annotations || [];
         for (const a of anns) {
@@ -1727,20 +1728,57 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
 
     stream.on('end', async () => {
       try {
-        // 純串流模式：以串流收集到的 fileId -> quote 直接產生來源
-        const finalSources = [];
-        const entries = Array.from(fileIdToQuote.entries());
-        for (let i = 0; i < entries.length; i++) {
-          const [fid, quote] = entries[i];
-          try {
-            const f = await openai.files.retrieve(fid);
-            finalSources.push({ index: i + 1, fileName: cleanFileName(f?.filename || ''), quote: quote && quote.length > 120 ? quote.substring(0,120)+'...' : quote, fileId: fid });
-          } catch {
-            finalSources.push({ index: i + 1, fileName: '', quote, fileId: fid });
+        // 穩定處理：重新獲取完整訊息以確保引用完整性（參考首頁搜尋邏輯）
+        const messages = await openai.beta.threads.messages.list(thread.id);
+        const lastMessage = messages.data[0];
+        
+        if (lastMessage && lastMessage.role === 'assistant') {
+          const finalAnswer = lastMessage.content[0].text.value || '';
+          const annotations = lastMessage.content[0].text.annotations || [];
+          
+          console.log(`🔄 聖經註釋重新取得完整訊息，文本長度: ${finalAnswer.length}, 註解數量: ${annotations.length}`);
+          
+          // 驗證數據一致性
+          if (finalAnswer !== fullAnswer) {
+            console.warn(`⚠️ 聖經註釋數據不一致！使用重新獲取的完整文本`);
+            console.warn(`串流文本長度: ${fullAnswer.length}, 重獲文本長度: ${finalAnswer.length}`);
+          } else {
+            console.log(`✅ 聖經註釋串流文本與重獲取文本一致`);
           }
+          
+          // 使用穩定的引用處理邏輯（與首頁搜尋一致）
+          const { processedText, sourceMap } = await processAnnotationsInText(finalAnswer, annotations, language);
+          
+          const finalSources = Array.from(sourceMap.entries()).map(([index, source]) => ({
+            index,
+            fileName: source.fileName,
+            quote: source.quote && source.quote.length > 120 ? source.quote.substring(0, 120) + '...' : source.quote,
+            fileId: source.fileId
+          }));
+          
+          console.log(`✅ 聖經註釋引用處理完成，最終來源數量: ${finalSources.length}`);
+          
+          // 發送來源後再發送文本
+          res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
+          res.write(`data: {"type": "final", "data": ${JSON.stringify(processedText)}}\n\n`);
+          
+        } else {
+          // 如果沒有獲取到訊息，使用串流收集的資料
+          console.warn(`⚠️ 無法獲取聖經註釋完整訊息，使用串流資料`);
+          const finalSources = [];
+          const entries = Array.from(fileIdToQuote.entries());
+          for (let i = 0; i < entries.length; i++) {
+            const [fid, quote] = entries[i];
+            try {
+              const f = await openai.files.retrieve(fid);
+              finalSources.push({ index: i + 1, fileName: cleanFileName(f?.filename || ''), quote: quote && quote.length > 120 ? quote.substring(0,120)+'...' : quote, fileId: fid });
+            } catch {
+              finalSources.push({ index: i + 1, fileName: '', quote, fileId: fid });
+            }
+          }
+          res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
+          res.write(`data: {"type": "final", "data": ${JSON.stringify(fullAnswer)}}\n\n`);
         }
-        res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
-        res.write(`data: {"type": "final", "data": ${JSON.stringify(fullAnswer)}}\n\n`);
         
         // 發送完成信號
         res.write('data: {"type": "done"}\n\n');
