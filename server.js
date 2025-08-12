@@ -84,10 +84,10 @@ function setBibleExplainCached(key, data) {
 async function getVectorStoreIdCachedByName(name) {
   const k = (name || '').toLowerCase();
   const hit = vectorStoreIdCache.get(k);
-  if (hit && Date.now() - hit.ts <= VECTOR_STORE_ID_TTL_MS) return hit.id;
-  const id = await findVectorStoreIdByName(name);
-  if (id) vectorStoreIdCache.set(k, { id, ts: Date.now() });
-  return id;
+  if (hit && Date.now() - hit.ts <= VECTOR_STORE_ID_TTL_MS) return hit.result;
+  const result = await findVectorStoreIdByName(name);
+  if (result) vectorStoreIdCache.set(k, { result, ts: Date.now() });
+  return result;
 }
 
 // 你的向量資料庫 ID
@@ -1462,20 +1462,20 @@ async function findVectorStoreIdByName(name) {
       const resp = await openai.vectorStores.list({ limit: 100, after });
       // 1) exact (case-insensitive)
       const exact = resp.data.find(vs => (vs.name || '').toLowerCase() === name.toLowerCase());
-      if (exact) return exact.id;
+      if (exact) return { id: exact.id, store: exact };
 
       // 2) normalized exact
       const normHit = resp.data.find(vs => norm(vs.name) === targetNorm);
-      if (normHit) return normHit.id;
+      if (normHit) return { id: normHit.id, store: normHit };
 
       // 3) synonyms
       const synKeys = synonyms.get(targetNorm) || [];
       const synHit = resp.data.find(vs => synKeys.includes(norm(vs.name)));
-      if (synHit) return synHit.id;
+      if (synHit) return { id: synHit.id, store: synHit };
 
       // 4) relaxed contains (prefix + book)
       const containsHit = resp.data.find(vs => norm(vs.name).includes(targetNorm));
-      if (containsHit && !bestMatch) bestMatch = containsHit.id;
+      if (containsHit && !bestMatch) bestMatch = { id: containsHit.id, store: containsHit };
 
       if (!resp.has_more) break;
       after = resp.last_id;
@@ -1713,10 +1713,21 @@ app.post('/api/bible/explain/stream', ensureAuthenticated, async (req, res) => {
 
     const storePrefix = process.env.BIBLE_STORE_PREFIX || 'Bible-';
     const targetName = `${storePrefix}${bookEn}`;
-    const vsId = await getVectorStoreIdCachedByName(targetName);
-    if (!vsId) {
+    const storeResult = await getVectorStoreIdCachedByName(targetName);
+    if (!storeResult) {
       return res.status(503).json({ success: false, error: `該卷資料庫尚未建立完成，請稍後再試（${targetName}）` });
     }
+    
+    // 檢查是否為空白store
+    const fileCount = storeResult.store?.file_counts?.total || 0;
+    if (fileCount === 0) {
+      return res.status(503).json({ 
+        success: false, 
+        error: `${bookEn}卷的註釋資料庫目前暫無內容，我們正在努力補充中，請選擇其他經卷或稍後再試。` 
+      });
+    }
+    
+    const vsId = storeResult.id;
 
     // 設置 SSE 響應頭
     res.setHeader('Content-Type', 'text/event-stream');
@@ -1796,10 +1807,21 @@ app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
 
     const storePrefix = process.env.BIBLE_STORE_PREFIX || 'Bible-';
     const targetName = `${storePrefix}${bookEn}`;
-    const vsId = await getVectorStoreIdCachedByName(targetName);
-    if (!vsId) {
+    const storeResult = await getVectorStoreIdCachedByName(targetName);
+    if (!storeResult) {
       return res.status(503).json({ success: false, error: `該卷資料庫尚未建立完成，請稍後再試（${targetName}）` });
     }
+    
+    // 檢查是否為空白store
+    const fileCount = storeResult.store?.file_counts?.total || 0;
+    if (fileCount === 0) {
+      return res.status(503).json({ 
+        success: false, 
+        error: `${bookEn}卷的註釋資料庫目前暫無內容，我們正在努力補充中，請選擇其他經卷或稍後再試。` 
+      });
+    }
+    
+    const vsId = storeResult.id;
 
     // 讓回答格式列出「每位作者」對指定經文的解釋，並附註來源（交由檔案引用處理）。
     // 傳入的 passageText 僅作為定位語境，仍然必須只根據資料庫內容回答。
