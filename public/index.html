@@ -1670,7 +1670,14 @@
                 formatted = '<p>' + formatted + '</p>';
             }
             
-            // 處理引用標註 [1], [2] 等
+            // 先處理 OpenAI 特殊格式的引用標註 【4:16†source】
+            formatted = formatted.replace(/【(\d+:\d+)†([^】]*)】/g, (match, reference, sourceInfo) => {
+                // 為這種格式創建一個簡單的引用標註，使用數字格式
+                const citationHtml = `<span class="citation" data-citation="ref" title="${reference} - ${sourceInfo}" style="display: inline; margin: 0;">[${reference}]</span>`;
+                return citationHtml;
+            });
+            
+            // 處理標準引用標註 [1], [2] 等
             if (sources && sources.length > 0) {
                 sources.forEach((source, index) => {
                     const citationNumber = index + 1;
@@ -1690,13 +1697,6 @@
                     formatted = formatted.replace(citationRegex, citationHtml);
                 });
             }
-            
-            // 處理 OpenAI 特殊格式的引用標註 【4:16†source】
-            formatted = formatted.replace(/【(\d+:\d+)†([^】]*)】/g, (match, reference, sourceInfo) => {
-                // 為這種格式創建一個簡單的引用標註
-                const citationHtml = `<span class="citation" data-citation="ref" title="${reference} - ${sourceInfo}" style="display: inline; margin: 0;">📖</span>`;
-                return citationHtml;
-            });
             
             return formatted;
         }
