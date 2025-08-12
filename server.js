@@ -1700,7 +1700,7 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
     });
 
     let fullAnswer = '';
-    let sources = [];
+    const fileIdToQuote = new Map();
 
     // 處理串流事件
     stream.on('textDelta', (textDelta) => {
