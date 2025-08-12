@@ -107,8 +107,6 @@ function extractAuthorsFromContent(content, language = 'zh') {
     // 匹配 **作者名稱** 格式，包含年代
     const authorMatches = content.match(/\*\*([^*]+?(?:\([^)]+\))?[^*]*?)\*\*/g);
     if (authorMatches) {
-      console.log(`🔍 找到 ${authorMatches.length} 個粗體標記:`, authorMatches);
-      
       for (const match of authorMatches) {
         const authorName = match.replace(/\*\*/g, '').trim();
         
@@ -147,15 +145,11 @@ function extractAuthorsFromContent(content, language = 'zh') {
             quote: '',
             fileId: `extracted_${index}`
           });
-          
-          console.log(`✅ 提取作者 ${index - 1}: ${displayName}`);
-        } else {
-          console.log(`❌ 跳過非作者: ${authorName}`);
         }
       }
     }
     
-    console.log(`📚 從內容中提取到 ${sources.length} 位作者`);
+
     return sources;
   } catch (error) {
     console.error('提取作者名稱時發生錯誤:', error);
@@ -1802,20 +1796,8 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           const finalAnswer = lastMessage.content[0].text.value || '';
           const annotations = lastMessage.content[0].text.annotations || [];
           
-          console.log(`🔄 聖經註釋重新取得完整訊息，文本長度: ${finalAnswer.length}, 註解數量: ${annotations.length}`);
-          
-          // 驗證數據一致性
-          if (finalAnswer !== fullAnswer) {
-            console.warn(`⚠️ 聖經註釋數據不一致！使用重新獲取的完整文本`);
-            console.warn(`串流文本長度: ${fullAnswer.length}, 重獲文本長度: ${finalAnswer.length}`);
-          } else {
-            console.log(`✅ 聖經註釋串流文本與重獲取文本一致`);
-          }
-          
           // 使用穩定的引用處理邏輯（與首頁搜尋一致）
-          console.log(`🔍 聖經註釋原始註解數量: ${annotations.length}`);
           const { processedText, sourceMap } = await processAnnotationsInText(finalAnswer, annotations, language);
-          console.log(`🔍 processAnnotationsInText 返回的 sourceMap 大小: ${sourceMap.size}`);
           
           let finalSources = Array.from(sourceMap.entries()).map(([index, source]) => ({
             index,
@@ -1828,19 +1810,12 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           const citationSources = finalSources;
           const extractedSources = extractAuthorsFromContent(finalAnswer, language);
           
-          console.log(`📊 引用來源數量: ${citationSources.length}, 提取來源數量: ${extractedSources.length}`);
-          
           // 如果引用來源少於提取來源，使用提取來源補充
           if (citationSources.length < extractedSources.length) {
-            console.log(`⚠️ 引用來源不完整 (${citationSources.length}/${extractedSources.length})，使用提取來源`);
             finalSources = extractedSources;
           } else if (citationSources.length === 0) {
-            console.log(`⚠️ 無引用來源，完全使用提取來源`);
             finalSources = extractedSources;
           }
-          
-          console.log(`✅ 聖經註釋引用處理完成，最終來源數量: ${finalSources.length}`);
-          console.log(`🔍 最終來源詳細內容:`, JSON.stringify(finalSources, null, 2));
           
           // 發送來源後再發送文本
           res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
@@ -1848,7 +1823,6 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
           
         } else {
           // 如果沒有獲取到訊息，使用串流收集的資料
-          console.warn(`⚠️ 無法獲取聖經註釋完整訊息，使用串流資料`);
           const finalSources = [];
           const entries = Array.from(fileIdToQuote.entries());
           for (let i = 0; i < entries.length; i++) {
@@ -1968,7 +1942,6 @@ ${passageText ? '---\n' + passageText + '\n---' : ''}`;
     // 不使用快取：每次重新生成
 
     // 使用串流處理
-    console.log(`🔄 使用向量庫: ${targetName} (ID: ${vsId})`);
     await processBibleExplainRequestStream(q, vsId, req.user, language, res, cacheKey);
 
   } catch (error) {
