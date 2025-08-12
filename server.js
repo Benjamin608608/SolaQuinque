@@ -1260,7 +1260,15 @@ async function processSearchRequestStream(question, user, language, res) {
                     // 如果沒有獲取到消息，使用串流的數據但也要處理引用
                     const { processedText: processedStreamText, sourceMap } = await processAnnotationsInText(fullAnswer, [], language);
                     
-                    res.write(`data: {"type": "sources", "data": ${JSON.stringify(sources)}}\n\n`);
+                    // 將sourceMap轉換為finalSources格式
+                    const finalSources = Array.from(sourceMap.entries()).map(([index, source]) => ({
+                        index,
+                        fileName: source.fileName,
+                        quote: source.quote && source.quote.length > 120 ? source.quote.substring(0, 120) + '...' : source.quote,
+                        fileId: source.fileId
+                    }));
+                    
+                    res.write(`data: {"type": "sources", "data": ${JSON.stringify(finalSources)}}\n\n`);
                     res.write(`data: {"type": "final", "data": ${JSON.stringify(processedStreamText)}}\n\n`);
                 }
                 
