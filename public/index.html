@@ -2813,7 +2813,7 @@
                     
                     // 構建經文參考
                     const ref = startVerse === endVerse ? `${chapter}:${startVerse}` : `${chapter}:${startVerse}-${endVerse}`;
-                    console.log('搜尋神學家註釋:', { bookName, bookEn: book.engs, ref });
+                    console.log('搜尋神學家註釋:', { bookName, bookEn: book.en, ref });
                     
                     // 獲取聖經版本
                     const versionElement = document.getElementById('bibleVersion');
@@ -2826,7 +2826,7 @@
 
                     // 使用串流版本的聖經解釋API
                     await searchTheologicalCommentaryStream({
-                        bookEn: book.engs,
+                        bookEn: book.en,
                         ref: ref,
                         passageText,
                         translation: version,
