@@ -1627,13 +1627,21 @@
             }
             
             // 處理引用標註
-            let citationCounter = 1;
             const allSources = sources || [];
+            let citationCounter = 1;
             
-            // 先處理 OpenAI 特殊格式的引用標註 【4:16†source】
+            // 先收集所有的 OpenAI 引用並替換為臨時標記
+            const openAICitations = [];
             formatted = formatted.replace(/【(\d+:\d+)†([^】]*)】/g, (match, reference, sourceInfo) => {
-                // 獲取對應的 source 數據
-                const sourceIndex = citationCounter - 1;
+                const placeholder = `__CITATION_${citationCounter}__`;
+                openAICitations.push({ counter: citationCounter, reference, sourceInfo });
+                citationCounter++;
+                return placeholder;
+            });
+            
+            // 將 OpenAI 引用的臨時標記替換為實際的引用標註
+            openAICitations.forEach(({ counter, reference, sourceInfo }) => {
+                const sourceIndex = counter - 1;
                 let sourceText = '引用來源';
                 
                 if (allSources[sourceIndex]) {
@@ -1645,10 +1653,8 @@
                     }
                 }
                 
-                // 轉換為標準的數字小標格式
-                const citationHtml = `<span class="citation" data-citation="${citationCounter}" title="${sourceText}" style="display: inline; margin: 0;">${citationCounter}</span>`;
-                citationCounter++;
-                return citationHtml;
+                const citationHtml = `<span class="citation" data-citation="${counter}" title="${sourceText}" style="display: inline; margin: 0;">${counter}</span>`;
+                formatted = formatted.replace(`__CITATION_${counter}__`, citationHtml);
             });
             
             // 處理標準引用標註 [1], [2] 等
