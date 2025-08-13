@@ -1470,8 +1470,16 @@
             addNavigationHandlers();
             setFooterVisibility();
             
-            // 開始預載入聖經文本
-            startBiblePreloading();
+            // 開始預載入聖經文本（非阻塞方式）
+            setTimeout(() => {
+                try {
+                    startBiblePreloading().catch(error => {
+                        console.error('預載入聖經文本失敗:', error);
+                    });
+                } catch (error) {
+                    console.error('啟動預載入失敗:', error);
+                }
+            }, 1000); // 延遲1秒啟動，確保頁面完全載入
         }
 
         // 顯示未認證的 UI（允許使用部分功能）
@@ -4286,6 +4294,8 @@
             
             // 開始預載入聖經文本
             async function startBiblePreloading() {
+                console.log('🔧 startBiblePreloading 被調用');
+                
                 // 檢查是否已經完成預載入
                 if (window.biblePreloadStatus.completed) {
                     console.log('📚 聖經文本已預載入完成');
@@ -4301,7 +4311,7 @@
                 window.biblePreloadStatus.isPreloading = true;
                 const versions = window.biblePreloadStatus.versions;
                 
-                console.log('🚀 開始預載入聖經文本...');
+                console.log('🚀 開始預載入聖經文本...', versions);
                 showPreloadingStatus();
                 
                 try {
@@ -4312,7 +4322,7 @@
                         
                         updatePreloadingStatus();
                         
-                        // 檢查是否已經緩存
+                        // 檢查是否已經緩存（使用小寫作為緩存鍵）
                         if (!window.bibleTextCache[version]) {
                             console.log(`📥 預載入聖經版本: ${version.toUpperCase()}`);
                             await loadBibleTextForSearch(version.toUpperCase());
