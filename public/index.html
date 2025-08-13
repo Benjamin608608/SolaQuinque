@@ -999,6 +999,31 @@
         #userAvatar { width: 24px !important; height: 24px !important; min-width: 24px; max-width: 24px; }
         #userAvatar .material-icons-outlined { font-size: 18px; }
       }
+      
+      /* 搜尋結果高亮樣式 */
+      .verse-highlight {
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.1));
+        border-left: 4px solid var(--gold-leaf);
+        padding: 0.5rem;
+        margin: 0.25rem 0;
+        border-radius: 0.375rem;
+        animation: highlightPulse 0.6s ease-in-out;
+      }
+      
+      @keyframes highlightPulse {
+        0% { background-color: rgba(212, 175, 55, 0.4); }
+        50% { background-color: rgba(212, 175, 55, 0.2); }
+        100% { background-color: rgba(212, 175, 55, 0.1); }
+      }
+      
+      /* 搜尋結果中的mark標籤樣式 */
+      #searchResultsList mark {
+        background-color: var(--gold-leaf);
+        color: white;
+        padding: 0.1rem 0.2rem;
+        border-radius: 0.2rem;
+        font-weight: 500;
+      }
     </style>
 </head>
 <body class="flex flex-col min-h-screen antialiased">
@@ -2992,6 +3017,59 @@
                                 <div class="w-16 h-1 bg-[var(--primary)] mx-auto rounded-full"></div>
                             </div>
                             
+                            <!-- 聖經搜尋功能 -->
+                            <div class="bible-search-container mb-6">
+                                <div class="relative max-w-2xl mx-auto mb-4">
+                                    <div class="relative">
+                                        <span class="material-icons-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] text-lg">search</span>
+                                        <input 
+                                            type="text" 
+                                            id="bibleSearchInput" 
+                                            class="w-full pl-10 pr-20 py-3 rounded-full border border-[var(--accent)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent text-sm"
+                                            placeholder="${lang === 'en' ? 'Search in Bible (e.g., Jesus, love, peace...)' : '搜尋聖經內容 (例如：耶穌、愛、平安...)'}"
+                                        />
+                                        <div class="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                                            <button id="bibleSearchBtn" class="px-3 py-1.5 bg-[var(--primary)] text-white rounded-full text-xs hover:bg-[var(--primary-dark)] transition-colors">
+                                                ${lang === 'en' ? 'Search' : '搜尋'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 搜尋選項 -->
+                                <div class="flex flex-wrap justify-center gap-4 mb-4 text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" id="searchCurrentBook" checked class="rounded border-[var(--accent)]">
+                                        <label for="searchCurrentBook" class="text-[var(--text-secondary)]">${lang === 'en' ? 'Current book only' : '僅當前書卷'}</label>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" id="searchWholeWords" class="rounded border-[var(--accent)]">
+                                        <label for="searchWholeWords" class="text-[var(--text-secondary)]">${lang === 'en' ? 'Whole words' : '完整詞彙'}</label>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" id="searchCaseSensitive" class="rounded border-[var(--accent)]">
+                                        <label for="searchCaseSensitive" class="text-[var(--text-secondary)]">${lang === 'en' ? 'Case sensitive' : '區分大小寫'}</label>
+                                    </div>
+                                </div>
+                                
+                                <!-- 搜尋結果區域 -->
+                                <div id="bibleSearchResults" class="hidden">
+                                    <div class="bg-white rounded-lg border border-[var(--accent)] shadow-sm max-h-80 overflow-y-auto">
+                                        <div id="searchResultsHeader" class="px-4 py-3 border-b border-[var(--accent)] bg-[var(--secondary)]">
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm font-medium text-[var(--text-primary)]" id="searchResultsCount"></span>
+                                                <button id="closeSearchResults" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                                                    <span class="material-icons-outlined text-lg">close</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div id="searchResultsList" class="divide-y divide-[var(--accent)]">
+                                            <!-- 搜尋結果將在這裡顯示 -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <!-- 經文內容 -->
                             <div id="bibleChapterContent" class="bible-chapter-content">
                                 <div class="text-center p-8">
@@ -3004,12 +3082,363 @@
                     
                     // 載入章節內容
                     loadBibleChapterContent(bookId, chapter, version);
+                    
+                    // 初始化搜尋功能
+                    setTimeout(() => {
+                        initBibleSearch(bookId, version);
+                    }, 100);
                 }
                 setFooterVisibility();
             }
 
             // 全局變數：追蹤選中的經節範圍
             window.selectedVerseRange = null;
+            
+            // 聖經搜尋功能初始化
+            function initBibleSearch(currentBookId, currentVersion) {
+                const searchInput = document.getElementById('bibleSearchInput');
+                const searchBtn = document.getElementById('bibleSearchBtn');
+                const closeBtn = document.getElementById('closeSearchResults');
+                
+                if (!searchInput || !searchBtn) return;
+                
+                // 避免重複綁定事件
+                if (searchInput.dataset.initialized) return;
+                searchInput.dataset.initialized = 'true';
+                
+                // 搜尋按鈕點擊事件
+                searchBtn.addEventListener('click', () => performBibleSearch(currentBookId, currentVersion));
+                
+                // Enter 鍵搜尋
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        performBibleSearch(currentBookId, currentVersion);
+                    }
+                });
+                
+                // 關閉搜尋結果
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', hideBibleSearchResults);
+                }
+            }
+            
+            // 執行聖經搜尋
+            async function performBibleSearch(currentBookId, currentVersion) {
+                const searchInput = document.getElementById('bibleSearchInput');
+                const query = searchInput?.value?.trim();
+                
+                if (!query || query.length < 1) {
+                    hideBibleSearchResults();
+                    return;
+                }
+                
+                // 顯示載入狀態
+                const resultsList = document.getElementById('searchResultsList');
+                const resultsContainer = document.getElementById('bibleSearchResults');
+                
+                if (resultsList && resultsContainer) {
+                    resultsContainer.classList.remove('hidden');
+                    resultsList.innerHTML = `
+                        <div class="p-4 text-center">
+                            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--primary)] mx-auto mb-2"></div>
+                            <p class="text-sm text-[var(--text-secondary)]">${window.currentLanguage === 'en' ? 'Searching...' : '搜尋中...'}</p>
+                        </div>
+                    `;
+                }
+                
+                try {
+                    const results = await searchBibleText({
+                        query,
+                        currentBookOnly: document.getElementById('searchCurrentBook')?.checked || false,
+                        wholeWords: document.getElementById('searchWholeWords')?.checked || false,
+                        caseSensitive: document.getElementById('searchCaseSensitive')?.checked || false,
+                        bookId: currentBookId,
+                        version: currentVersion
+                    });
+                    
+                    displayBibleSearchResults(results, query);
+                } catch (error) {
+                    console.error('聖經搜尋錯誤:', error);
+                    if (resultsList) {
+                        const lang = window.currentLanguage || 'zh';
+                        resultsList.innerHTML = `
+                            <div class="p-4 text-center text-red-600">
+                                <span class="material-icons-outlined">error</span>
+                                <p class="mt-2 text-sm">${lang === 'en' ? 'Search failed. Please try again.' : '搜尋失敗，請重試。'}</p>
+                            </div>
+                        `;
+                    }
+                }
+            }
+            
+            // 搜尋聖經文本
+            async function searchBibleText(options) {
+                const { query, currentBookOnly, wholeWords, caseSensitive, bookId, version } = options;
+                
+                // 構建搜尋正則表達式
+                let searchPattern = query;
+                if (wholeWords) {
+                    searchPattern = `\\b${searchPattern}\\b`;
+                }
+                
+                const flags = caseSensitive ? 'g' : 'gi';
+                const searchRegex = new RegExp(searchPattern, flags);
+                
+                // 載入聖經文本
+                const bibleText = await loadBibleTextForSearch(version);
+                
+                // 執行搜尋
+                const results = [];
+                const lines = bibleText.split('\n');
+                let currentBook = null;
+                let currentChapter = null;
+                
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed) continue;
+                    
+                    // 檢查是否是書卷標題 (# 創世記)
+                    const bookMatch = trimmed.match(/^#\s+(.+)$/);
+                    if (bookMatch) {
+                        const bookName = bookMatch[1].trim();
+                        currentBook = findBookByName(bookName);
+                        continue;
+                    }
+                    
+                    // 檢查是否是章節標題 (=== 創世記 第1章 === 或 === Genesis Chapter 1 ===)
+                    const chapterMatch = trimmed.match(/^===\s*(.+?)\s*(?:第(\d+)章|Chapter\s+(\d+))\s*===$/);
+                    if (chapterMatch) {
+                        currentChapter = parseInt(chapterMatch[2] || chapterMatch[3]);
+                        continue;
+                    }
+                    
+                    // 檢查是否是經文 (1. 起 初 ， 　 神 創 造 天 地 。)
+                    const verseMatch = trimmed.match(/^(\d+)\.\s*(.+)$/);
+                    if (verseMatch && currentBook && currentChapter) {
+                        const verse = parseInt(verseMatch[1]);
+                        let text = verseMatch[2].trim();
+                        
+                        // 清理 Strong's 編號標籤 (針對 KJV)
+                        text = text.replace(/<S>\d+<\/S>/g, '');
+                        
+                        // 清理 註解標籤 (如 <sup>...</sup>)
+                        text = text.replace(/<sup>.*?<\/sup>/g, '');
+                        
+                        // 清理多餘空格
+                        text = text.replace(/\s+/g, ' ').trim();
+                        
+                        // 如果僅搜尋當前書卷
+                        if (currentBookOnly && currentBook.id !== bookId) {
+                            continue;
+                        }
+                        
+                        // 檢查是否匹配搜尋詞
+                        if (searchRegex.test(text)) {
+                            // 根據當前語言設定決定書卷名稱
+                            const currentLang = window.currentLanguage || 'zh';
+                            const displayBookName = currentLang === 'en' ? currentBook.en : currentBook.zh;
+                            
+                            results.push({
+                                bookId: currentBook.id,
+                                bookName: displayBookName,
+                                chapter: currentChapter,
+                                verse: verse,
+                                text: text,
+                                highlightedText: highlightSearchTerm(text, searchRegex)
+                            });
+                        }
+                    }
+                }
+                
+                return results;
+            }
+            
+            // 載入聖經文本用於搜尋
+            async function loadBibleTextForSearch(version) {
+                const filename = version === 'KJV' ? 'kjv-bible.txt' : 'cuv-bible.txt';
+                const url = `/data/bible-versions/${filename}`;
+                
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return await response.text();
+                } catch (error) {
+                    console.error('載入聖經文本失敗:', error);
+                    throw error;
+                }
+            }
+            
+            // 根據書名尋找書卷資訊
+            function findBookByName(bookName) {
+                const allBooks = [...window.booksOT, ...window.booksNT];
+                
+                // 先嘗試中文名稱匹配
+                let book = allBooks.find(b => b.zh === bookName);
+                if (book) return book;
+                
+                // 再嘗試英文名稱匹配
+                book = allBooks.find(b => b.en === bookName);
+                if (book) return book;
+                
+                // 最後嘗試部分匹配
+                book = allBooks.find(b => 
+                    b.zh.includes(bookName) || 
+                    b.en.toLowerCase().includes(bookName.toLowerCase())
+                );
+                
+                return book;
+            }
+            
+            // 高亮搜尋詞
+            function highlightSearchTerm(text, searchRegex) {
+                return text.replace(searchRegex, '<mark>$&</mark>');
+            }
+            
+            // 顯示搜尋結果
+            function displayBibleSearchResults(results, query) {
+                const resultsList = document.getElementById('searchResultsList');
+                const resultsContainer = document.getElementById('bibleSearchResults');
+                const countElement = document.getElementById('searchResultsCount');
+                
+                if (!resultsList || !resultsContainer) return;
+                
+                resultsContainer.classList.remove('hidden');
+                
+                const lang = window.currentLanguage || 'zh';
+                const countText = lang === 'en' ? 
+                    `Found ${results.length} verse(s) containing "${query}"` :
+                    `找到 ${results.length} 節包含「${query}」的經文`;
+                
+                if (countElement) {
+                    countElement.textContent = countText;
+                }
+                
+                if (results.length === 0) {
+                    resultsList.innerHTML = `
+                        <div class="p-6 text-center text-[var(--text-secondary)]">
+                            <span class="material-icons-outlined text-4xl mb-2 opacity-50">search_off</span>
+                            <p class="text-sm">${lang === 'en' ? 'No verses found.' : '未找到相關經文'}</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 限制顯示數量
+                const maxResults = 50;
+                const displayResults = results.slice(0, maxResults);
+                
+                resultsList.innerHTML = displayResults.map(result => `
+                    <div class="search-result-item p-3 hover:bg-[var(--secondary)] cursor-pointer"
+                         data-book-id="${result.bookId}"
+                         data-chapter="${result.chapter}"
+                         data-verse="${result.verse}">
+                        <div class="text-sm font-medium text-[var(--primary)] mb-1">
+                            ${result.bookName} ${result.chapter}:${result.verse}
+                        </div>
+                        <div class="text-sm text-[var(--text-primary)]">
+                            ${result.highlightedText}
+                        </div>
+                    </div>
+                `).join('');
+                
+                // 如果結果被截斷，顯示提示
+                if (results.length > maxResults) {
+                    resultsList.innerHTML += `
+                        <div class="p-3 text-center text-xs text-[var(--text-secondary)] bg-[var(--secondary)]">
+                            ${lang === 'en' ? 
+                                `Showing first ${maxResults} results of ${results.length} total` :
+                                `顯示前 ${maxResults} 個結果，共 ${results.length} 個`
+                            }
+                        </div>
+                    `;
+                }
+                
+                // 添加點擊事件
+                resultsList.querySelectorAll('.search-result-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const bookId = parseInt(item.getAttribute('data-book-id'));
+                        const chapter = parseInt(item.getAttribute('data-chapter'));
+                        const verse = parseInt(item.getAttribute('data-verse'));
+                        
+                        jumpToVerse(bookId, chapter, verse);
+                    });
+                });
+            }
+            
+            // 跳轉到指定經節
+            async function jumpToVerse(bookId, chapter, verse) {
+                try {
+                    // 如果是當前章節，直接滾動到經節
+                    if (window.currentBibleSelection && 
+                        window.currentBibleSelection.bookId === bookId && 
+                        window.currentBibleSelection.chapter === chapter) {
+                        
+                        scrollToVerse(verse);
+                        highlightVerse(verse);
+                        hideBibleSearchResults();
+                        return;
+                    }
+                    
+                    // 否則跳轉到該章節
+                    hideBibleSearchResults();
+                    await showBibleChapterPage(bookId, chapter);
+                    
+                    // 等待頁面載入完成後滾動到經節
+                    setTimeout(() => {
+                        scrollToVerse(verse);
+                        highlightVerse(verse);
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error('跳轉到經節失敗:', error);
+                }
+            }
+            
+            // 滾動到指定經節
+            function scrollToVerse(verse) {
+                const verseElement = document.querySelector(`[data-verse="${verse}"]`);
+                if (verseElement) {
+                    verseElement.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                }
+            }
+            
+            // 高亮顯示經節
+            function highlightVerse(verse) {
+                // 移除之前的高亮
+                document.querySelectorAll('.verse-highlight').forEach(el => {
+                    el.classList.remove('verse-highlight');
+                });
+                
+                // 添加新的高亮
+                const verseElement = document.querySelector(`[data-verse="${verse}"]`);
+                if (verseElement) {
+                    verseElement.classList.add('verse-highlight');
+                    
+                    // 3秒後移除高亮
+                    setTimeout(() => {
+                        verseElement.classList.remove('verse-highlight');
+                    }, 3000);
+                }
+            }
+            
+            // 隱藏搜尋結果
+            function hideBibleSearchResults() {
+                const resultsContainer = document.getElementById('bibleSearchResults');
+                const searchInput = document.getElementById('bibleSearchInput');
+                
+                if (resultsContainer) {
+                    resultsContainer.classList.add('hidden');
+                }
+                
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+            }
 
             // 經文選中功能
             function selectVerse(verseNumber) {
