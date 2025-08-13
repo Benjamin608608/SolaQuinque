@@ -1081,6 +1081,193 @@
         window.loadBibleVersion = function() {
             try { return localStorage.getItem('bibleVersion') || 'CUV'; } catch { return 'CUV'; }
         };
+
+        // 🚀 章節預熱系統
+        window.ChapterPreloader = {
+            cache: new Map(), // 預熱緩存 key: "bookId-chapter-version"
+            loadingPromises: new Map(), // 正在載入的Promise避免重複請求
+            maxCacheSize: 20, // 最大緩存章節數
+            preloadRange: 2, // 前後預熱章節數
+
+            // 生成緩存鍵
+            getCacheKey(bookId, chapter, version) {
+                return `${bookId}-${chapter}-${version}`;
+            },
+
+            // 獲取書卷的章節數
+            getBookChapterCount(bookId) {
+                const allBooks = [...window.booksOT, ...window.booksNT];
+                const book = allBooks.find(b => b.id === bookId);
+                return book ? book.chapters : 0;
+            },
+
+            // 預熱單個章節（靜默載入）
+            async preloadChapter(bookId, chapter, version) {
+                const key = this.getCacheKey(bookId, chapter, version);
+                
+                // 如果已經緩存或正在載入，直接返回
+                if (this.cache.has(key) || this.loadingPromises.has(key)) {
+                    return this.loadingPromises.get(key) || Promise.resolve(this.cache.get(key));
+                }
+
+                // 創建載入Promise
+                const loadPromise = this.loadChapterData(bookId, chapter, version);
+                this.loadingPromises.set(key, loadPromise);
+
+                try {
+                    const data = await loadPromise;
+                    // 成功載入後加入緩存
+                    this.addToCache(key, data);
+                    return data;
+                } catch (error) {
+                    console.warn(`📚 章節預熱失敗: ${bookId} ${chapter} (${version})`, error.message);
+                    return null;
+                } finally {
+                    // 清理載入Promise
+                    this.loadingPromises.delete(key);
+                }
+            },
+
+            // 載入章節數據（核心邏輯）
+            async loadChapterData(bookId, chapter, version) {
+                const response = await fetch(`/data/bible-versions/${version.toLowerCase()}-bible.txt`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const text = await response.text();
+                const lines = text.split('\n');
+                
+                // 解析章節內容（與loadWholeChapter相同邏輯）
+                const chapterKey = `${bookId} ${chapter}`;
+                const verses = [];
+                let isTargetChapter = false;
+                let currentVerse = '';
+                let verseNumber = 1;
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed) continue;
+
+                    if (trimmed.startsWith(chapterKey + ':')) {
+                        isTargetChapter = true;
+                        const verseText = trimmed.substring(chapterKey.length + 1).trim();
+                        const match = verseText.match(/^(\d+)\s+(.+)$/);
+                        if (match) {
+                            verseNumber = parseInt(match[1]);
+                            currentVerse = match[2];
+                            verses.push({ number: verseNumber, text: currentVerse });
+                        }
+                    } else if (isTargetChapter && trimmed.match(/^\d+\s+/)) {
+                        const match = trimmed.match(/^(\d+)\s+(.+)$/);
+                        if (match) {
+                            verseNumber = parseInt(match[1]);
+                            currentVerse = match[2];
+                            verses.push({ number: verseNumber, text: currentVerse });
+                        }
+                    } else if (isTargetChapter && trimmed.includes(':')) {
+                        // 下一個章節開始，結束當前章節
+                        break;
+                    }
+                }
+
+                return verses;
+            },
+
+            // 智能緩存管理
+            addToCache(key, data) {
+                // 如果緩存已滿，移除最舊的項目
+                if (this.cache.size >= this.maxCacheSize) {
+                    const firstKey = this.cache.keys().next().value;
+                    this.cache.delete(firstKey);
+                }
+                this.cache.set(key, data);
+            },
+
+            // 從緩存獲取章節數據
+            getCachedChapter(bookId, chapter, version) {
+                const key = this.getCacheKey(bookId, chapter, version);
+                return this.cache.get(key);
+            },
+
+            // 預熱相鄰章節
+            async preloadAdjacentChapters(bookId, currentChapter, version) {
+                const chapterCount = this.getBookChapterCount(bookId);
+                const preloadTasks = [];
+
+                // 預熱前面的章節
+                for (let i = 1; i <= this.preloadRange; i++) {
+                    const prevChapter = currentChapter - i;
+                    if (prevChapter >= 1) {
+                        preloadTasks.push(
+                            this.preloadChapter(bookId, prevChapter, version)
+                        );
+                    }
+                }
+
+                // 預熱後面的章節
+                for (let i = 1; i <= this.preloadRange; i++) {
+                    const nextChapter = currentChapter + i;
+                    if (nextChapter <= chapterCount) {
+                        preloadTasks.push(
+                            this.preloadChapter(bookId, nextChapter, version)
+                        );
+                    }
+                }
+
+                // 並行執行預熱（不等待完成，避免阻塞主線程）
+                Promise.allSettled(preloadTasks).then(results => {
+                    const successful = results.filter(r => r.status === 'fulfilled').length;
+                    const failed = results.length - successful;
+                    if (successful > 0) {
+                        console.log(`📚 章節預熱完成: ${successful}/${results.length} 章節已預熱${failed > 0 ? ` (${failed}個失敗)` : ''}`);
+                    }
+                }).catch(error => {
+                    console.warn('📚 預熱過程中出現異常:', error.message);
+                });
+            },
+
+            // 擴展預熱範圍（換頁時調用）
+            async extendPreloadRange(bookId, newChapter, version) {
+                // 立即預熱新章節的相鄰章節
+                await this.preloadAdjacentChapters(bookId, newChapter, version);
+            },
+
+            // 清理緩存
+            clearCache() {
+                this.cache.clear();
+                this.loadingPromises.clear();
+            },
+
+            // 獲取緩存狀態信息
+            getCacheStatus() {
+                return {
+                    cacheSize: this.cache.size,
+                    maxCacheSize: this.maxCacheSize,
+                    loadingCount: this.loadingPromises.size,
+                    preloadRange: this.preloadRange,
+                    cachedChapters: Array.from(this.cache.keys())
+                };
+            },
+
+            // 動態調整預熱範圍
+            setPreloadRange(newRange) {
+                this.preloadRange = Math.max(1, Math.min(5, newRange)); // 限制在1-5之間
+                console.log(`📚 預熱範圍調整為: 前後各${this.preloadRange}章`);
+            },
+
+            // 版本變更時清理對應緩存
+            clearVersionCache(version) {
+                const keysToDelete = [];
+                for (const key of this.cache.keys()) {
+                    if (key.endsWith(`-${version}`)) {
+                        keysToDelete.push(key);
+                    }
+                }
+                keysToDelete.forEach(key => this.cache.delete(key));
+                console.log(`📚 已清理版本 ${version} 的緩存: ${keysToDelete.length} 項`);
+            }
+        };
         
 
         // 控制底部搜尋輸入欄顯示：僅首頁顯示
@@ -2652,6 +2839,13 @@
                     // 更新選擇並跳轉到新章節
                     updateBibleSelection({ bookId: bookId, chapter: chapter });
                     await showBibleChapterPage(bookId, chapter);
+                    
+                    // 🚀 觸發新章節的預熱擴展
+                    const version = window.loadBibleVersion();
+                    setTimeout(() => {
+                        window.ChapterPreloader.extendPreloadRange(bookId, chapter, version);
+                    }, 200); // 延遲確保頁面載入完成
+                    
                     // 若處於對照模式，載入後立即重建對照
                     if (window.isCompareMode) {
                         await showVerseComparison();
@@ -4009,20 +4203,36 @@
                 bibleResult.classList.remove('hidden');
                 
                 try {
-                    // 從本地文本檔案載入
-                    const response = await fetch(`/data/bible-versions/${version.toLowerCase()}-bible.txt`);
-                    if (!response.ok) {
-                        throw new Error(`無法載入聖經檔案 (${response.status}: ${response.statusText})`);
+                    // 🚀 優先從預熱緩存獲取數據
+                    let verses = window.ChapterPreloader.getCachedChapter(bookId, chapter, version);
+                    
+                    if (verses) {
+                        console.log(`⚡ 從緩存快速載入: ${bookId} ${chapter}`);
+                    } else {
+                        console.log(`📚 首次載入章節: ${bookId} ${chapter}`);
+                        // 從文件載入
+                        const response = await fetch(`/data/bible-versions/${version.toLowerCase()}-bible.txt`);
+                        if (!response.ok) {
+                            throw new Error(`無法載入聖經檔案 (${response.status}: ${response.statusText})`);
+                        }
+                        
+                        const text = await response.text();
+                    
+                        // 檢查檔案是否為空或只有標題
+                        if (!text || text.trim().length < 100) {
+                            throw new Error('聖經檔案內容不完整');
+                        }
+                        
+                        verses = parseBibleTextFromFile(text, bookId, chapter);
+                        
+                        // 將新載入的數據加入緩存
+                        if (verses && verses.length > 0) {
+                            window.ChapterPreloader.addToCache(
+                                window.ChapterPreloader.getCacheKey(bookId, chapter, version), 
+                                verses
+                            );
+                        }
                     }
-                    
-                    const text = await response.text();
-                    
-                    // 檢查檔案是否為空或只有標題
-                    if (!text || text.trim().length < 100) {
-                        throw new Error('聖經檔案內容不完整');
-                    }
-                    
-                    const verses = parseBibleTextFromFile(text, bookId, chapter);
                     
                     if (verses.length === 0) {
                         container.innerHTML = '<div class="text-[var(--text-secondary)] text-sm">找不到該章節的內容</div>';
@@ -4031,6 +4241,11 @@
                     
                     // 渲染整章內容
                     renderWholeChapter(verses, version);
+                    
+                    // 🚀 觸發相鄰章節預熱（非阻塞）
+                    setTimeout(() => {
+                        window.ChapterPreloader.preloadAdjacentChapters(bookId, parseInt(chapter), version);
+                    }, 100); // 延遲100ms確保當前頁面渲染完成
                     
                 } catch (error) {
                     console.error('載入章節失敗:', error);
@@ -4230,8 +4445,15 @@
             // 版本切換時，如已選有章，立即重新載入該章節內容
             window.DOMCache.bibleVersion.addEventListener('change', async (event) => {
                 const newVersion = event.target.value;
+                const oldVersion = window.loadBibleVersion();
+                
                 // 💾 保存版本選擇
                 window.saveBibleVersion(newVersion);
+                
+                // 🧹 清理舊版本的預熱緩存
+                if (oldVersion !== newVersion) {
+                    window.ChapterPreloader.clearVersionCache(oldVersion);
+                }
                 
                 const sel = window.currentBibleSelection;
                 if (sel && sel.bookId && sel.chapter) {
