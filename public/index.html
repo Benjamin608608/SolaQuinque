@@ -4057,18 +4057,89 @@
                 };
                 console.log('💾 保存聖經註釋請求狀態:', lastActiveCommentary);
                 
+                // 立即顯示框架，先載入註釋提示
+                contentDiv.innerHTML = `
+                    <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                        <div class="text-sm text-gray-600 mb-2">經文內容：</div>
+                        <div id="verse-text-content" class="text-gray-800">
+                            <div class="flex items-center">
+                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                                <span class="ml-2 text-gray-500 text-sm">載入經文中...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <div class="text-sm text-gray-600 mb-2">📚 神學家註釋（基於 ${bookName} 資料庫）：</div>
+                        <div id="theological-commentary" class="text-gray-800">
+                            <div class="flex items-center justify-center py-4">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                <span class="ml-2 text-gray-600">正在搜尋 ${bookName} 資料庫中的神學家註釋...</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 異步載入經文內容和生成註釋
+                Promise.all([
+                    loadVerseContent(bookId, chapter, startVerse, endVerse),
+                    // 稍微延遲註釋生成，讓經文先顯示
+                    new Promise(resolve => setTimeout(resolve, 500))
+                ]).then(([targetVerses]) => {
+                    if (targetVerses) {
+                        // 開始搜尋神學家註釋
+                        searchTheologicalCommentary(bookName, chapter, startVerse, endVerse, targetVerses)
+                            .catch(error => {
+                                console.error('註釋生成失敗:', error);
+                                const commentaryDiv = document.getElementById('theological-commentary');
+                                if (commentaryDiv) {
+                                    commentaryDiv.innerHTML = `
+                                        <div class="text-red-600 p-3 bg-red-50 rounded">
+                                            註釋生成失敗：${error.message}
+                                            <button onclick="generateVerseCommentary(${bookId}, ${chapter}, ${startVerse}, ${endVerse}, '${bookName}')" 
+                                                    class="ml-2 text-blue-600 hover:text-blue-800 underline">
+                                                重試
+                                            </button>
+                                        </div>
+                                    `;
+                                }
+                            });
+                    }
+                }).catch(error => {
+                    console.error('載入經文失敗:', error);
+                    contentDiv.innerHTML = `
+                        <div class="text-red-600 p-3 bg-red-50 rounded">
+                            載入經文失敗：${error.message}
+                            <button onclick="generateVerseCommentary(${bookId}, ${chapter}, ${startVerse}, ${endVerse}, '${bookName}')" 
+                                    class="ml-2 text-blue-600 hover:text-blue-800 underline">
+                                重試
+                            </button>
+                        </div>
+                    `;
+                });
+            }
+            
+            // 載入經文內容（獨立函數）
+            async function loadVerseContent(bookId, chapter, startVerse, endVerse) {
                 try {
-                    // 獲取經文內容
                     const versionElement = window.DOMCache.bibleVersion;
                     const version = versionElement ? versionElement.value : window.loadBibleVersion();
                     
-                    // 從本地文本檔案載入經文
-                    const response = await fetch(`/data/bible-versions/${version.toLowerCase()}-bible.txt`);
-                    if (!response.ok) {
-                        throw new Error('無法載入聖經檔案');
+                    // 使用緩存的聖經文本（如果有）
+                    const cacheKey = version.toLowerCase();
+                    let text;
+                    
+                    if (window.bibleTextCache && window.bibleTextCache[cacheKey]) {
+                        text = window.bibleTextCache[cacheKey];
+                        console.log('✅ 使用緩存的聖經文本載入經文');
+                    } else {
+                        // 從API載入
+                        const response = await fetch(`/api/bible-text/${version.toLowerCase()}`);
+                        if (!response.ok) {
+                            throw new Error('無法載入聖經檔案');
+                        }
+                        text = await response.text();
                     }
                     
-                    const text = await response.text();
                     const verses = parseBibleTextFromFile(text, bookId, chapter);
                     
                     // 獲取範圍內的所有經文
@@ -4081,40 +4152,26 @@
                     }
                     
                     if (targetVerses.length === 0) {
-                        contentDiv.innerHTML = '<div class="text-red-600">找不到該範圍的經文</div>';
-                        return;
+                        throw new Error('找不到該範圍的經文');
                     }
                     
-                    // 構建經文內容顯示
-                    const versesText = targetVerses.map(v => `${v.verse}. ${v.text}`).join('<br>');
+                    // 立即更新經文顯示
+                    const verseTextDiv = document.getElementById('verse-text-content');
+                    if (verseTextDiv) {
+                        const versesText = targetVerses.map(v => `${v.verse}. ${v.text}`).join('<br>');
+                        verseTextDiv.innerHTML = versesText;
+                        console.log('📖 經文內容已顯示');
+                    }
                     
-                    // 顯示經文內容
-                    contentDiv.innerHTML = `
-                        <div class="mb-4 p-3 bg-gray-50 rounded-lg">
-                            <div class="text-sm text-gray-600 mb-2">經文內容：</div>
-                            <div class="text-gray-800">${versesText}</div>
-                        </div>
-                        <div class="mb-4">
-                            <div class="text-sm text-gray-600 mb-2">📚 神學家註釋（基於 ${bookName} 資料庫）：</div>
-                            <div id="theological-commentary" class="text-gray-800">
-                                <div class="flex items-center justify-center py-4">
-                                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                                    <span class="ml-2 text-gray-600">正在搜尋 ${bookName} 資料庫中的神學家註釋...</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // 搜尋神學家註釋
-                    await searchTheologicalCommentary(bookName, chapter, startVerse, endVerse, targetVerses);
+                    return targetVerses;
                     
                 } catch (error) {
-                    console.error('生成註釋失敗:', error);
-                    contentDiv.innerHTML = `
-                        <div class="text-red-600">
-                            生成註釋時發生錯誤：${error.message}
-                        </div>
-                    `;
+                    console.error('載入經文失敗:', error);
+                    const verseTextDiv = document.getElementById('verse-text-content');
+                    if (verseTextDiv) {
+                        verseTextDiv.innerHTML = `<div class="text-red-600">載入經文失敗：${error.message}</div>`;
+                    }
+                    throw error;
                 }
             }
             
