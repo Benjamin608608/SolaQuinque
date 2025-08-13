@@ -1469,6 +1469,9 @@
             // 添加導航按鈕功能
             addNavigationHandlers();
             setFooterVisibility();
+            
+            // 開始預載入聖經文本
+            startBiblePreloading();
         }
 
         // 顯示未認證的 UI（允許使用部分功能）
@@ -4269,6 +4272,132 @@
                     versions: cached,
                     count: cached.length,
                     sizeMB: (totalSize / 1024 / 1024).toFixed(2)
+                };
+            }
+            
+            // 聖經預載入狀態
+            window.biblePreloadStatus = {
+                isPreloading: false,
+                completed: false,
+                versions: ['cuv', 'kjv', 'unv'],
+                current: null,
+                progress: 0
+            };
+            
+            // 開始預載入聖經文本
+            async function startBiblePreloading() {
+                // 檢查是否已經完成預載入
+                if (window.biblePreloadStatus.completed) {
+                    console.log('📚 聖經文本已預載入完成');
+                    return;
+                }
+                
+                // 避免重複預載入
+                if (window.biblePreloadStatus.isPreloading) {
+                    console.log('📥 聖經文本預載入進行中...');
+                    return;
+                }
+                
+                window.biblePreloadStatus.isPreloading = true;
+                const versions = window.biblePreloadStatus.versions;
+                
+                console.log('🚀 開始預載入聖經文本...');
+                showPreloadingStatus();
+                
+                try {
+                    for (let i = 0; i < versions.length; i++) {
+                        const version = versions[i];
+                        window.biblePreloadStatus.current = version;
+                        window.biblePreloadStatus.progress = Math.round((i / versions.length) * 100);
+                        
+                        updatePreloadingStatus();
+                        
+                        // 檢查是否已經緩存
+                        if (!window.bibleTextCache[version]) {
+                            console.log(`📥 預載入聖經版本: ${version.toUpperCase()}`);
+                            await loadBibleTextForSearch(version.toUpperCase());
+                        } else {
+                            console.log(`✅ 聖經版本已緩存: ${version.toUpperCase()}`);
+                        }
+                    }
+                    
+                    window.biblePreloadStatus.completed = true;
+                    window.biblePreloadStatus.progress = 100;
+                    window.biblePreloadStatus.current = null;
+                    
+                    console.log('🎉 聖經文本預載入完成！');
+                    const cacheInfo = getBibleCacheInfo();
+                    console.log(`💾 緩存狀態: ${cacheInfo.count} 個版本, ${cacheInfo.sizeMB}MB`);
+                    
+                    hidePreloadingStatus();
+                    
+                } catch (error) {
+                    console.error('❌ 聖經預載入失敗:', error);
+                    hidePreloadingStatus();
+                } finally {
+                    window.biblePreloadStatus.isPreloading = false;
+                }
+            }
+            
+            // 顯示預載入狀態
+            function showPreloadingStatus() {
+                const existingStatus = document.getElementById('bible-preload-status');
+                if (existingStatus) return;
+                
+                const statusHtml = `
+                    <div id="bible-preload-status" class="fixed bottom-4 right-4 bg-white border border-[var(--accent)] rounded-lg shadow-lg p-3 z-50" style="min-width: 280px;">
+                        <div class="flex items-center gap-3">
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-[var(--primary)]"></div>
+                            <div class="flex-1">
+                                <div class="text-xs font-medium text-[var(--text-primary)]" id="preload-title">預載入聖經文本</div>
+                                <div class="text-xs text-[var(--text-secondary)]" id="preload-details">準備中...</div>
+                            </div>
+                            <button onclick="hidePreloadingStatus()" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs">
+                                ✕
+                            </button>
+                        </div>
+                        <div class="mt-2 bg-gray-200 rounded-full h-1.5">
+                            <div id="preload-progress" class="bg-[var(--primary)] h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', statusHtml);
+            }
+            
+            // 更新預載入狀態
+            function updatePreloadingStatus() {
+                const title = document.getElementById('preload-title');
+                const details = document.getElementById('preload-details');
+                const progress = document.getElementById('preload-progress');
+                
+                if (title && details && progress) {
+                    const status = window.biblePreloadStatus;
+                    const versionNames = {
+                        'cuv': '和合本',
+                        'kjv': '英王欽定本',
+                        'unv': '和合本修訂版'
+                    };
+                    
+                    title.textContent = '預載入聖經文本';
+                    details.textContent = `載入 ${versionNames[status.current] || status.current} (${status.progress}%)`;
+                    progress.style.width = `${status.progress}%`;
+                }
+            }
+            
+            // 隱藏預載入狀態
+            function hidePreloadingStatus() {
+                const statusElement = document.getElementById('bible-preload-status');
+                if (statusElement) {
+                    statusElement.remove();
+                }
+            }
+            
+            // 檢查預載入狀態
+            function getBiblePreloadStatus() {
+                return {
+                    ...window.biblePreloadStatus,
+                    cacheInfo: getBibleCacheInfo()
                 };
             }
             
