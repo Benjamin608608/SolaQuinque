@@ -1419,19 +1419,23 @@
                 
                 // 更嚴格的認證檢查
                 if (data.success && data.user && data.user.id && data.user.email) {
-                    console.log('用戶已認證:', data.user.email);
+                    console.log('✅ 用戶已認證:', data.user.email, '- 直接進入首頁');
                     showAuthenticatedUI(data.user);
+                    return true; // 返回認證成功標記
                 } else {
-                    console.log('用戶未認證或認證資料不完整');
+                    console.log('❌ 用戶未認證或認證資料不完整');
                     // 顯示登入畫面，但允許使用部分功能
                     showLoginUI();
+                    return false;
                 }
             } catch (error) {
-                console.error('檢查認證狀態失敗:', error);
+                console.error('❌ 檢查認證狀態失敗:', error);
                 // 顯示登入畫面，但允許使用部分功能
                 showLoginUI();
+                return false;
+            } finally {
+                setFooterVisibility();
             }
-            setFooterVisibility();
         }
 
         // 檢查用戶認證狀態（不跳轉到登入頁面）
@@ -1455,6 +1459,8 @@
 
         // 顯示已認證的 UI
         function showAuthenticatedUI(user) {
+            console.log('🔧 設置已認證用戶界面:', user.email);
+            
             // 設置當前頁面狀態
             window.currentPage = 'home';
             
@@ -1462,6 +1468,7 @@
             const navLinks = window.DOMCache.navLinks;
             if (navLinks) {
                 navLinks.style.display = 'flex';
+                console.log('✅ 導航按鈕已顯示');
             }
             
             // 更新用戶頭像
@@ -1486,6 +1493,7 @@
                     }
                     
                     userAvatar.innerHTML = avatarHTML;
+                    console.log('✅ 用戶頭像已設置');
                 }
             }
             
@@ -1494,9 +1502,11 @@
             if (logoutBtn) {
                 logoutBtn.style.display = 'flex';
                 logoutBtn.onclick = () => window.location.href = '/auth/logout';
+                console.log('✅ 登出按鈕已設置');
             }
             
-            // 顯示首頁內容
+            // 直接顯示首頁內容（無需閃爍）
+            console.log('🏠 直接顯示首頁內容');
             showHomePage();
             
             // 添加導航按鈕功能
@@ -1513,6 +1523,8 @@
                     console.error('啟動預載入失敗:', error);
                 }
             }, 1000); // 延遲1秒啟動，確保頁面完全載入
+            
+            console.log('🎉 已認證用戶界面設置完成');
         }
 
         // 顯示未認證的 UI（允許使用部分功能）
@@ -6197,41 +6209,10 @@
             return info;
         }
 
-        // 顯示背景處理能力提示
+        // 顯示背景處理能力提示（已禁用 - 用戶不需要看到）
         function showBackgroundCapabilityNotice(capabilities) {
-            const hasLimitedBackground = !capabilities.backgroundSync;
-            
-            if (hasLimitedBackground) {
-                // 5秒後顯示提示（不要立即干擾用戶）
-                setTimeout(() => {
-                    const notice = document.createElement('div');
-                    notice.id = 'background-notice';
-                    notice.className = 'fixed bottom-4 left-4 right-4 bg-yellow-50 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg shadow-lg z-40';
-                    notice.innerHTML = `
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0">
-                                <span class="text-yellow-600">📱</span>
-                            </div>
-                            <div class="ml-3 flex-1">
-                                <p class="text-sm font-medium">背景處理提示</p>
-                                <p class="text-xs mt-1">為確保生成完整，建議在生成過程中保持頁面前台運行。如需切換App，系統會自動為您恢復進度。</p>
-                            </div>
-                            <div class="ml-4 flex-shrink-0">
-                                <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-yellow-600 hover:text-yellow-800 text-sm">✕</button>
-                            </div>
-                        </div>
-                    `;
-                    
-                    document.body.appendChild(notice);
-                    
-                    // 10秒後自動隱藏
-                    setTimeout(() => {
-                        if (notice.parentElement) {
-                            notice.remove();
-                        }
-                    }, 10000);
-                }, 5000);
-            }
+            // 移除提示 - 用戶已了解此功能
+            console.log('📱 背景處理能力已檢測，無需顯示提示');
         }
 
         // 嘗試背景處理請求
@@ -6293,20 +6274,20 @@
                 // 載入作者對照表（失敗不影響主流程）
                 try { await loadAuthorTranslations(); } catch {}
 
-                // 檢查認證狀態（成功會切換到已登入 UI）
-                let authCheckCompleted = false;
+                // 檢查認證狀態 - 優化流程避免閃爍
+                console.log('🔄 開始檢查用戶認證狀態...');
+                
                 try { 
-                    await checkAuthStatus(); 
-                    authCheckCompleted = true;
+                    const isAuthenticated = await checkAuthStatus(); 
+                    
+                    if (isAuthenticated) {
+                        console.log('🎉 認證成功，已直接進入首頁');
+                    } else {
+                        console.log('⏳ 用戶需要登入');
+                    }
                 } catch (error) {
-                    console.error('認證檢查失敗:', error);
+                    console.error('❌ 認證檢查失敗:', error);
                     // 確保顯示登入畫面
-                    showLoginUI();
-                    authCheckCompleted = true;
-                }
-
-                // 如果認證檢查沒有完成且沒有顯示任何頁面，才顯示登入畫面
-                if (!authCheckCompleted && window.currentPage === 'login') {
                     showLoginUI();
                 }
 
