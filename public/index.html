@@ -1002,6 +1002,58 @@
     
 
     <script>
+        // DOM 緩存系統 - 提升性能，減少重複查詢
+        window.DOMCache = {
+            _cache: new Map(),
+            
+            // 獲取元素（帶智能緩存）
+            get(id) {
+                if (!this._cache.has(id)) {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        this._cache.set(id, element);
+                    }
+                    return element;
+                }
+                return this._cache.get(id);
+            },
+            
+            // 清除緩存（頁面導航時使用）
+            clear() {
+                this._cache.clear();
+            },
+            
+            // 驗證緩存的元素是否仍在DOM中
+            validate(id) {
+                const cachedElement = this._cache.get(id);
+                if (cachedElement && !document.contains(cachedElement)) {
+                    this._cache.delete(id);
+                    return false;
+                }
+                return true;
+            },
+            
+            // 常用元素的快捷訪問器
+            get navLinks() { return this.get('navLinks'); },
+            get userAvatar() { return this.get('userAvatar'); },
+            get logoutBtn() { return this.get('logoutBtn'); },
+            get mainContent() { return this.get('mainContent'); },
+            get searchInput() { return this.get('searchInput'); },
+            get submitBtn() { return this.get('submitBtn'); },
+            get streamingContent() { return this.get('streamingContent'); },
+            get bibleVersion() { return this.get('bibleVersion'); },
+            get bookGrid() { return this.get('bookGrid'); },
+            get catalogList() { return this.get('catalogList'); },
+            get bibleResult() { return this.get('bibleResult'); },
+            get bibleText() { return this.get('bibleText'); },
+            get loadingIndicator() { return this.get('loadingIndicator'); }
+        };
+
+        // 頁面導航時自動清理緩存
+        window.addEventListener('beforeunload', () => {
+            window.DOMCache.clear();
+        });
+
         // Persist Bible selection globally (defined early)
         window.updateBibleSelection = function(partial) {
             const prev = window.currentBibleSelection || {};
@@ -1069,13 +1121,13 @@
             window.currentPage = 'home';
             
             // 顯示導航按鈕
-            const navLinks = document.getElementById('navLinks');
+            const navLinks = window.DOMCache.navLinks;
             if (navLinks) {
                 navLinks.style.display = 'flex';
             }
             
             // 更新用戶頭像
-            const userAvatar = document.getElementById('userAvatar');
+            const userAvatar = window.DOMCache.userAvatar;
             if (userAvatar) {
                 userAvatar.style.display = 'flex';
                 if (user.picture) {
@@ -1084,7 +1136,7 @@
             }
             
             // 顯示登出按鈕
-            const logoutBtn = document.getElementById('logoutBtn');
+            const logoutBtn = window.DOMCache.logoutBtn;
             if (logoutBtn) {
                 logoutBtn.style.display = 'flex';
                 logoutBtn.onclick = () => window.location.href = '/auth/logout';
@@ -1104,19 +1156,19 @@
             window.currentPage = 'home';
             
             // 顯示導航按鈕（允許使用聖經功能）
-            const navLinks = document.getElementById('navLinks');
+            const navLinks = window.DOMCache.navLinks;
             if (navLinks) {
                 navLinks.style.display = 'flex';
             }
             
             // 隱藏用戶頭像
-            const userAvatar = document.getElementById('userAvatar');
+            const userAvatar = window.DOMCache.userAvatar;
             if (userAvatar) {
                 userAvatar.style.display = 'none';
             }
             
             // 隱藏登出按鈕
-            const logoutBtn = document.getElementById('logoutBtn');
+            const logoutBtn = window.DOMCache.logoutBtn;
             if (logoutBtn) {
                 logoutBtn.style.display = 'none';
             }
@@ -1135,20 +1187,20 @@
             window.currentPage = 'login';
             
             // 顯示導航按鈕（允許使用聖經功能）
-            const navLinks = document.getElementById('navLinks');
+            const navLinks = window.DOMCache.navLinks;
             if (navLinks) {
                 navLinks.style.display = 'flex';
             }
             
             // 隱藏用戶按鈕
-            const userAvatar = document.getElementById('userAvatar');
-            const logoutBtn = document.getElementById('logoutBtn');
+            const userAvatar = window.DOMCache.userAvatar;
+            const logoutBtn = window.DOMCache.logoutBtn;
             
             if (userAvatar) userAvatar.style.display = 'none';
             if (logoutBtn) logoutBtn.style.display = 'none';
             
             // 添加登入按鈕到主內容區域
-            const main = document.getElementById('mainContent');
+            const main = window.DOMCache.mainContent;
             if (main) {
                 const loginTitle = window.translations ? window.translations['login-title'] : '歡迎使用神學知識庫';
                 const loginSubtitle = window.translations ? window.translations['login-subtitle'] : '請登入以開始使用';
@@ -1183,8 +1235,8 @@
             setFooterVisibility();
             
             // 添加搜索功能
-            const input = document.getElementById('searchInput');
-            const submitBtn = document.getElementById('submitBtn');
+            const input = window.DOMCache.searchInput;
+            const submitBtn = window.DOMCache.submitBtn;
             
             if (input && submitBtn) {
                 // 移除舊的事件監聽器
@@ -1201,8 +1253,8 @@
                 submitBtn.parentNode.replaceChild(oldSubmitBtn, submitBtn);
                 
                 // 重新獲取元素並綁定事件
-                const newInputElement = document.getElementById('searchInput');
-                const newSubmitBtnElement = document.getElementById('submitBtn');
+                const newInputElement = window.DOMCache.searchInput;
+                const newSubmitBtnElement = window.DOMCache.submitBtn;
                 
                 if (newInputElement && newSubmitBtnElement) {
                     // 處理 Enter 鍵
@@ -1268,7 +1320,7 @@
         // 執行搜索
         async function performSearch(question) {
             // 獲取輸入框元素
-            const input = document.getElementById('searchInput');
+            const input = window.DOMCache.searchInput;
             
             // 清空輸入框
             if (input) {
@@ -1428,7 +1480,7 @@
                 let sources = [];
 
                 // 初始化顯示
-                const main = document.getElementById('mainContent');
+                const main = window.DOMCache.mainContent;
                 if (main) {
                     main.innerHTML = `
                         <div class="chat-messages" id="chatMessages">
@@ -1440,7 +1492,7 @@
                         </div>
                     `;
                     
-                    const streamingContent = document.getElementById('streamingContent');
+                    const streamingContent = window.DOMCache.streamingContent;
                     renderer.setContainer(streamingContent);
                     setFooterVisibility();
                 }
@@ -1538,7 +1590,7 @@
 
         // 處理搜索
         async function handleSearch() {
-            const input = document.getElementById('searchInput');
+            const input = window.DOMCache.searchInput;
             const question = input.value.trim();
             
             if (!question) return;
@@ -1547,7 +1599,7 @@
             const authStatus = await checkAuthStatusSilent();
             if (!authStatus.authenticated) {
                 // 如果未登入，顯示登入提示
-                const main = document.getElementById('mainContent');
+                const main = window.DOMCache.mainContent;
                 if (main) {
                     main.innerHTML = `
                         <div class="text-center px-4 sm:px-6">
@@ -1581,7 +1633,7 @@
 
         // 顯示載入狀態
         function showLoadingState() {
-            const main = document.getElementById('mainContent');
+            const main = window.DOMCache.mainContent;
             if (main) {
                 const loadingText = window.translations ? window.translations['searching'] : '正在搜索相關資料...';
                 const question = window.currentQuestion || '';
@@ -1599,7 +1651,7 @@
 
         // 顯示結果
         function showResult(answer, sources) {
-            const main = document.getElementById('mainContent');
+            const main = window.DOMCache.mainContent;
             if (main) {
                 // 格式化答案，處理引用標註
                 let formattedAnswer = formatAnswer(answer, sources);
@@ -1951,7 +2003,7 @@
 
         // 顯示錯誤
         function showError(message, canRetry = true) {
-            const main = document.getElementById('mainContent');
+            const main = window.DOMCache.mainContent;
             if (main) {
                 const retryButton = canRetry ? `
                     <button onclick="retryLastSearch()" class="mt-4 bg-[var(--primary)] text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors">
@@ -2120,7 +2172,7 @@
             const currentLang = translations[lang];
             
             // 更新導航按鈕
-            const homeLink = document.getElementById('homeLink');
+            const homeLink = window.DOMCache.get('homeLink');
             if (homeLink) {
                 const homeText = homeLink.querySelector('.nav-label');
                 if (homeText) {
@@ -2128,7 +2180,7 @@
                 }
             }
             
-            const catalogLink = document.getElementById('catalogLink');
+            const catalogLink = window.DOMCache.get('catalogLink');
             if (catalogLink) {
                 const catalogText = catalogLink.querySelector('.nav-label');
                 if (catalogText) {
@@ -2136,7 +2188,7 @@
                 }
             }
             
-            const bibleLink = document.getElementById('bibleLink');
+            const bibleLink = window.DOMCache.get('bibleLink');
             if (bibleLink) {
                 const bibleText = bibleLink.querySelector('.nav-label');
                 if (bibleText) {
@@ -2164,7 +2216,7 @@
             }
             
             // 更新輸入框佔位符
-            const input = document.getElementById('searchInput');
+            const input = window.DOMCache.searchInput;
             if (input) {
                 input.placeholder = currentLang.placeholder;
             }
@@ -2212,7 +2264,7 @@
             }
             
             // 更新登出按鈕文字（如果存在）
-            const logoutBtn = document.getElementById('logoutBtn');
+            const logoutBtn = window.DOMCache.logoutBtn;
             if (logoutBtn) {
                 const logoutText = logoutBtn.querySelector('span:not(.material-icons-outlined)');
                 if (logoutText) {
@@ -2225,7 +2277,7 @@
             window.translations = currentLang;
             
             // 如果當前在參考書目頁面，重新載入以更新翻譯和作者名稱
-            const catalogList = document.getElementById('catalogList');
+            const catalogList = window.DOMCache.catalogList;
             if (catalogList && catalogList.innerHTML.includes('catalog-letter')) {
                 // 重新載入作者對照表並更新參考書目
                 loadAuthorTranslations().then(() => {
@@ -2247,7 +2299,7 @@
                 // 處理聖經章節頁面的語言切換
                 // 增加額外檢查：確保當前確實在章節頁面而不是書卷列表頁面
                 const bibleChapterTitle = document.querySelector('.bible-chapter-title');
-                const bookGrid = document.getElementById('bookGrid');
+                const bookGrid = window.DOMCache.bookGrid;
                 
                 // 只有當確實在章節內容頁面時才重新載入章節
                 if (bibleChapterTitle && !bookGrid) {
@@ -2263,7 +2315,7 @@
             } else if (window.currentPage === 'bibleExplain' && window.currentBibleSelection) {
                 const s = window.currentBibleSelection;
                                         // 隱藏經文解釋功能 - 保留程式碼供未來使用
-                        // showBibleExplanationPage(s.engs, s.bookId, s.chapter, s.verse || 1, document.getElementById('bibleVersion')?.value || 'CUV');
+                        // showBibleExplanationPage(s.engs, s.bookId, s.chapter, s.verse || 1, window.DOMCache.bibleVersion?.value || 'CUV');
             }
             setFooterVisibility();
         }
@@ -2285,9 +2337,9 @@
 
         // 添加導航處理器
         function addNavigationHandlers() {
-            const homeLink = document.getElementById('homeLink');
-            const catalogLink = document.getElementById('catalogLink');
-            const bibleLink = document.getElementById('bibleLink');
+            const homeLink = window.DOMCache.get('homeLink');
+            const catalogLink = window.DOMCache.get('catalogLink');
+            const bibleLink = window.DOMCache.get('bibleLink');
             
             if (homeLink) {
                 homeLink.addEventListener('click', (e) => {
@@ -2342,7 +2394,7 @@
                 if (menu) menu.remove();
             } catch {}
             
-            const main = document.getElementById('mainContent');
+            const main = window.DOMCache.mainContent;
             if (main) {
                 if (window.isSearching) {
                     showLoadingState();
@@ -2398,7 +2450,7 @@
                 </div>
             ` : '';
             
-            const main = document.getElementById('mainContent');
+            const main = window.DOMCache.mainContent;
             if (main) {
                 const catalogTitle = window.translations ? window.translations['catalog-title'] : '參考書目';
                 const catalogSubtitle = window.translations ? window.translations['catalog-subtitle'] : '探索豐富的神學文獻資料庫';
@@ -2460,7 +2512,7 @@
                 existingButtons.remove();
             }
             
-            const main = document.getElementById('mainContent');
+            const main = window.DOMCache.mainContent;
             if (!main) return;
             
             // 檢查認證狀態
@@ -2582,17 +2634,17 @@
                 }
             }
  
-            const bookGrid = document.getElementById('bookGrid');
+            const bookGrid = window.DOMCache.bookGrid;
 
             // 聖經章節頁面（顯示特定章節內容）
             async function showBibleChapterPage(bookId, chapter) {
                 window.currentPage = 'bibleChapter';
-                const main = document.getElementById('mainContent');
+                const main = window.DOMCache.mainContent;
                 if (main) {
                     // 獲取書卷和版本資訊
                     const allBooks = [...window.booksOT, ...window.booksNT];
                     const book = allBooks.find(b => b.id === bookId);
-                    const versionElement = document.getElementById('bibleVersion');
+                    const versionElement = window.DOMCache.bibleVersion;
                     const version = versionElement ? versionElement.value : 'CUV';
                     const lang = window.currentLanguage || 'zh';
                     const bookName = lang === 'en' ? book.en : book.zh;
@@ -2836,7 +2888,7 @@
                 
                 try {
                     // 獲取經文內容
-                    const versionElement = document.getElementById('bibleVersion');
+                    const versionElement = window.DOMCache.bibleVersion;
                     const version = versionElement ? versionElement.value : 'CUV';
                     
                     // 從本地文本檔案載入經文
@@ -2915,7 +2967,7 @@
                     console.log('搜尋神學家註釋:', { bookName, bookEn: book.en, ref });
                     
                     // 獲取聖經版本
-                    const versionElement = document.getElementById('bibleVersion');
+                    const versionElement = window.DOMCache.bibleVersion;
                     const version = versionElement ? versionElement.value : 'CUV';
                     
                     // 準備選中經文全文（用於定位語境，不作為回答來源）
@@ -3200,7 +3252,7 @@
                 }
 
                 // 取得版本
-                const versionElement = document.getElementById('bibleVersion');
+                const versionElement = window.DOMCache.bibleVersion;
                 const topVersion = ((versionElement ? versionElement.value : 'CUV') || 'CUV').toUpperCase();
                 const defaultBottom = topVersion === 'CUV' ? 'KJV' : 'CUV';
 
@@ -3263,7 +3315,7 @@
                     window.isCompareMode = false;
                     window.compareBottomVersion = null;
                     
-                    const version = (document.getElementById('bibleVersion')?.value || 'CUV');
+                    const version = (window.DOMCache.bibleVersion?.value || 'CUV');
                     await loadBibleChapterContent(currentBookId, currentChapter, version);
                     
                     // 恢復選中範圍
@@ -3768,7 +3820,7 @@
             // 隱藏的節數按鈕功能 - 保留程式碼供未來使用
             /*
             async function preloadChapter(bookId, chap, container) {
-                const version = document.getElementById('bibleVersion').value || 'CUV';
+                const version = window.DOMCache.bibleVersion.value || 'CUV';
                 const res = await fetch(`/api/bible/chapter?translation=${encodeURIComponent(version)}&bookId=${bookId}&chapter=${chap}`);
                 const json = await res.json();
                 if (!json.success) {
@@ -3799,10 +3851,10 @@
             */
 
             function renderPreloadedVerses(verses, from, to) {
-                const versionElement = document.getElementById('bibleVersion');
+                const versionElement = window.DOMCache.bibleVersion;
                 const version = versionElement ? versionElement.value : 'CUV';
-                const container = document.getElementById('bibleText');
-                const bibleResult = document.getElementById('bibleResult');
+                const container = window.DOMCache.bibleText;
+                const bibleResult = window.DOMCache.bibleResult;
                 const explain = document.getElementById('bibleExplanation');
                 if (explain) explain.innerHTML = '';
                 let filtered = verses;
@@ -3910,10 +3962,10 @@
 
             // 載入整章內容 - 直接顯示經文而不顯示節數按鈕
             async function loadWholeChapter(bookId, chapter) {
-                const versionElement = document.getElementById('bibleVersion');
+                const versionElement = window.DOMCache.bibleVersion;
                 const version = versionElement ? versionElement.value : 'CUV';
-                const container = document.getElementById('bibleText');
-                const bibleResult = document.getElementById('bibleResult');
+                const container = window.DOMCache.bibleText;
+                const bibleResult = window.DOMCache.bibleResult;
                 const explain = document.getElementById('bibleExplanation');
                 
                 // 隱藏解釋功能
@@ -3955,7 +4007,7 @@
 
             // 渲染整章內容
             function renderWholeChapter(verses, version) {
-                const container = document.getElementById('bibleText');
+                const container = window.DOMCache.bibleText;
                 const lang = window.currentLanguage || 'zh';
                 const engs = document.getElementById('bibleBookEngs').value || '';
                 const bookEn = typeof engsToEnglish === 'function' ? engsToEnglish(engs) : '';
@@ -3975,7 +4027,7 @@
             /*
             function showBibleExplanationPage(engs, bookId, chapter, verse, translation) {
                 window.currentPage = 'bibleExplain';
-                const main = document.getElementById('mainContent');
+                const main = window.DOMCache.mainContent;
                 if (!main) return;
                 const lang = window.currentLanguage || 'zh';
                 const displayBook = [...window.booksOT, ...window.booksNT].find(b => b.engs === engs);
@@ -4136,7 +4188,7 @@
             // document.getElementById('explainBibleBtn').addEventListener('click', explainBiblePassage);
 
             // 版本切換時，如已選有章，立即重新載入該章節內容
-            document.getElementById('bibleVersion').addEventListener('change', async () => {
+            window.DOMCache.bibleVersion.addEventListener('change', async () => {
                 const sel = window.currentBibleSelection;
                 if (sel && sel.bookId && sel.chapter) {
                     // 重新載入該章節內容
@@ -4153,7 +4205,7 @@
             const container = document.getElementById('bibleExplanation');
             if (!container) return;
             try {
-                const versionElement = document.getElementById('bibleVersion');
+                const versionElement = window.DOMCache.bibleVersion;
                 const version = versionElement ? versionElement.value : 'CUV';
                 const engs = document.getElementById('bibleBookEngs').value;
                 const chapter = document.getElementById('bibleChapter').value;
@@ -4192,7 +4244,7 @@
                 renderCatalog(catalogData);
             } catch (error) {
                 console.error('載入參考書目失敗:', error);
-                const catalogList = document.getElementById('catalogList');
+                const catalogList = window.DOMCache.catalogList;
                 if (catalogList) {
                     const errorText = window.translations ? window.translations['load-error'] : '無法載入參考書目';
                     catalogList.innerHTML = `
@@ -4245,7 +4297,7 @@
 
         // 渲染參考書目
         function renderCatalog(data) {
-            const catalogList = document.getElementById('catalogList');
+            const catalogList = window.DOMCache.catalogList;
             if (!catalogList) return;
             
             if (!data || data.length === 0) {
@@ -4588,7 +4640,7 @@
                 bindCitationEvents();
 
                 // 頁面轉場：初次載入給主內容一個淡入
-                const mainContent = document.getElementById('mainContent');
+                const mainContent = window.DOMCache.mainContent;
                 if (mainContent) {
                     mainContent.classList.add('page-enter');
                     requestAnimationFrame(() => mainContent.classList.add('page-enter-active'));
