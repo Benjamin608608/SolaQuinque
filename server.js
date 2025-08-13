@@ -137,6 +137,26 @@ const bibleExplainLimiter = rateLimit({
   }
 });
 
+// 聖經閱讀 API 限制 - 較寬鬆的限制供正常閱讀（管理員免疫）
+const bibleReadingLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 分鐘
+  max: 200, // 限制每個 IP 5分鐘內最多 200 次聖經閱讀請求（約每1.5秒一次）
+  message: {
+    error: '聖經閱讀請求過於頻繁，請稍候片刻',
+    retryAfter: '5分鐘後'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // 管理員跳過限制
+    if (isAdmin(req)) {
+      console.log(`🔓 管理員 ${req.user.email} 跳過聖經閱讀速率限制`);
+      return true;
+    }
+    return false;
+  }
+});
+
 // 管理員IP白名單 (可選 - 用於登入限制豁免)
 const adminIPs = [
   '::1', // localhost IPv6
@@ -858,6 +878,7 @@ app.post('/api/admin/clear-rate-limits', (req, res) => {
     generalLimiter.resetKey(req.ip);
     searchLimiter.resetKey(req.ip);
     bibleExplainLimiter.resetKey(req.ip);
+    bibleReadingLimiter.resetKey(req.ip);
     authLimiter.resetKey(req.ip);
     
     console.log(`👑 管理員 ${req.user.email} 清除了速率限制 (IP: ${req.ip})`);
@@ -2303,7 +2324,7 @@ app.get('/api/catalog', (req, res) => {
 });
 
 // 聖經文本 API
-app.get('/api/bible-text/:version', (req, res) => {
+app.get('/api/bible-text/:version', bibleReadingLimiter, (req, res) => {
   try {
     const version = req.params.version.toLowerCase();
     let filename;
@@ -2338,7 +2359,7 @@ app.get('/api/bible-text/:version', (req, res) => {
 });
 
 // 新增：FHL 聖經 JSON 代理端點（qb.php）
-app.get('/api/bible/qb', async (req, res) => {
+app.get('/api/bible/qb', bibleReadingLimiter, async (req, res) => {
   try {
     const upstreamBase = 'https://bible.fhl.net/json/qb.php';
 
@@ -2387,7 +2408,7 @@ app.get('/api/bible/qb', async (req, res) => {
 });
 
 // 新增：bolls.life 聖經章節代理端點
-app.get('/api/bible/chapter', async (req, res) => {
+app.get('/api/bible/chapter', bibleReadingLimiter, async (req, res) => {
   try {
     const translation = (req.query.translation || 'CUV').toString().toUpperCase();
     const bookId = parseInt(req.query.bookId, 10);
