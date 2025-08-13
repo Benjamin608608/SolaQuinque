@@ -2512,8 +2512,17 @@
                 existingButtons.remove();
             }
             
-            const main = window.DOMCache.mainContent;
-            if (!main) return;
+            // 安全獲取main元素，添加重試機制
+            let main = window.DOMCache.mainContent;
+            if (!main) {
+                // 清除緩存並重試
+                window.DOMCache.clear();
+                main = document.getElementById('mainContent');
+                if (!main) {
+                    console.error('無法找到mainContent元素');
+                    return;
+                }
+            }
             
             // 檢查認證狀態
             const authStatus = await checkAuthStatusSilent();
