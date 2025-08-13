@@ -3302,10 +3302,18 @@
                 return results;
             }
             
-            // 載入聖經文本用於搜尋
+            // 載入聖經文本用於搜尋（優化版 - 使用緩存）
             async function loadBibleTextForSearch(version) {
-                const filename = version === 'KJV' ? 'kjv-bible.txt' : 'cuv-bible.txt';
-                // 使用 API 端點來獲取聖經文本
+                const cacheKey = version.toLowerCase();
+                
+                // 檢查緩存
+                if (window.bibleTextCache[cacheKey]) {
+                    console.log(`✅ 搜尋使用聖經文本緩存: ${version}`);
+                    return window.bibleTextCache[cacheKey];
+                }
+                
+                // 首次載入
+                console.log(`📥 搜尋載入聖經文本: ${version}`);
                 const url = `/api/bible-text/${version.toLowerCase()}`;
                 
                 try {
@@ -3313,7 +3321,13 @@
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}`);
                     }
-                    return await response.text();
+                    const text = await response.text();
+                    
+                    // 存入緩存
+                    window.bibleTextCache[cacheKey] = text;
+                    console.log(`💾 搜尋聖經文本已緩存: ${version}`);
+                    
+                    return text;
                 } catch (error) {
                     console.error('載入聖經文本失敗:', error);
                     throw error;
@@ -4233,7 +4247,32 @@
                 return result;
             }
 
-            // 載入章節內容
+            // 聖經文本緩存
+            window.bibleTextCache = window.bibleTextCache || {};
+            
+            // 清理聖經文本緩存（可選）
+            function clearBibleTextCache() {
+                const cacheSize = Object.keys(window.bibleTextCache).length;
+                if (cacheSize > 0) {
+                    window.bibleTextCache = {};
+                    console.log(`🗑️ 已清理聖經文本緩存 (${cacheSize} 個版本)`);
+                }
+            }
+            
+            // 獲取緩存狀態
+            function getBibleCacheInfo() {
+                const cached = Object.keys(window.bibleTextCache);
+                const totalSize = Object.values(window.bibleTextCache)
+                    .reduce((total, text) => total + text.length, 0);
+                
+                return {
+                    versions: cached,
+                    count: cached.length,
+                    sizeMB: (totalSize / 1024 / 1024).toFixed(2)
+                };
+            }
+            
+            // 載入章節內容（優化版）
             async function loadBibleChapterContent(bookId, chapter, version) {
                 const container = document.getElementById('bibleChapterContent');
                 if (!container) return;
@@ -4242,17 +4281,40 @@
                 clearVerseSelection();
                 
                 try {
-                    // 從本地文本檔案載入
-                    const response = await fetch(`/data/bible-versions/${version.toLowerCase()}-bible.txt`);
-                    if (!response.ok) {
-                        throw new Error(`無法載入聖經檔案 (${response.status}: ${response.statusText})`);
-                    }
+                    // 顯示載入狀態
+                    container.innerHTML = `
+                        <div class="flex items-center justify-center p-8">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--primary)] mr-3"></div>
+                            <span class="text-[var(--text-secondary)] text-sm">載入章節內容...</span>
+                        </div>
+                    `;
                     
-                    const text = await response.text();
+                    // 檢查緩存
+                    const cacheKey = version.toLowerCase();
+                    let text;
                     
-                    // 檢查檔案是否為空或只有標題
-                    if (!text || text.trim().length < 100) {
-                        throw new Error('聖經檔案內容不完整');
+                    if (window.bibleTextCache[cacheKey]) {
+                        // 使用緩存
+                        text = window.bibleTextCache[cacheKey];
+                        console.log(`✅ 使用聖經文本緩存: ${version}`);
+                    } else {
+                        // 首次載入，從 API 獲取
+                        console.log(`📥 載入聖經文本: ${version}`);
+                        const response = await fetch(`/api/bible-text/${version.toLowerCase()}`);
+                        if (!response.ok) {
+                            throw new Error(`無法載入聖經檔案 (${response.status}: ${response.statusText})`);
+                        }
+                        
+                        text = await response.text();
+                        
+                        // 檢查檔案是否為空或只有標題
+                        if (!text || text.trim().length < 100) {
+                            throw new Error('聖經檔案內容不完整');
+                        }
+                        
+                        // 存入緩存
+                        window.bibleTextCache[cacheKey] = text;
+                        console.log(`💾 聖經文本已緩存: ${version} (${(text.length / 1024 / 1024).toFixed(2)}MB)`);
                     }
                     
                     const verses = parseBibleTextFromFile(text, bookId, chapter);
