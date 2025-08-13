@@ -2870,6 +2870,57 @@
                         <h1 class="text-2xl font-serif font-bold text-[var(--text-primary)] bible-page-title">${title}</h1>
                     </div>
                     ${loginPrompt}
+                    
+                    <!-- 聖經搜尋功能 -->
+                    <div class="bible-search-container mb-6">
+                        <div class="relative max-w-2xl mx-auto mb-4">
+                            <div class="relative">
+                                <span class="material-icons-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] text-lg">search</span>
+                                <input 
+                                    type="text" 
+                                    id="bibleSearchInput" 
+                                    class="w-full pl-10 pr-20 py-3 rounded-full border border-[var(--accent)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent text-sm"
+                                    style="color: var(--primary);"
+                                    placeholder="${window.currentLanguage === 'en' ? 'Search in Bible (e.g., Jesus, love, peace...)' : '搜尋聖經內容 (例如：耶穌、愛、平安...)'}"
+                                />
+                                <div class="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                                    <button id="bibleSearchBtn" class="px-3 py-1.5 bg-[var(--primary)] text-white rounded-full text-xs hover:bg-[var(--primary-dark)] transition-colors">
+                                        ${window.currentLanguage === 'en' ? 'Search' : '搜尋'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 搜尋選項 -->
+                        <div class="flex flex-wrap justify-center gap-4 mb-4 text-xs">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="searchWholeWords" class="rounded border-[var(--accent)]">
+                                <label for="searchWholeWords" class="text-[var(--text-secondary)]">${window.currentLanguage === 'en' ? 'Whole words' : '完整詞彙'}</label>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="searchCaseSensitive" class="rounded border-[var(--accent)]">
+                                <label for="searchCaseSensitive" class="text-[var(--text-secondary)]">${window.currentLanguage === 'en' ? 'Case sensitive' : '區分大小寫'}</label>
+                            </div>
+                        </div>
+                        
+                        <!-- 搜尋結果區域 -->
+                        <div id="bibleSearchResults" class="hidden">
+                            <div class="bg-white rounded-lg border border-[var(--accent)] shadow-sm max-h-80 overflow-y-auto">
+                                <div id="searchResultsHeader" class="px-4 py-3 border-b border-[var(--accent)] bg-[var(--secondary)]">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-medium text-[var(--text-primary)]" id="searchResultsCount"></span>
+                                        <button id="closeSearchResults" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                                            <span class="material-icons-outlined text-lg">close</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="searchResultsList" class="divide-y divide-[var(--accent)]">
+                                    <!-- 搜尋結果將在這裡顯示 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="flex items-center gap-3 justify-end mb-3">
                         <label for="bibleVersion" class="text-sm text-[var(--text-secondary)] whitespace-nowrap">${(window.translations && window.translations['bible-version']) || (window.currentLanguage==='en'?'Version':'版本')}</label>
                         <select id="bibleVersion" class="border rounded px-3 py-1.5 text-sm min-w-[180px] appearance-auto text-[var(--primary)]">
@@ -3017,58 +3068,7 @@
                                 <div class="w-16 h-1 bg-[var(--primary)] mx-auto rounded-full"></div>
                             </div>
                             
-                            <!-- 聖經搜尋功能 -->
-                            <div class="bible-search-container mb-6">
-                                <div class="relative max-w-2xl mx-auto mb-4">
-                                    <div class="relative">
-                                        <span class="material-icons-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] text-lg">search</span>
-                                        <input 
-                                            type="text" 
-                                            id="bibleSearchInput" 
-                                            class="w-full pl-10 pr-20 py-3 rounded-full border border-[var(--accent)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent text-sm"
-                                            placeholder="${lang === 'en' ? 'Search in Bible (e.g., Jesus, love, peace...)' : '搜尋聖經內容 (例如：耶穌、愛、平安...)'}"
-                                        />
-                                        <div class="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                                            <button id="bibleSearchBtn" class="px-3 py-1.5 bg-[var(--primary)] text-white rounded-full text-xs hover:bg-[var(--primary-dark)] transition-colors">
-                                                ${lang === 'en' ? 'Search' : '搜尋'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- 搜尋選項 -->
-                                <div class="flex flex-wrap justify-center gap-4 mb-4 text-xs">
-                                    <div class="flex items-center gap-2">
-                                        <input type="checkbox" id="searchCurrentBook" checked class="rounded border-[var(--accent)]">
-                                        <label for="searchCurrentBook" class="text-[var(--text-secondary)]">${lang === 'en' ? 'Current book only' : '僅當前書卷'}</label>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <input type="checkbox" id="searchWholeWords" class="rounded border-[var(--accent)]">
-                                        <label for="searchWholeWords" class="text-[var(--text-secondary)]">${lang === 'en' ? 'Whole words' : '完整詞彙'}</label>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <input type="checkbox" id="searchCaseSensitive" class="rounded border-[var(--accent)]">
-                                        <label for="searchCaseSensitive" class="text-[var(--text-secondary)]">${lang === 'en' ? 'Case sensitive' : '區分大小寫'}</label>
-                                    </div>
-                                </div>
-                                
-                                <!-- 搜尋結果區域 -->
-                                <div id="bibleSearchResults" class="hidden">
-                                    <div class="bg-white rounded-lg border border-[var(--accent)] shadow-sm max-h-80 overflow-y-auto">
-                                        <div id="searchResultsHeader" class="px-4 py-3 border-b border-[var(--accent)] bg-[var(--secondary)]">
-                                            <div class="flex items-center justify-between">
-                                                <span class="text-sm font-medium text-[var(--text-primary)]" id="searchResultsCount"></span>
-                                                <button id="closeSearchResults" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-                                                    <span class="material-icons-outlined text-lg">close</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div id="searchResultsList" class="divide-y divide-[var(--accent)]">
-                                            <!-- 搜尋結果將在這裡顯示 -->
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+
                             
                             <!-- 經文內容 -->
                             <div id="bibleChapterContent" class="bible-chapter-content">
@@ -3082,11 +3082,6 @@
                     
                     // 載入章節內容
                     loadBibleChapterContent(bookId, chapter, version);
-                    
-                    // 初始化搜尋功能
-                    setTimeout(() => {
-                        initBibleSearch(bookId, version);
-                    }, 100);
                 }
                 setFooterVisibility();
             }
@@ -3095,7 +3090,7 @@
             window.selectedVerseRange = null;
             
             // 聖經搜尋功能初始化
-            function initBibleSearch(currentBookId, currentVersion) {
+            function initBibleSearch() {
                 const searchInput = document.getElementById('bibleSearchInput');
                 const searchBtn = document.getElementById('bibleSearchBtn');
                 const closeBtn = document.getElementById('closeSearchResults');
@@ -3107,12 +3102,12 @@
                 searchInput.dataset.initialized = 'true';
                 
                 // 搜尋按鈕點擊事件
-                searchBtn.addEventListener('click', () => performBibleSearch(currentBookId, currentVersion));
+                searchBtn.addEventListener('click', () => performBibleSearch());
                 
                 // Enter 鍵搜尋
                 searchInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
-                        performBibleSearch(currentBookId, currentVersion);
+                        performBibleSearch();
                     }
                 });
                 
@@ -3123,7 +3118,7 @@
             }
             
             // 執行聖經搜尋
-            async function performBibleSearch(currentBookId, currentVersion) {
+            async function performBibleSearch() {
                 const searchInput = document.getElementById('bibleSearchInput');
                 const query = searchInput?.value?.trim();
                 
@@ -3131,6 +3126,10 @@
                     hideBibleSearchResults();
                     return;
                 }
+                
+                // 獲取當前選擇的版本
+                const versionElement = document.getElementById('bibleVersion');
+                const currentVersion = versionElement ? versionElement.value : 'CUV';
                 
                 // 顯示載入狀態
                 const resultsList = document.getElementById('searchResultsList');
@@ -3149,10 +3148,8 @@
                 try {
                     const results = await searchBibleText({
                         query,
-                        currentBookOnly: document.getElementById('searchCurrentBook')?.checked || false,
                         wholeWords: document.getElementById('searchWholeWords')?.checked || false,
                         caseSensitive: document.getElementById('searchCaseSensitive')?.checked || false,
-                        bookId: currentBookId,
                         version: currentVersion
                     });
                     
@@ -3173,7 +3170,7 @@
             
             // 搜尋聖經文本
             async function searchBibleText(options) {
-                const { query, currentBookOnly, wholeWords, caseSensitive, bookId, version } = options;
+                const { query, wholeWords, caseSensitive, version } = options;
                 
                 // 構建搜尋正則表達式
                 let searchPattern = query;
@@ -3226,11 +3223,6 @@
                         
                         // 清理多餘空格
                         text = text.replace(/\s+/g, ' ').trim();
-                        
-                        // 如果僅搜尋當前書卷
-                        if (currentBookOnly && currentBook.id !== bookId) {
-                            continue;
-                        }
                         
                         // 檢查是否匹配搜尋詞
                         if (searchRegex.test(text)) {
@@ -4982,6 +4974,12 @@
                     await loadWholeChapter(sel.bookId, sel.chapter);
                 }
             });
+            
+            // 初始化搜尋功能
+            setTimeout(() => {
+                initBibleSearch();
+            }, 100);
+            
             setFooterVisibility();
         }
 
