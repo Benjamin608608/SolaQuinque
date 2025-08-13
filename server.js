@@ -2214,6 +2214,41 @@ app.get('/api/catalog', (req, res) => {
   }
 });
 
+// 聖經文本 API
+app.get('/api/bible-text/:version', (req, res) => {
+  try {
+    const version = req.params.version.toLowerCase();
+    let filename;
+    
+    switch (version) {
+      case 'kjv':
+        filename = 'kjv-bible.txt';
+        break;
+      case 'cuv':
+        filename = 'cuv-bible.txt';
+        break;
+      case 'unv':
+        filename = 'unv-bible.txt';
+        break;
+      default:
+        return res.status(400).json({ error: 'Unsupported Bible version' });
+    }
+    
+    const filePath = path.join(__dirname, 'data', 'bible-versions', filename);
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Bible text file not found' });
+    }
+    
+    const content = fs.readFileSync(filePath, 'utf8');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(content);
+  } catch (err) {
+    console.error('讀取聖經文本失敗:', err);
+    res.status(500).json({ error: 'Failed to read Bible text' });
+  }
+});
+
 // 新增：FHL 聖經 JSON 代理端點（qb.php）
 app.get('/api/bible/qb', async (req, res) => {
   try {

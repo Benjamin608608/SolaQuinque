@@ -3174,7 +3174,20 @@
                 
                 // 構建搜尋正則表達式
                 let searchPattern = query;
-                if (wholeWords) {
+                
+                // 對於中文搜尋，處理字符間可能的空格
+                if (/[\u4e00-\u9fff]/.test(query)) {
+                    // 如果包含中文字符，在每個字符之間添加可選空格匹配
+                    searchPattern = query.split('').map(char => {
+                        if (/[\u4e00-\u9fff]/.test(char)) {
+                            return char + '\\s*';
+                        }
+                        return char;
+                    }).join('').replace(/\\s\*$/, ''); // 移除最後的空格匹配
+                }
+                
+                if (wholeWords && !/[\u4e00-\u9fff]/.test(query)) {
+                    // 只對非中文詞彙使用詞邊界
                     searchPattern = `\\b${searchPattern}\\b`;
                 }
                 
@@ -3248,7 +3261,8 @@
             // 載入聖經文本用於搜尋
             async function loadBibleTextForSearch(version) {
                 const filename = version === 'KJV' ? 'kjv-bible.txt' : 'cuv-bible.txt';
-                const url = `/data/bible-versions/${filename}`;
+                // 使用 API 端點來獲取聖經文本
+                const url = `/api/bible-text/${version.toLowerCase()}`;
                 
                 try {
                     const response = await fetch(url);
