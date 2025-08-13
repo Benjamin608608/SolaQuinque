@@ -8,6 +8,8 @@ require('dotenv').config();
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
 const { google } = require('googleapis');
+const rateLimit = require('express-rate-limit');
+const slowDown = require('express-slow-down');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -63,6 +65,67 @@ function getAuthorName(englishName, language = 'zh') {
 
 // 讓 express-session 支援 proxy (如 Railway/Heroku/Render)
 app.set('trust proxy', 1);
+
+// 🛡️ API 速率限制配置
+// 通用 API 限制 - 防止濫用
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 分鐘
+  max: 100, // 限制每個 IP 15分鐘內最多 100 個請求
+  message: {
+    error: '請求過於頻繁，請稍後再試',
+    retryAfter: '15分鐘後'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// 搜尋 API 嚴格限制 - 防止大量查詢
+const searchLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 分鐘
+  max: 20, // 限制每個 IP 5分鐘內最多 20 次搜尋
+  message: {
+    error: '搜尋請求過於頻繁，請稍後再試',
+    retryAfter: '5分鐘後'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// 聖經註釋 API 限制 - 防止濫用 AI 資源
+const bibleExplainLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 分鐘
+  max: 15, // 限制每個 IP 10分鐘內最多 15 次註釋請求
+  message: {
+    error: '註釋請求過於頻繁，請稍後再試',
+    retryAfter: '10分鐘後'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// 登入相關嚴格限制 - 防止暴力破解
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 分鐘
+  max: 5, // 限制每個 IP 15分鐘內最多 5 次登入嘗試
+  message: {
+    error: '登入嘗試過於頻繁，請稍後再試',
+    retryAfter: '15分鐘後'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// 減速中間件 - 漸進式延遲響應
+const speedLimiter = slowDown({
+  windowMs: 15 * 60 * 1000, // 15 分鐘
+  delayAfter: 50, // 允許前 50 個請求正常速度
+  delayMs: 500, // 超過後每個請求延遲 500ms
+  maxDelayMs: 5000, // 最大延遲 5 秒
+});
+
+// 應用全域中間件
+app.use(generalLimiter);
+app.use(speedLimiter);
 
 // 初始化 OpenAI 客戶端
 const openai = new OpenAI({
@@ -409,7 +472,7 @@ function getCurrentUrl(req) {
 
 // 認證路由 - 僅在 Google OAuth 已配置時啟用
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  app.get('/auth/google', (req, res) => {
+  app.get('/auth/google', authLimiter, (req, res) => {
     const userAgent = req.get('User-Agent');
     const currentUrl = getCurrentUrl(req);
     
@@ -596,7 +659,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     })(req, res);
   });
 
-  app.get('/auth/google/callback', 
+  app.get('/auth/google/callback', authLimiter, 
     passport.authenticate('google', { failureRedirect: '/' }),
     async function(req, res) {
       // 寫入登入紀錄到 MongoDB Atlas
@@ -696,7 +759,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   });
 }
 
-app.get('/auth/logout', function(req, res, next) {
+app.get('/auth/logout', authLimiter, function(req, res, next) {
   req.logout(function(err) {
     if (err) { return next(err); }
     res.redirect('/');
@@ -1557,7 +1620,7 @@ app.post('/api/test-search', async (req, res) => {
 
 
 // 主要搜索 API 端點 - 串流版本
-app.post('/api/search/stream', ensureAuthenticated, async (req, res) => {
+app.post('/api/search/stream', searchLimiter, ensureAuthenticated, async (req, res) => {
   try {
     const { question, language = 'zh' } = req.body;
 
@@ -1606,7 +1669,7 @@ app.post('/api/search/stream', ensureAuthenticated, async (req, res) => {
 });
 
 // 主要搜索 API 端點 - 需要認證 (保持兼容)
-app.post('/api/search', ensureAuthenticated, async (req, res) => {
+app.post('/api/search', searchLimiter, ensureAuthenticated, async (req, res) => {
   try {
     const { question, language = 'zh' } = req.body;
 
@@ -1956,7 +2019,7 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
 }
 
 // 聖經經文解釋 - 串流版本
-app.post('/api/bible/explain/stream', ensureAuthenticated, async (req, res) => {
+app.post('/api/bible/explain/stream', bibleExplainLimiter, ensureAuthenticated, async (req, res) => {
   try {
     const { bookEn, ref, translation, language = 'zh', passageText } = req.body || {};
 
@@ -2044,7 +2107,7 @@ ${passageText ? '---\n' + passageText + '\n---' : ''}`;
 });
 
 // 聖經經文解釋（依卷限定向量庫）- 保持兼容
-app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
+app.post('/api/bible/explain', bibleExplainLimiter, ensureAuthenticated, async (req, res) => {
   try {
     const { bookEn, ref, translation, language = 'zh', passageText } = req.body || {};
 
