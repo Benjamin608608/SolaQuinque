@@ -1074,6 +1074,14 @@
         };
         window.loadBibleSelection();
         
+        // 聖經版本持久化
+        window.saveBibleVersion = function(version) {
+            try { localStorage.setItem('bibleVersion', version); } catch {}
+        };
+        window.loadBibleVersion = function() {
+            try { return localStorage.getItem('bibleVersion') || 'CUV'; } catch { return 'CUV'; }
+        };
+        
 
         // 控制底部搜尋輸入欄顯示：僅首頁顯示
         function setFooterVisibility() {
@@ -2670,7 +2678,7 @@
                     const allBooks = [...window.booksOT, ...window.booksNT];
                     const book = allBooks.find(b => b.id === bookId);
                     const versionElement = window.DOMCache.bibleVersion;
-                    const version = versionElement ? versionElement.value : 'CUV';
+                    const version = versionElement ? versionElement.value : window.loadBibleVersion();
                     const lang = window.currentLanguage || 'zh';
                     const bookName = lang === 'en' ? book.en : book.zh;
                     
@@ -2914,7 +2922,7 @@
                 try {
                     // 獲取經文內容
                     const versionElement = window.DOMCache.bibleVersion;
-                    const version = versionElement ? versionElement.value : 'CUV';
+                    const version = versionElement ? versionElement.value : window.loadBibleVersion();
                     
                     // 從本地文本檔案載入經文
                     const response = await fetch(`/data/bible-versions/${version.toLowerCase()}-bible.txt`);
@@ -2993,7 +3001,7 @@
                     
                     // 獲取聖經版本
                     const versionElement = window.DOMCache.bibleVersion;
-                    const version = versionElement ? versionElement.value : 'CUV';
+                    const version = versionElement ? versionElement.value : window.loadBibleVersion();
                     
                     // 準備選中經文全文（用於定位語境，不作為回答來源）
                     const passageText = Array.isArray(targetVerses)
@@ -3278,7 +3286,7 @@
 
                 // 取得版本
                 const versionElement = window.DOMCache.bibleVersion;
-                const topVersion = ((versionElement ? versionElement.value : 'CUV') || 'CUV').toUpperCase();
+                const topVersion = ((versionElement ? versionElement.value : window.loadBibleVersion()) || 'CUV').toUpperCase();
                 const defaultBottom = topVersion === 'CUV' ? 'KJV' : 'CUV';
 
                 // 直接將原本畫面切成上下分割
@@ -3877,7 +3885,7 @@
 
             function renderPreloadedVerses(verses, from, to) {
                 const versionElement = window.DOMCache.bibleVersion;
-                const version = versionElement ? versionElement.value : 'CUV';
+                const version = versionElement ? versionElement.value : window.loadBibleVersion();
                 const container = window.DOMCache.bibleText;
                 const bibleResult = window.DOMCache.bibleResult;
                 const explain = document.getElementById('bibleExplanation');
@@ -3988,7 +3996,7 @@
             // 載入整章內容 - 直接顯示經文而不顯示節數按鈕
             async function loadWholeChapter(bookId, chapter) {
                 const versionElement = window.DOMCache.bibleVersion;
-                const version = versionElement ? versionElement.value : 'CUV';
+                const version = versionElement ? versionElement.value : window.loadBibleVersion();
                 const container = window.DOMCache.bibleText;
                 const bibleResult = window.DOMCache.bibleResult;
                 const explain = document.getElementById('bibleExplanation');
@@ -4209,11 +4217,22 @@
             if (tabNT) tabNT.addEventListener('click', () => renderBooks(window.booksNT));
             renderBooks(window.booksOT);
 
+            // 🔧 恢復上次保存的聖經版本選擇
+            const savedVersion = window.loadBibleVersion();
+            const versionSelect = window.DOMCache.bibleVersion;
+            if (versionSelect && savedVersion) {
+                versionSelect.value = savedVersion;
+            }
+
             // 隱藏生成解釋功能 - 保留程式碼供未來使用
             // document.getElementById('explainBibleBtn').addEventListener('click', explainBiblePassage);
 
             // 版本切換時，如已選有章，立即重新載入該章節內容
-            window.DOMCache.bibleVersion.addEventListener('change', async () => {
+            window.DOMCache.bibleVersion.addEventListener('change', async (event) => {
+                const newVersion = event.target.value;
+                // 💾 保存版本選擇
+                window.saveBibleVersion(newVersion);
+                
                 const sel = window.currentBibleSelection;
                 if (sel && sel.bookId && sel.chapter) {
                     // 重新載入該章節內容
@@ -4231,7 +4250,7 @@
             if (!container) return;
             try {
                 const versionElement = window.DOMCache.bibleVersion;
-                const version = versionElement ? versionElement.value : 'CUV';
+                const version = versionElement ? versionElement.value : window.loadBibleVersion();
                 const engs = document.getElementById('bibleBookEngs').value;
                 const chapter = document.getElementById('bibleChapter').value;
                 const vFrom = document.getElementById('bibleVerseFrom').value;
