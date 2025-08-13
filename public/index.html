@@ -2894,6 +2894,18 @@
                         <!-- 搜尋選項 -->
                         <div class="flex flex-wrap justify-center gap-4 mb-4 text-xs">
                             <div class="flex items-center gap-2">
+                                <label for="searchScope" class="text-[var(--text-secondary)]">${window.currentLanguage === 'en' ? 'Search in:' : '搜尋範圍:'}</label>
+                                <select id="searchScope" class="px-2 py-1 border border-[var(--accent)] rounded text-xs" style="color: var(--primary); min-width: 120px;">
+                                    <option value="all">${window.currentLanguage === 'en' ? 'All Bible' : '全部聖經'}</option>
+                                    <optgroup label="${window.currentLanguage === 'en' ? 'Old Testament' : '舊約'}">
+                                        <!-- 舊約書卷將由 JavaScript 動態填充 -->
+                                    </optgroup>
+                                    <optgroup label="${window.currentLanguage === 'en' ? 'New Testament' : '新約'}">
+                                        <!-- 新約書卷將由 JavaScript 動態填充 -->
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2">
                                 <input type="checkbox" id="searchWholeWords" class="rounded border-[var(--accent)]">
                                 <label for="searchWholeWords" class="text-[var(--text-secondary)]">${window.currentLanguage === 'en' ? 'Whole words' : '完整詞彙'}</label>
                             </div>
@@ -3094,12 +3106,16 @@
                 const searchInput = document.getElementById('bibleSearchInput');
                 const searchBtn = document.getElementById('bibleSearchBtn');
                 const closeBtn = document.getElementById('closeSearchResults');
+                const searchScope = document.getElementById('searchScope');
                 
-                if (!searchInput || !searchBtn) return;
+                if (!searchInput || !searchBtn || !searchScope) return;
                 
                 // 避免重複綁定事件
                 if (searchInput.dataset.initialized) return;
                 searchInput.dataset.initialized = 'true';
+                
+                // 填充搜尋範圍下拉選單
+                populateSearchScope();
                 
                 // 搜尋按鈕點擊事件
                 searchBtn.addEventListener('click', () => performBibleSearch());
@@ -3117,6 +3133,40 @@
                 }
             }
             
+            // 填充搜尋範圍下拉選單
+            function populateSearchScope() {
+                const searchScope = document.getElementById('searchScope');
+                if (!searchScope || !window.booksOT || !window.booksNT) return;
+                
+                const lang = window.currentLanguage || 'zh';
+                
+                // 清空現有選項（保留第一個"全部聖經"選項）
+                const optgroups = searchScope.querySelectorAll('optgroup');
+                optgroups.forEach(optgroup => {
+                    optgroup.innerHTML = '';
+                });
+                
+                // 獲取 optgroup 元素
+                const otOptgroup = optgroups[0]; // 舊約
+                const ntOptgroup = optgroups[1]; // 新約
+                
+                // 填充舊約書卷
+                window.booksOT.forEach(book => {
+                    const option = document.createElement('option');
+                    option.value = book.id;
+                    option.textContent = lang === 'en' ? book.en : book.zh;
+                    otOptgroup.appendChild(option);
+                });
+                
+                // 填充新約書卷
+                window.booksNT.forEach(book => {
+                    const option = document.createElement('option');
+                    option.value = book.id;
+                    option.textContent = lang === 'en' ? book.en : book.zh;
+                    ntOptgroup.appendChild(option);
+                });
+            }
+            
             // 執行聖經搜尋
             async function performBibleSearch() {
                 const searchInput = document.getElementById('bibleSearchInput');
@@ -3127,9 +3177,12 @@
                     return;
                 }
                 
-                // 獲取當前選擇的版本
+                // 獲取當前選擇的版本和搜尋範圍
                 const versionElement = document.getElementById('bibleVersion');
                 const currentVersion = versionElement ? versionElement.value : 'CUV';
+                
+                const searchScopeElement = document.getElementById('searchScope');
+                const searchScope = searchScopeElement ? searchScopeElement.value : 'all';
                 
                 // 顯示載入狀態
                 const resultsList = document.getElementById('searchResultsList');
@@ -3150,10 +3203,11 @@
                         query,
                         wholeWords: document.getElementById('searchWholeWords')?.checked || false,
                         caseSensitive: document.getElementById('searchCaseSensitive')?.checked || false,
-                        version: currentVersion
+                        version: currentVersion,
+                        searchScope: searchScope
                     });
                     
-                    displayBibleSearchResults(results, query);
+                    displayBibleSearchResults(results, query, searchScope);
                 } catch (error) {
                     console.error('聖經搜尋錯誤:', error);
                     if (resultsList) {
@@ -3170,7 +3224,7 @@
             
             // 搜尋聖經文本
             async function searchBibleText(options) {
-                const { query, wholeWords, caseSensitive, version } = options;
+                const { query, wholeWords, caseSensitive, version, searchScope } = options;
                 
                 // 構建搜尋正則表達式
                 let searchPattern = query;
@@ -3236,6 +3290,11 @@
                         
                         // 清理多餘空格
                         text = text.replace(/\s+/g, ' ').trim();
+                        
+                        // 檢查搜尋範圍限制
+                        if (searchScope !== 'all' && currentBook.id !== parseInt(searchScope)) {
+                            continue;
+                        }
                         
                         // 檢查是否匹配搜尋詞
                         if (searchRegex.test(text)) {
@@ -3303,7 +3362,7 @@
             }
             
             // 顯示搜尋結果
-            function displayBibleSearchResults(results, query) {
+            function displayBibleSearchResults(results, query, searchScope) {
                 const resultsList = document.getElementById('searchResultsList');
                 const resultsContainer = document.getElementById('bibleSearchResults');
                 const countElement = document.getElementById('searchResultsCount');
@@ -3313,9 +3372,21 @@
                 resultsContainer.classList.remove('hidden');
                 
                 const lang = window.currentLanguage || 'zh';
+                
+                // 獲取搜尋範圍的書卷名稱
+                let scopeText = '';
+                if (searchScope && searchScope !== 'all') {
+                    const allBooks = [...(window.booksOT || []), ...(window.booksNT || [])];
+                    const targetBook = allBooks.find(book => book.id === parseInt(searchScope));
+                    if (targetBook) {
+                        const bookName = lang === 'en' ? targetBook.en : targetBook.zh;
+                        scopeText = lang === 'en' ? ` in ${bookName}` : ` 在${bookName}中`;
+                    }
+                }
+                
                 const countText = lang === 'en' ? 
-                    `Found ${results.length} verse(s) containing "${query}"` :
-                    `找到 ${results.length} 節包含「${query}」的經文`;
+                    `Found ${results.length} verse(s) containing "${query}"${scopeText}` :
+                    `找到 ${results.length} 節包含「${query}」的經文${scopeText}`;
                 
                 if (countElement) {
                     countElement.textContent = countText;
