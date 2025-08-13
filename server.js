@@ -67,7 +67,17 @@ function getAuthorName(englishName, language = 'zh') {
 app.set('trust proxy', 1);
 
 // 🛡️ API 速率限制配置
-// 通用 API 限制 - 防止濫用
+// 管理員白名單 - 不受任何限制
+const adminEmails = [
+  'benjamin608608@gmail.com'
+];
+
+// 檢查是否為管理員的中間件
+function isAdmin(req) {
+  return req.user && req.user.email && adminEmails.includes(req.user.email);
+}
+
+// 通用 API 限制 - 防止濫用（管理員免疫）
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 分鐘
   max: 100, // 限制每個 IP 15分鐘內最多 100 個請求
@@ -77,9 +87,17 @@ const generalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // 管理員跳過限制
+    if (isAdmin(req)) {
+      console.log(`🔓 管理員 ${req.user.email} 跳過通用速率限制`);
+      return true;
+    }
+    return false;
+  }
 });
 
-// 搜尋 API 嚴格限制 - 防止大量查詢
+// 搜尋 API 嚴格限制 - 防止大量查詢（管理員免疫）
 const searchLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 分鐘
   max: 20, // 限制每個 IP 5分鐘內最多 20 次搜尋
@@ -89,9 +107,17 @@ const searchLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // 管理員跳過限制
+    if (isAdmin(req)) {
+      console.log(`🔓 管理員 ${req.user.email} 跳過搜尋速率限制`);
+      return true;
+    }
+    return false;
+  }
 });
 
-// 聖經註釋 API 限制 - 防止濫用 AI 資源
+// 聖經註釋 API 限制 - 防止濫用 AI 資源（管理員免疫）
 const bibleExplainLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 分鐘
   max: 15, // 限制每個 IP 10分鐘內最多 15 次註釋請求
@@ -101,18 +127,42 @@ const bibleExplainLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // 管理員跳過限制
+    if (isAdmin(req)) {
+      console.log(`🔓 管理員 ${req.user.email} 跳過註釋速率限制`);
+      return true;
+    }
+    return false;
+  }
 });
 
-// 登入相關嚴格限制 - 防止暴力破解
+// 管理員IP白名單 (可選 - 用於登入限制豁免)
+const adminIPs = [
+  '::1', // localhost IPv6
+  '127.0.0.1', // localhost IPv4
+  // 可以添加您的固定IP
+];
+
+// 登入相關嚴格限制 - 防止暴力破解（管理員IP免疫）
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 分鐘
-  max: 5, // 限制每個 IP 15分鐘內最多 5 次登入嘗試
+  max: 50, // 提高管理員的登入嘗試次數到50次
   message: {
     error: '登入嘗試過於頻繁，請稍後再試',
     retryAfter: '15分鐘後'
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // 檢查是否為管理員IP（本地開發）
+    const clientIP = req.ip || req.connection.remoteAddress;
+    if (adminIPs.includes(clientIP)) {
+      console.log(`🔓 管理員IP ${clientIP} 跳過登入速率限制`);
+      return true;
+    }
+    return false;
+  }
 });
 
 // 減速中間件 - 漸進式延遲響應
@@ -771,19 +821,57 @@ app.get('/auth/logout', authLimiter, function(req, res, next) {
 // 獲取用戶資訊
 app.get('/api/user', (req, res) => {
   if (req.isAuthenticated()) {
+    const userIsAdmin = isAdmin(req);
     res.json({
       success: true,
       user: {
         id: req.user.id,
         email: req.user.email,
         name: req.user.name,
-        picture: req.user.picture
+        picture: req.user.picture,
+        isAdmin: userIsAdmin // 添加管理員狀態
       }
     });
+    
+    if (userIsAdmin) {
+      console.log(`👑 管理員訪問 /api/user: ${req.user.email}`);
+    }
   } else {
     res.json({
       success: false,
       user: null
+    });
+  }
+});
+
+// 管理員專用 - 清除速率限制
+app.post('/api/admin/clear-rate-limits', (req, res) => {
+  if (!req.isAuthenticated() || !isAdmin(req)) {
+    return res.status(403).json({
+      success: false,
+      error: '需要管理員權限'
+    });
+  }
+
+  try {
+    // 清除所有速率限制器的記錄
+    generalLimiter.resetKey(req.ip);
+    searchLimiter.resetKey(req.ip);
+    bibleExplainLimiter.resetKey(req.ip);
+    authLimiter.resetKey(req.ip);
+    
+    console.log(`👑 管理員 ${req.user.email} 清除了速率限制 (IP: ${req.ip})`);
+    
+    res.json({
+      success: true,
+      message: '速率限制已清除',
+      adminAction: true
+    });
+  } catch (error) {
+    console.error('清除速率限制失敗:', error);
+    res.status(500).json({
+      success: false,
+      error: '清除失敗'
     });
   }
 });

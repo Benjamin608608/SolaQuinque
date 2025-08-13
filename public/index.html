@@ -1452,7 +1452,23 @@
             if (userAvatar) {
                 userAvatar.style.display = 'flex';
                 if (user.picture) {
-                    userAvatar.innerHTML = `<img src="${user.picture}" alt="User avatar" class="w-8 h-8 rounded-full border-2 border-[var(--accent)]" loading="lazy"/>`;
+                    let avatarHTML = `<img src="${user.picture}" alt="User avatar" class="w-8 h-8 rounded-full border-2 border-[var(--accent)]" loading="lazy"/>`;
+                    
+                    // 如果是管理員，添加皇冠標示
+                    if (user.isAdmin) {
+                        avatarHTML = `
+                            <div class="relative">
+                                <img src="${user.picture}" alt="Admin avatar" class="w-8 h-8 rounded-full border-2 border-yellow-400" loading="lazy"/>
+                                <div class="absolute -top-1 -right-1 text-yellow-400 text-xs" title="管理員">👑</div>
+                            </div>
+                        `;
+                        console.log('👑 管理員界面已啟用');
+                        
+                        // 添加管理員功能按鈕
+                        setTimeout(() => addAdminControls(), 100);
+                    }
+                    
+                    userAvatar.innerHTML = avatarHTML;
                 }
             }
             
@@ -4403,13 +4419,113 @@
                 }
             }
             
-            // 檢查預載入狀態
-            function getBiblePreloadStatus() {
-                return {
-                    ...window.biblePreloadStatus,
-                    cacheInfo: getBibleCacheInfo()
-                };
+                    // 檢查預載入狀態
+        function getBiblePreloadStatus() {
+            return {
+                ...window.biblePreloadStatus,
+                cacheInfo: getBibleCacheInfo()
+            };
+        }
+
+        // 管理員控制功能
+        function addAdminControls() {
+            // 檢查是否已經添加過管理員控制
+            if (document.getElementById('admin-controls')) {
+                return;
             }
+
+            const adminControlsHTML = `
+                <div id="admin-controls" class="fixed top-4 right-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg shadow-lg p-3 z-50" style="min-width: 200px;">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-yellow-600 font-medium">👑 管理員面板</span>
+                        <button onclick="toggleAdminControls()" class="text-yellow-600 hover:text-yellow-800 text-xs ml-auto">
+                            <span id="admin-toggle">−</span>
+                        </button>
+                    </div>
+                    <div id="admin-panel-content" class="space-y-2">
+                        <button 
+                            onclick="clearRateLimits()" 
+                            class="w-full px-3 py-1.5 bg-yellow-400 text-yellow-900 rounded text-xs hover:bg-yellow-500 transition-colors"
+                        >
+                            🚀 清除速率限制
+                        </button>
+                        <div class="text-xs text-yellow-600">
+                            狀態: <span class="font-medium">無限制</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', adminControlsHTML);
+        }
+
+        // 切換管理員面板顯示
+        function toggleAdminControls() {
+            const content = document.getElementById('admin-panel-content');
+            const toggle = document.getElementById('admin-toggle');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.textContent = '−';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = '+';
+            }
+        }
+
+        // 清除速率限制
+        async function clearRateLimits() {
+            try {
+                const response = await fetch('/api/admin/clear-rate-limits', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 顯示成功訊息
+                    showAdminMessage('✅ 速率限制已清除', 'success');
+                } else {
+                    throw new Error(result.error || '操作失敗');
+                }
+            } catch (error) {
+                console.error('清除速率限制失敗:', error);
+                showAdminMessage('❌ 操作失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 顯示管理員訊息
+        function showAdminMessage(message, type = 'info') {
+            const existingMsg = document.getElementById('admin-message');
+            if (existingMsg) {
+                existingMsg.remove();
+            }
+
+            const bgColor = type === 'success' ? 'bg-green-100 border-green-400 text-green-700' :
+                           type === 'error' ? 'bg-red-100 border-red-400 text-red-700' :
+                           'bg-blue-100 border-blue-400 text-blue-700';
+
+            const messageHTML = `
+                <div id="admin-message" class="fixed top-16 right-4 ${bgColor} border rounded-lg p-3 z-50 max-w-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm">${message}</span>
+                        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-xs opacity-70 hover:opacity-100">✕</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', messageHTML);
+
+            // 3秒後自動移除
+            setTimeout(() => {
+                const msg = document.getElementById('admin-message');
+                if (msg) msg.remove();
+            }, 3000);
+        }
             
             // 載入章節內容（優化版）
             async function loadBibleChapterContent(bookId, chapter, version) {
