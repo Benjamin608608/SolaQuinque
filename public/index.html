@@ -2093,6 +2093,16 @@
                 // 使用現有的 formatAnswer 函數處理引用標註
                 const formattedHtml = formatAnswer(this.buffer, sources);
                 this.renderContainer.innerHTML = formattedHtml;
+                
+                // 搜尋結果完成後，確保用戶能看到內容的開始
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: 0,
+                        left: 0,
+                        behavior: 'smooth'
+                    });
+                    console.log('📜 搜尋結果顯示完成，頁面已滾動到頂部');
+                }, 300); // 短暫延遲確保內容已渲染
             }
 
             reset() {
@@ -2277,6 +2287,14 @@
                         ${question ? `<p class="text-[var(--primary)] text-sm font-medium">"${question}"</p>` : ''}
                     </div>
                 `;
+                
+                // 自動滾動到頁面頂部
+                window.scrollTo({
+                    top: 0,
+                    left: 0,
+                    behavior: 'smooth'
+                });
+                console.log('📜 頁面已自動滾動到頂部');
             }
             
             setFooterVisibility();
