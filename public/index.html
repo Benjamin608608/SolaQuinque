@@ -161,6 +161,23 @@
             background: var(--secondary);
             color: var(--primary);
         }
+
+        /* 導航按鈕快速響應優化 */
+        .nav-link {
+            transition: all 0.15s ease !important;
+            transform-origin: center;
+        }
+
+        .nav-link:active {
+            transform: scale(0.95);
+            transition: transform 0.1s ease;
+        }
+
+        /* 防止按鈕在點擊時出現輪廓 */
+        .nav-link:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--primary);
+        }
         
         .nav-link.active {
             background: var(--primary);
@@ -1571,8 +1588,9 @@
                         </div>
                     </div>
                 `;
-                // 🔧 DOM重寫後清理緩存
+                // 🔧 DOM重寫後清理緩存和重置狀態
                 window.DOMCache.clear();
+                resetNavigationHandlers();
             }
             
             // 添加導航按鈕功能
@@ -2687,32 +2705,76 @@
             window.currentLanguage = window.currentLanguage || 'zh';
         })();
 
-        // 添加導航處理器
+        // 導航處理器狀態追蹤
+        let navigationHandlersAdded = false;
+
+        // 添加導航處理器（防止重複綁定）
         function addNavigationHandlers() {
+            // 如果已經添加過，直接返回
+            if (navigationHandlersAdded) {
+                console.log('⚡ 導航處理器已存在，跳過重複綁定');
+                return;
+            }
+
             const homeLink = window.DOMCache.get('homeLink');
             const catalogLink = window.DOMCache.get('catalogLink');
             const bibleLink = window.DOMCache.get('bibleLink');
             
-            if (homeLink) {
-                homeLink.addEventListener('click', (e) => {
+            // 快速點擊處理函數
+            const createClickHandler = (handler, name) => {
+                let isProcessing = false;
+                return async (e) => {
                     e.preventDefault();
-                    showHomePage();
-                });
+                    e.stopPropagation();
+                    
+                    // 防止快速重複點擊
+                    if (isProcessing) {
+                        console.log(`⚡ ${name} 正在處理中，忽略重複點擊`);
+                        return;
+                    }
+                    
+                    isProcessing = true;
+                    console.log(`⚡ ${name} 按鈕點擊`);
+                    
+                    try {
+                        // 立即提供視覺反饋
+                        e.target.style.transform = 'scale(0.95)';
+                        setTimeout(() => {
+                            if (e.target) e.target.style.transform = '';
+                        }, 150);
+                        
+                        await handler();
+                    } catch (error) {
+                        console.error(`${name} 處理失敗:`, error);
+                    } finally {
+                        // 添加小延遲防止連點
+                        setTimeout(() => {
+                            isProcessing = false;
+                        }, 200);
+                    }
+                };
+            };
+            
+            if (homeLink) {
+                homeLink.addEventListener('click', createClickHandler(showHomePage, '首頁'));
             }
             
             if (catalogLink) {
-                catalogLink.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    await showCatalogPage();
-                });
+                catalogLink.addEventListener('click', createClickHandler(showCatalogPage, '參考'));
             }
             
             if (bibleLink) {
-                bibleLink.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    await showBiblePage();
-                });
+                bibleLink.addEventListener('click', createClickHandler(showBiblePage, '聖經查詢'));
             }
+
+            navigationHandlersAdded = true;
+            console.log('⚡ 導航處理器已優化並綁定');
+        }
+
+        // 重置導航處理器狀態（當DOM被重寫時）
+        function resetNavigationHandlers() {
+            navigationHandlersAdded = false;
+            console.log('🔄 導航處理器狀態已重置');
         }
 
         // 啟用燭光掠過轉場
