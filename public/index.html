@@ -1650,14 +1650,246 @@
             }
         }
 
+        // 強化移動端生成恢復系統
+        let appBackgroundTime = null;
+        let lastActiveRequest = null;
+        let requestStartTime = null;
+        let lastActiveCommentary = null; // 聖經註釋請求狀態
+
         // 頁面可見性檢測（改善移動設備體驗）
         document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && window.isSearching) {
-                // 用戶切換回頁面，檢查連線狀態
-                console.log('用戶切換回頁面，檢查連線狀態...');
-                checkConnectionStatus();
+            if (document.hidden) {
+                // 應用進入背景
+                appBackgroundTime = Date.now();
+                console.log('📱 應用進入背景，記錄時間');
+                
+                // 保存當前請求狀態
+                if (window.isSearching && window.currentQuestion) {
+                    lastActiveRequest = {
+                        question: window.currentQuestion,
+                        language: window.currentLanguage || 'zh',
+                        startTime: requestStartTime
+                    };
+                    console.log('💾 保存進行中的搜尋請求狀態');
+                }
+                
+                // 保存聖經註釋請求狀態
+                const commentaryDialog = document.getElementById('verse-commentary-dialog');
+                if (commentaryDialog && !commentaryDialog.querySelector('.error-message')) {
+                    const isGenerating = commentaryDialog.querySelector('.animate-spin');
+                    if (isGenerating && lastActiveCommentary) {
+                        console.log('💾 保存進行中的註釋請求狀態');
+                    }
+                }
+            } else {
+                // 應用回到前台
+                const backgroundDuration = appBackgroundTime ? Date.now() - appBackgroundTime : 0;
+                console.log(`📱 應用回到前台，背景時間: ${backgroundDuration}ms`);
+                
+                // 如果在背景時間超過5秒且有進行中的搜索，嘗試恢復
+                if (backgroundDuration > 5000) {
+                    console.log('⚠️ 長時間背景運行，檢查生成狀態');
+                    handleAppRestore(backgroundDuration);
+                } else if (window.isSearching) {
+                    // 短時間背景，檢查連線狀態
+                    console.log('🔄 短暫背景，檢查連線狀態');
+                    checkConnectionStatus();
+                }
+                
+                appBackgroundTime = null;
             }
         });
+
+        // 處理應用恢復
+        async function handleAppRestore(backgroundDuration) {
+            try {
+                // 1. 首先檢查網絡連接
+                const isOnline = await checkConnectionStatus();
+                if (!isOnline) {
+                    showMobileRestoreError('網絡連接已斷開，請檢查網絡後重試');
+                    return;
+                }
+
+                // 2. 如果有搜索在進行中
+                if (window.isSearching && lastActiveRequest) {
+                    const requestDuration = requestStartTime ? Date.now() - requestStartTime : 0;
+                    
+                    // 如果請求已經進行太久（超過2分鐘），認為失敗
+                    if (requestDuration > 120000) {
+                        console.log('🔄 檢測到超時請求，嘗試恢復生成');
+                        await restoreFailedGeneration();
+                    } else {
+                        // 嘗試檢查請求狀態
+                        console.log('⏳ 檢查生成進度');
+                        await checkGenerationStatus();
+                    }
+                } else if (lastActiveRequest && !window.isSearching) {
+                    // 搜索完成但可能在背景時失敗了
+                    console.log('🔍 檢查是否需要重新生成');
+                    const main = window.DOMCache.mainContent;
+                    if (main && main.innerHTML.includes('網路錯誤')) {
+                        await restoreFailedGeneration();
+                    }
+                }
+
+                // 3. 檢查聖經註釋狀態
+                if (lastActiveCommentary) {
+                    const commentaryDialog = document.getElementById('verse-commentary-dialog');
+                    if (commentaryDialog) {
+                        const hasError = commentaryDialog.querySelector('.error-message');
+                        const isLoading = commentaryDialog.querySelector('.animate-spin');
+                        
+                        if (hasError || (isLoading && backgroundDuration > 30000)) {
+                            console.log('🔄 檢測到註釋生成問題，嘗試恢復');
+                            await restoreFailedCommentary();
+                        }
+                    }
+                }
+
+            } catch (error) {
+                console.error('應用恢復處理失敗:', error);
+                showMobileRestoreError('恢復失敗，請手動重新搜索');
+            }
+        }
+
+                 // 恢復失敗的生成
+         async function restoreFailedGeneration() {
+             if (!lastActiveRequest) {
+                 console.log('❌ 沒有可恢復的請求');
+                 return;
+             }
+
+             console.log('🔄 嘗試恢復生成:', lastActiveRequest.question);
+             
+             // 顯示恢復提示
+             showMobileRestoreMessage('檢測到中斷的生成，正在自動恢復...');
+             
+             try {
+                 // 重置搜索狀態
+                 clearSearchState();
+                 
+                 // 重新執行搜索
+                 window.currentLanguage = lastActiveRequest.language;
+                 requestStartTime = Date.now();
+                 await performSearch(lastActiveRequest.question);
+                 
+                 console.log('✅ 生成已恢復');
+                 hideMobileRestoreMessage();
+                 
+                 // 清除保存的請求
+                 lastActiveRequest = null;
+                 
+             } catch (error) {
+                 console.error('恢復生成失敗:', error);
+                 showMobileRestoreError('自動恢復失敗，請手動重新搜索');
+             }
+         }
+
+         // 恢復失敗的聖經註釋
+         async function restoreFailedCommentary() {
+             if (!lastActiveCommentary) {
+                 console.log('❌ 沒有可恢復的註釋請求');
+                 return;
+             }
+
+             console.log('🔄 嘗試恢復聖經註釋:', lastActiveCommentary);
+             
+             // 顯示恢復提示
+             showMobileRestoreMessage('檢測到中斷的註釋生成，正在自動恢復...');
+             
+             try {
+                 // 關閉現有對話框
+                 closeVerseCommentaryDialog();
+                 
+                 // 等待一下確保對話框完全關閉
+                 setTimeout(() => {
+                     // 重新打開註釋對話框
+                     showVerseCommentaryDialog(
+                         lastActiveCommentary.bookId,
+                         lastActiveCommentary.chapter, 
+                         lastActiveCommentary.startVerse,
+                         lastActiveCommentary.endVerse,
+                         lastActiveCommentary.bookName
+                     );
+                     
+                     console.log('✅ 註釋生成已恢復');
+                     hideMobileRestoreMessage();
+                     
+                     // 清除保存的請求
+                     lastActiveCommentary = null;
+                 }, 500);
+                 
+             } catch (error) {
+                 console.error('恢復註釋生成失敗:', error);
+                 showMobileRestoreError('自動恢復失敗，請手動重新生成註釋');
+             }
+         }
+
+        // 檢查生成狀態
+        async function checkGenerationStatus() {
+            try {
+                // 簡單檢查：如果loading狀態持續太久，可能有問題
+                const main = window.DOMCache.mainContent;
+                if (main && main.innerHTML.includes('animate-spin')) {
+                    console.log('⏳ 生成仍在進行中');
+                    
+                    // 等待一段時間看是否有進展
+                    setTimeout(() => {
+                        if (window.isSearching && main.innerHTML.includes('animate-spin')) {
+                            console.log('⚠️ 生成可能卡住，嘗試恢復');
+                            restoreFailedGeneration();
+                        }
+                    }, 30000); // 30秒後檢查
+                }
+            } catch (error) {
+                console.error('檢查生成狀態失敗:', error);
+            }
+        }
+
+        // 顯示移動端恢復訊息
+        function showMobileRestoreMessage(message) {
+            hideMobileRestoreMessage(); // 先移除舊的
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'mobile-restore-message';
+            messageDiv.className = 'fixed top-4 left-4 right-4 bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded z-50';
+            messageDiv.innerHTML = `
+                <div class="flex items-center">
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-3"></div>
+                    <span class="text-sm">${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(messageDiv);
+        }
+
+        // 顯示移動端恢復錯誤
+        function showMobileRestoreError(message) {
+            hideMobileRestoreMessage(); // 先移除舊的
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'mobile-restore-message';
+            messageDiv.className = 'fixed top-4 left-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
+            messageDiv.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-sm">${message}</span>
+                    <button onclick="hideMobileRestoreMessage()" class="ml-2 text-red-500 hover:text-red-700">✕</button>
+                </div>
+            `;
+            
+            document.body.appendChild(messageDiv);
+            
+            // 10秒後自動隱藏
+            setTimeout(hideMobileRestoreMessage, 10000);
+        }
+
+        // 隱藏移動端恢復訊息
+        function hideMobileRestoreMessage() {
+            const messageDiv = document.getElementById('mobile-restore-message');
+            if (messageDiv) {
+                messageDiv.remove();
+            }
+        }
 
         // 檢查連線狀態
         async function checkConnectionStatus() {
@@ -1666,16 +1898,20 @@
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                    }
+                    },
+                    timeout: 5000 // 5秒超時
                 });
                 
                 if (response.ok) {
-                    console.log('連線狀態正常');
+                    console.log('🌐 連線狀態正常');
+                    return true;
                 } else {
-                    console.log('連線狀態異常');
+                    console.log('⚠️ 連線狀態異常');
+                    return false;
                 }
             } catch (error) {
-                console.error('連線檢查失敗:', error);
+                console.error('❌ 連線檢查失敗:', error);
+                return false;
             }
         }
 
@@ -1683,6 +1919,13 @@
         function clearSearchState() {
             window.isSearching = false;
             window.currentQuestion = null;
+            requestStartTime = null;
+            
+            // 如果搜索成功完成，清除保存的請求
+            if (lastActiveRequest && !document.hidden) {
+                console.log('✅ 搜索成功完成，清除保存的請求');
+                lastActiveRequest = null;
+            }
         }
 
         // 執行搜索
@@ -1698,6 +1941,7 @@
             // 設置搜尋狀態
             window.isSearching = true;
             window.currentQuestion = question;
+            requestStartTime = Date.now(); // 記錄請求開始時間
             
             // 顯示載入狀態
             showLoadingState();
@@ -3799,6 +4043,13 @@
                 const contentDiv = document.getElementById('verse-commentary-content');
                 if (!contentDiv) return;
                 
+                // 保存註釋請求狀態（用於移動端恢復）
+                lastActiveCommentary = {
+                    bookId, chapter, startVerse, endVerse, bookName,
+                    startTime: Date.now()
+                };
+                console.log('💾 保存聖經註釋請求狀態:', lastActiveCommentary);
+                
                 try {
                     // 獲取經文內容
                     const versionElement = window.DOMCache.bibleVersion;
@@ -3987,6 +4238,11 @@
                                                 case 'done':
                                                     renderer.finalize();
                                                     finalizeCommentaryContent(renderer.buffer, sources, commentaryDiv);
+                                                    
+                                                    // 註釋生成完成，清除保存的狀態
+                                                    console.log('✅ 聖經註釋生成完成，清除保存狀態');
+                                                    lastActiveCommentary = null;
+                                                    
                                                     resolve();
                                                     return;
                                                     
