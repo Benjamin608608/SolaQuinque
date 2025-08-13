@@ -193,9 +193,9 @@ const speedLimiter = slowDown({
   maxDelayMs: 5000, // 最大延遲 5 秒
 });
 
-// 應用全域中間件
-app.use(generalLimiter);
-app.use(speedLimiter);
+// 🚀 暫時移除所有速率限制以優化性能
+// app.use(generalLimiter);
+// app.use(speedLimiter);
 
 // 初始化 OpenAI 客戶端
 const openai = new OpenAI({
@@ -542,7 +542,7 @@ function getCurrentUrl(req) {
 
 // 認證路由 - 僅在 Google OAuth 已配置時啟用
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  app.get('/auth/google', authLimiter, (req, res) => {
+  app.get('/auth/google', (req, res) => {
     const userAgent = req.get('User-Agent');
     const currentUrl = getCurrentUrl(req);
     
@@ -729,7 +729,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     })(req, res);
   });
 
-  app.get('/auth/google/callback', authLimiter, 
+  app.get('/auth/google/callback', 
     passport.authenticate('google', { failureRedirect: '/' }),
     async function(req, res) {
       // 寫入登入紀錄到 MongoDB Atlas
@@ -829,7 +829,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   });
 }
 
-app.get('/auth/logout', authLimiter, function(req, res, next) {
+app.get('/auth/logout', function(req, res, next) {
   req.logout(function(err) {
     if (err) { return next(err); }
     res.redirect('/');
@@ -1729,7 +1729,7 @@ app.post('/api/test-search', async (req, res) => {
 
 
 // 主要搜索 API 端點 - 串流版本
-app.post('/api/search/stream', searchLimiter, ensureAuthenticated, async (req, res) => {
+app.post('/api/search/stream', ensureAuthenticated, async (req, res) => {
   try {
     const { question, language = 'zh' } = req.body;
 
@@ -1778,7 +1778,7 @@ app.post('/api/search/stream', searchLimiter, ensureAuthenticated, async (req, r
 });
 
 // 主要搜索 API 端點 - 需要認證 (保持兼容)
-app.post('/api/search', searchLimiter, ensureAuthenticated, async (req, res) => {
+app.post('/api/search', ensureAuthenticated, async (req, res) => {
   try {
     const { question, language = 'zh' } = req.body;
 
@@ -2128,7 +2128,7 @@ async function processBibleExplainRequestStream(question, targetVectorStoreId, u
 }
 
 // 聖經經文解釋 - 串流版本
-app.post('/api/bible/explain/stream', bibleExplainLimiter, ensureAuthenticated, async (req, res) => {
+app.post('/api/bible/explain/stream', ensureAuthenticated, async (req, res) => {
   try {
     const { bookEn, ref, translation, language = 'zh', passageText } = req.body || {};
 
@@ -2216,7 +2216,7 @@ ${passageText ? '---\n' + passageText + '\n---' : ''}`;
 });
 
 // 聖經經文解釋（依卷限定向量庫）- 保持兼容
-app.post('/api/bible/explain', bibleExplainLimiter, ensureAuthenticated, async (req, res) => {
+app.post('/api/bible/explain', ensureAuthenticated, async (req, res) => {
   try {
     const { bookEn, ref, translation, language = 'zh', passageText } = req.body || {};
 
@@ -2324,7 +2324,7 @@ app.get('/api/catalog', (req, res) => {
 });
 
 // 聖經文本 API
-app.get('/api/bible-text/:version', bibleReadingLimiter, (req, res) => {
+app.get('/api/bible-text/:version', (req, res) => {
   try {
     const version = req.params.version.toLowerCase();
     let filename;
@@ -2359,7 +2359,7 @@ app.get('/api/bible-text/:version', bibleReadingLimiter, (req, res) => {
 });
 
 // 新增：FHL 聖經 JSON 代理端點（qb.php）
-app.get('/api/bible/qb', bibleReadingLimiter, async (req, res) => {
+app.get('/api/bible/qb', async (req, res) => {
   try {
     const upstreamBase = 'https://bible.fhl.net/json/qb.php';
 
@@ -2408,7 +2408,7 @@ app.get('/api/bible/qb', bibleReadingLimiter, async (req, res) => {
 });
 
 // 新增：bolls.life 聖經章節代理端點
-app.get('/api/bible/chapter', bibleReadingLimiter, async (req, res) => {
+app.get('/api/bible/chapter', async (req, res) => {
   try {
     const translation = (req.query.translation || 'CUV').toString().toUpperCase();
     const bookId = parseInt(req.query.bookId, 10);
