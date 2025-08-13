@@ -1,4 +1,20 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://your-domain.example/sitemap.xml
+# 允許索引所有主要頁面
+Allow: /index.html
+Allow: /bible/
+Allow: /search/
+Allow: /commentary/
+
+# 阻止索引API端點和配置文件
+Disallow: /api/
+Disallow: /config/
+Disallow: /data/
+Disallow: /scripts/
+
+# Sitemap 位置
+Sitemap: https://theologian2-production.up.railway.app/sitemap.xml
+
+# 爬取延遲（避免對服務器造成負擔）
+Crawl-delay: 1

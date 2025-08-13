@@ -3,7 +3,61 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
-    <title>神學知識庫</title>
+    
+    <!-- SEO 基礎標籤 -->
+    <title>神學知識庫 - AI聖經查詢與經文解釋平台 | 神學研究工具</title>
+    <meta name="description" content="專業神學知識庫，提供智能聖經查詢、經文解釋、神學資料搜尋服務。支援中英文聖經版本對照，AI輔助神學研究，適合牧者、神學生及信徒使用。">
+    <meta name="keywords" content="聖經查詢,神學AI,經文解釋,聖經研究,神學知識庫,聖經對照,基督教,神學工具,聖經搜尋,經文註釋">
+    <meta name="author" content="神學知識庫">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="zh-TW">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://theologian2-production.up.railway.app/">
+    <meta property="og:title" content="神學知識庫 - AI聖經查詢與經文解釋平台">
+    <meta property="og:description" content="專業神學知識庫，提供智能聖經查詢、經文解釋、神學資料搜尋服務。支援中英文聖經版本對照，AI輔助神學研究。">
+    <meta property="og:image" content="https://theologian2-production.up.railway.app/og-image.jpg">
+    <meta property="og:site_name" content="神學知識庫">
+    <meta property="og:locale" content="zh_TW">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://theologian2-production.up.railway.app/">
+    <meta name="twitter:title" content="神學知識庫 - AI聖經查詢與經文解釋平台">
+    <meta name="twitter:description" content="專業神學知識庫，提供智能聖經查詢、經文解釋、神學資料搜尋服務。支援中英文聖經版本對照，AI輔助神學研究。">
+    <meta name="twitter:image" content="https://theologian2-production.up.railway.app/og-image.jpg">
+    
+    <!-- 結構化數據 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "神學知識庫",
+        "description": "專業神學知識庫，提供智能聖經查詢、經文解釋、神學資料搜尋服務",
+        "url": "https://theologian2-production.up.railway.app/",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://theologian2-production.up.railway.app/?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        },
+        "provider": {
+            "@type": "Organization",
+            "name": "神學知識庫"
+        }
+    }
+    </script>
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://theologian2-production.up.railway.app/">
+    
+    <!-- 語言版本 -->
+    <link rel="alternate" hreflang="zh-TW" href="https://theologian2-production.up.railway.app/">
+    <link rel="alternate" hreflang="en" href="https://theologian2-production.up.railway.app/?lang=en">
+    
+    <!-- 網站圖標 -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
@@ -987,12 +1041,27 @@
         <p class="text-[var(--text-secondary)] mt-5 text-lg max-w-md font-light leading-relaxed" id="initialSubtitle">
             探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。
         </p>
+        
+        <!-- 主要功能介紹 - SEO 內容 -->
+        <section class="hidden" id="seoContent" aria-label="功能介紹">
+            <h2>智能聖經查詢系統</h2>
+            <p>本平台提供先進的聖經查詢功能，支援關鍵字搜尋、經文對照、章節導航等多種查詢方式。結合AI技術，為用戶提供精準的聖經研究體驗。</p>
+            
+            <h3>神學資料搜尋</h3>
+            <p>整合豐富的神學資料庫，包含經典註釋、神學著作、歷史文獻等，幫助牧者、神學生和信徒深入研究聖經真理。</p>
+            
+            <h3>經文解釋與註釋</h3>
+            <p>運用人工智能技術，提供經文的深度解釋和註釋，參考歷代神學家的觀點，為聖經研讀提供多元視角。</p>
+            
+            <h3>多版本聖經對照</h3>
+            <p>支援中英文多種聖經版本，包括和合本（CUV）、KJV等，方便進行經文對照研讀。</p>
+        </section>
     </main>
     
     <footer class="p-4 pb-6 w-full footer-bg sticky bottom-0" style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem)); z-index: 10;">
         <div class="relative w-full max-w-lg mx-auto">
             <span class="material-icons-outlined absolute left-5 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] text-xl">search</span>
-            <input class="w-full search-input rounded-full py-4 pl-14 pr-12 text-base" placeholder="詢問任何問題..." type="text" id="searchInput" aria-label="搜索神學知識庫" role="searchbox"/>
+            <input class="w-full search-input rounded-full py-4 pl-14 pr-12 text-base" placeholder="搜尋聖經經文、神學問題..." type="text" id="searchInput" aria-label="聖經查詢與神學搜尋" role="searchbox"/>
             <button class="submit-btn rounded-full w-10 h-10 flex items-center justify-center z-10" id="submitBtn" style="position: absolute; right: 0.375rem; top: 12%; transform: none;" aria-label="送出搜索" type="submit">
                 <span class="material-icons-outlined text-xl">arrow_upward</span>
             </button>
@@ -2326,11 +2395,11 @@
                 zh: {
                     'home': '首頁',
                     'catalog': '參考',
-                    'bible': '聖經',
+                    'bible': '聖經查詢',
                     'logout': '登出',
                     'title': '神學知識庫',
                     'subtitle': '探索歷代神學家的智慧結晶，為您的信仰尋找堅實的根基。',
-                    'placeholder': '詢問任何問題...',
+                    'placeholder': '搜尋聖經經文、神學問題...',
                     'catalog-title': '參考書目',
                     'catalog-subtitle': '探索豐富的神學文獻資料庫',
                     'author-search': '搜尋作者...',
@@ -2352,11 +2421,11 @@
                 en: {
                     'home': 'Home',
                     'catalog': 'Catalog',
-                    'bible': 'Bible',
+                    'bible': 'Bible Search',
                     'logout': 'Logout',
                     'title': 'Theology Knowledge Base',
                     'subtitle': 'Explore the wisdom of theologians throughout history, find solid foundations for your faith.',
-                    'placeholder': 'Ask any question...',
+                    'placeholder': 'Search Bible verses, theological questions...',
                     'catalog-title': 'Bibliography',
                     'catalog-subtitle': 'Explore a rich theological literature database',
                     'author-search': 'Search authors...',
@@ -2750,7 +2819,7 @@
             main.innerHTML = `
                 <div class="w-full max-w-5xl mx-auto px-3 bible-page">
                     <div class="text-center mt-6 mb-3">
-                        <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)] bible-page-title">${title}</h2>
+                        <h1 class="text-2xl font-serif font-bold text-[var(--text-primary)] bible-page-title">${title}</h1>
                     </div>
                     ${loginPrompt}
                     <div class="flex items-center gap-3 justify-end mb-3">
@@ -2896,7 +2965,7 @@
                             
                             <!-- 章節標題 -->
                             <div class="bible-chapter-header mb-6 text-center">
-                                <h2 class="text-2xl font-serif font-bold text-[var(--text-primary)] mb-2 bible-chapter-title">${lang === 'en' ? `${bookName} Chapter ${chapter}` : `${bookName} 第${chapter}章`}</h2>
+                                <h1 class="text-2xl font-serif font-bold text-[var(--text-primary)] mb-2 bible-chapter-title">${lang === 'en' ? `${bookName} Chapter ${chapter}` : `${bookName} 第${chapter}章`}</h1>
                                 <div class="w-16 h-1 bg-[var(--primary)] mx-auto rounded-full"></div>
                             </div>
                             

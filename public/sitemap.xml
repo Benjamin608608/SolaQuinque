@@ -1,8 +1,92 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  
+  <!-- 首頁 - 最高優先級 -->
   <url>
-    <loc>https://your-domain.example/</loc>
-    <changefreq>daily</changefreq>
+    <loc>https://theologian2-production.up.railway.app/</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
+  
+  <!-- 主要功能頁面 -->
+  <url>
+    <loc>https://theologian2-production.up.railway.app/bible</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>https://theologian2-production.up.railway.app/search</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://theologian2-production.up.railway.app/commentary</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- 聖經書卷頁面 - 舊約 -->
+  <url>
+    <loc>https://theologian2-production.up.railway.app/bible/genesis</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://theologian2-production.up.railway.app/bible/exodus</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://theologian2-production.up.railway.app/bible/psalms</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://theologian2-production.up.railway.app/bible/proverbs</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- 聖經書卷頁面 - 新約 -->
+  <url>
+    <loc>https://theologian2-production.up.railway.app/bible/matthew</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://theologian2-production.up.railway.app/bible/john</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://theologian2-production.up.railway.app/bible/romans</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://theologian2-production.up.railway.app/bible/revelation</loc>
+    <lastmod>2025-01-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
 </urlset>
