@@ -1671,6 +1671,13 @@
                         startTime: requestStartTime
                     };
                     console.log('💾 保存進行中的搜尋請求狀態');
+                    
+                    // 嘗試註冊背景處理
+                    attemptBackgroundProcessing(lastActiveRequest).then(success => {
+                        if (success) {
+                            console.log('📤 已嘗試背景處理（但移動端限制較大）');
+                        }
+                    });
                 }
                 
                 // 保存聖經註釋請求狀態
@@ -6083,9 +6090,131 @@
         }
         // ... existing code ...
 
+        // 註冊Service Worker
+        async function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('📦 Service Worker 註冊成功:', registration);
+                    
+                    // 檢查背景處理能力
+                    if (registration.sync) {
+                        console.log('✅ 支援背景同步');
+                    } else {
+                        console.log('❌ 不支援背景同步');
+                    }
+                    
+                    return registration;
+                } catch (error) {
+                    console.error('❌ Service Worker 註冊失敗:', error);
+                }
+            } else {
+                console.log('❌ 瀏覽器不支援 Service Worker');
+            }
+            return null;
+        }
+
+        // 檢查背景處理能力
+        async function checkBackgroundCapabilities() {
+            const info = {
+                serviceWorker: 'serviceWorker' in navigator,
+                backgroundSync: false,
+                webLocks: 'locks' in navigator,
+                pageVisibility: 'visibilityState' in document
+            };
+
+            if (info.serviceWorker) {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    info.backgroundSync = 'sync' in registration;
+                } catch (error) {
+                    console.error('檢查背景同步失敗:', error);
+                }
+            }
+
+            console.log('📱 背景處理能力:', info);
+            
+            // 顯示背景處理提示
+            showBackgroundCapabilityNotice(info);
+            
+            return info;
+        }
+
+        // 顯示背景處理能力提示
+        function showBackgroundCapabilityNotice(capabilities) {
+            const hasLimitedBackground = !capabilities.backgroundSync;
+            
+            if (hasLimitedBackground) {
+                // 5秒後顯示提示（不要立即干擾用戶）
+                setTimeout(() => {
+                    const notice = document.createElement('div');
+                    notice.id = 'background-notice';
+                    notice.className = 'fixed bottom-4 left-4 right-4 bg-yellow-50 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg shadow-lg z-40';
+                    notice.innerHTML = `
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <span class="text-yellow-600">📱</span>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <p class="text-sm font-medium">背景處理提示</p>
+                                <p class="text-xs mt-1">為確保生成完整，建議在生成過程中保持頁面前台運行。如需切換App，系統會自動為您恢復進度。</p>
+                            </div>
+                            <div class="ml-4 flex-shrink-0">
+                                <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-yellow-600 hover:text-yellow-800 text-sm">✕</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(notice);
+                    
+                    // 10秒後自動隱藏
+                    setTimeout(() => {
+                        if (notice.parentElement) {
+                            notice.remove();
+                        }
+                    }, 10000);
+                }, 5000);
+            }
+        }
+
+        // 嘗試背景處理請求
+        async function attemptBackgroundProcessing(requestData) {
+            try {
+                // 檢查Service Worker是否可用
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.ready;
+                    
+                    // 保存請求到Service Worker
+                    if (registration.active) {
+                        registration.active.postMessage({
+                            type: 'SAVE_PENDING_REQUEST',
+                            data: requestData
+                        });
+                        
+                        // 嘗試註冊背景同步
+                        if ('sync' in registration) {
+                            await registration.sync.register('search-recovery');
+                            console.log('📤 已註冊背景同步');
+                            return true;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('背景處理失敗:', error);
+            }
+            
+            return false;
+        }
+
         // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                // 註冊Service Worker
+                await registerServiceWorker();
+                
+                // 檢查背景處理能力
+                await checkBackgroundCapabilities();
+                
                 // 初始化搜尋狀態
                 window.isSearching = false;
                 window.currentQuestion = null;
