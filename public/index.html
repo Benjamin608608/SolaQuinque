@@ -2881,7 +2881,7 @@
                                     id="bibleSearchInput" 
                                     class="w-full pl-10 pr-20 py-3 rounded-full border border-[var(--accent)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent text-sm"
                                     style="color: var(--primary);"
-                                    placeholder="${window.currentLanguage === 'en' ? 'Search in Bible (e.g., Jesus, love, peace...)' : '搜尋聖經內容 (例如：耶穌、愛、平安...)'}"
+                                    placeholder="${window.currentLanguage === 'en' ? 'Search in Bible' : '搜尋聖經內容'}"
                                 />
                                 <div class="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
                                     <button id="bibleSearchBtn" class="px-3 py-1.5 bg-[var(--primary)] text-white rounded-full text-xs hover:bg-[var(--primary-dark)] transition-colors">
@@ -2892,7 +2892,7 @@
                         </div>
                         
                         <!-- 搜尋選項 -->
-                        <div class="flex flex-wrap justify-center gap-4 mb-4 text-xs">
+                        <div class="flex justify-center mb-4 text-xs">
                             <div class="flex items-center gap-2">
                                 <label for="searchScope" class="text-[var(--text-secondary)]">${window.currentLanguage === 'en' ? 'Search in:' : '搜尋範圍:'}</label>
                                 <select id="searchScope" class="px-2 py-1 border border-[var(--accent)] rounded text-xs" style="color: var(--primary); min-width: 120px;">
@@ -2904,14 +2904,6 @@
                                         <!-- 新約書卷將由 JavaScript 動態填充 -->
                                     </optgroup>
                                 </select>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" id="searchWholeWords" class="rounded border-[var(--accent)]">
-                                <label for="searchWholeWords" class="text-[var(--text-secondary)]">${window.currentLanguage === 'en' ? 'Whole words' : '完整詞彙'}</label>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" id="searchCaseSensitive" class="rounded border-[var(--accent)]">
-                                <label for="searchCaseSensitive" class="text-[var(--text-secondary)]">${window.currentLanguage === 'en' ? 'Case sensitive' : '區分大小寫'}</label>
                             </div>
                         </div>
                         
@@ -3201,8 +3193,6 @@
                 try {
                     const results = await searchBibleText({
                         query,
-                        wholeWords: document.getElementById('searchWholeWords')?.checked || false,
-                        caseSensitive: document.getElementById('searchCaseSensitive')?.checked || false,
                         version: currentVersion,
                         searchScope: searchScope
                     });
@@ -3224,7 +3214,7 @@
             
             // 搜尋聖經文本
             async function searchBibleText(options) {
-                const { query, wholeWords, caseSensitive, version, searchScope } = options;
+                const { query, version, searchScope } = options;
                 
                 // 構建搜尋正則表達式
                 let searchPattern = query;
@@ -3240,13 +3230,8 @@
                     }).join('').replace(/\\s\*$/, ''); // 移除最後的空格匹配
                 }
                 
-                if (wholeWords && !/[\u4e00-\u9fff]/.test(query)) {
-                    // 只對非中文詞彙使用詞邊界
-                    searchPattern = `\\b${searchPattern}\\b`;
-                }
-                
-                const flags = caseSensitive ? 'g' : 'gi';
-                const searchRegex = new RegExp(searchPattern, flags);
+                // 不區分大小寫搜尋
+                const searchRegex = new RegExp(searchPattern, 'gi');
                 
                 // 載入聖經文本
                 const bibleText = await loadBibleTextForSearch(version);
