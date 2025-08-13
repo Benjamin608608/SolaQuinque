@@ -1006,16 +1006,25 @@
         window.DOMCache = {
             _cache: new Map(),
             
-            // 獲取元素（帶智能緩存）
+            // 獲取元素（帶智能緩存和驗證）
             get(id) {
-                if (!this._cache.has(id)) {
-                    const element = document.getElementById(id);
-                    if (element) {
-                        this._cache.set(id, element);
+                // 檢查緩存中的元素是否仍然有效
+                if (this._cache.has(id)) {
+                    const cachedElement = this._cache.get(id);
+                    if (cachedElement && document.contains(cachedElement)) {
+                        return cachedElement;
+                    } else {
+                        // 緩存的元素已失效，移除緩存
+                        this._cache.delete(id);
                     }
-                    return element;
                 }
-                return this._cache.get(id);
+                
+                // 查找新元素並緩存
+                const element = document.getElementById(id);
+                if (element) {
+                    this._cache.set(id, element);
+                }
+                return element;
             },
             
             // 清除緩存（頁面導航時使用）
@@ -1223,6 +1232,8 @@
                         </div>
                     </div>
                 `;
+                // 🔧 DOM重寫後清理緩存
+                window.DOMCache.clear();
             }
             
             // 添加導航按鈕功能
@@ -1482,15 +1493,17 @@
                 // 初始化顯示
                 const main = window.DOMCache.mainContent;
                 if (main) {
-                    main.innerHTML = `
-                        <div class="chat-messages" id="chatMessages">
-                            <div class="message assistant">
-                                <div class="message-content" id="streamingContent">
-                                    <div class="streaming-indicator">正在生成回答...</div>
-                                </div>
+                                    main.innerHTML = `
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message assistant">
+                            <div class="message-content" id="streamingContent">
+                                <div class="streaming-indicator">正在生成回答...</div>
                             </div>
                         </div>
-                    `;
+                    </div>
+                `;
+                // 🔧 DOM重寫後清理緩存
+                window.DOMCache.clear();
                     
                     const streamingContent = window.DOMCache.streamingContent;
                     renderer.setContainer(streamingContent);
@@ -2572,6 +2585,9 @@
                     </div>
                 </div>
             `;
+
+            // 🔧 重要：DOM重寫後清理緩存，確保獲取新元素
+            window.DOMCache.clear();
  
             // 書卷資料（含 bolls bookId）- 設置為全局變數以便語言切換時使用
             window.booksOT = [
