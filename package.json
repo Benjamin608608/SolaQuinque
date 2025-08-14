@@ -6,6 +6,10 @@
   "scripts": {
     "start": "node scripts/railway-start.js",
     "dev": "nodemon server.js",
+    "dev:development": "NODE_ENV=development PORT=3001 nodemon server.js",
+    "dev:production-test": "NODE_ENV=production PORT=3001 nodemon server.js",
+    "setup-dev-env": "node scripts/setup-dev-environment.js",
+    "setup-git-branches": "node scripts/setup-git-branches.js",
     "check-env": "node scripts/check-env.js",
     "check-deployment": "node scripts/check-deployment.js",
     "railway-debug": "node scripts/railway-debug.js",
