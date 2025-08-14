@@ -1,6 +1,6 @@
 {
   "name": "theology-knowledge-base",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "神學知識庫網頁版 - 基於 OpenAI 向量搜索的神學問答系統",
   "main": "server.js",
   "scripts": {
@@ -29,6 +29,7 @@
     "check-bible-versions": "node scripts/check-available-versions.js",
     "check-bolls-versions": "node scripts/check-bolls-versions.js",
     "verify-deployment": "node scripts/verify-deployment.js",
+    "check-railway-dev": "node scripts/check-railway-dev-setup.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

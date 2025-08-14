@@ -14,7 +14,7 @@ Disallow: /data/
 Disallow: /scripts/
 
 # Sitemap 位置
-Sitemap: https://theologian2-production.up.railway.app/sitemap.xml
+Sitemap: https://your-domain.example/sitemap.xml
 
 # 爬取延遲（避免對服務器造成負擔）
 Crawl-delay: 1
