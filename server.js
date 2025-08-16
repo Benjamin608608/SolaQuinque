@@ -2433,16 +2433,6 @@ app.get('/api/bible/chapter', async (req, res) => {
   }
 });
 
-// 環境變數調試端點（臨時）
-app.get('/api/debug-env', (req, res) => {
-  res.json({
-    NODE_ENV: process.env.NODE_ENV,
-    GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL,
-    SESSION_SECRET: !!process.env.SESSION_SECRET,
-    timestamp: new Date().toISOString()
-  });
-});
-
 // 健康檢查端點
 app.get('/api/health', (req, res) => {
   const healthStatus = {
