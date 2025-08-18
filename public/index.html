@@ -1560,10 +1560,10 @@
                 }
             }, 1000); // 延遲1秒啟動，確保頁面完全載入
             
-            // 顯示首頁內容
-            showHomePage();
-            
             console.log('🎉 已認證用戶界面設置完成');
+            
+            // 最後顯示首頁內容
+            showHomePage();
         }
 
         // 顯示未認證的 UI（允許使用部分功能）
@@ -6311,7 +6311,7 @@
                 // 初始化搜尋狀態
                 window.isSearching = false;
                 window.currentQuestion = null;
-                window.currentPage = 'login'; // 默認為登入頁面
+                window.currentPage = 'loading'; // 初始為載入狀態
 
                 // 初始化語言：若 localStorage 有值則優先使用，否則預設中文
                 try {
@@ -6394,9 +6394,27 @@
                 // 嘗試自動開啟外部瀏覽器
                 setTimeout(() => { tryOpenExternalBrowser(); }, 1000);
             } catch (e) {
-                // 若有任何初始化錯誤，確保至少顯示登入頁
-                try { showLoginUI(); } catch {}
+                // 若有任何初始化錯誤，顯示錯誤訊息而不是登入頁
                 console.error('Init error:', e);
+                const errorContent = window.DOMCache.mainContent;
+                if (errorContent) {
+                    errorContent.innerHTML = `
+                        <div class="flex items-center justify-center min-h-screen">
+                            <div class="text-center">
+                                <div class="text-red-600 mb-4">
+                                    <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                    </svg>
+                                    <p class="text-lg font-semibold">載入失敗</p>
+                                    <p class="text-sm text-gray-600 mt-2">請重新整理頁面</p>
+                                </div>
+                                <button onclick="window.location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                    重新載入
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
             }
         });
 
