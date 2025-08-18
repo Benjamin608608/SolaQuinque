@@ -1560,6 +1560,9 @@
                 }
             }, 1000); // 延遲1秒啟動，確保頁面完全載入
             
+            // 顯示首頁內容
+            showHomePage();
+            
             console.log('🎉 已認證用戶界面設置完成');
         }
 
@@ -6327,9 +6330,9 @@
                 try { await loadAuthorTranslations(); } catch {}
 
                 // 先顯示載入狀態，避免閃爍
-                const mainContent = window.DOMCache.mainContent;
-                if (mainContent) {
-                    mainContent.innerHTML = `
+                const loadingContent = window.DOMCache.mainContent;
+                if (loadingContent) {
+                    loadingContent.innerHTML = `
                         <div class="flex items-center justify-center min-h-screen">
                             <div class="text-center">
                                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -6380,10 +6383,10 @@
                 bindCitationEvents();
 
                 // 頁面轉場：初次載入給主內容一個淡入
-                const mainContent = window.DOMCache.mainContent;
-                if (mainContent) {
-                    mainContent.classList.add('page-enter');
-                    requestAnimationFrame(() => mainContent.classList.add('page-enter-active'));
+                const mainContentElement = window.DOMCache.mainContent;
+                if (mainContentElement) {
+                    mainContentElement.classList.add('page-enter');
+                    requestAnimationFrame(() => mainContentElement.classList.add('page-enter-active'));
                 }
 
                 // 頁面載入時檢查
