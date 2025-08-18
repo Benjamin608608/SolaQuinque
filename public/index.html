@@ -1438,17 +1438,46 @@
             }
         }
 
+        // 認證狀態快取
+        let authCache = {
+            status: null,
+            user: null,
+            timestamp: 0,
+            duration: 30000 // 30秒快取
+        };
+
         // 檢查用戶認證狀態（不跳轉到登入頁面）
         async function checkAuthStatusSilent() {
             try {
+                // 檢查快取是否有效
+                const now = Date.now();
+                if (authCache.status !== null && (now - authCache.timestamp) < authCache.duration) {
+                    console.log('🚀 使用認證狀態快取');
+                    return { authenticated: authCache.status, user: authCache.user };
+                }
+                
                 const response = await fetch('/api/user');
                 const data = await response.json();
                 
                 if (data.success && data.user && data.user.id && data.user.email) {
                     console.log('用戶已認證:', data.user.email);
+                    // 更新快取
+                    authCache = {
+                        status: true,
+                        user: data.user,
+                        timestamp: now,
+                        duration: 30000
+                    };
                     return { authenticated: true, user: data.user };
                 } else {
                     console.log('用戶未認證');
+                    // 更新快取
+                    authCache = {
+                        status: false,
+                        user: null,
+                        timestamp: now,
+                        duration: 10000 // 未認證狀態快取較短時間
+                    };
                     return { authenticated: false, user: null };
                 }
             } catch (error) {
@@ -5064,29 +5093,27 @@
                 return map[en] || en;
             }
  
-            // 書卷向量資料庫預熱功能
-            async function warmupBookDatabase(bookEn) {
-                try {
-                    console.log(`🔥 預熱 ${bookEn} 資料庫...`);
-                    
-                    const response = await fetch('/api/bible/warmup', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ bookEn })
-                    });
-                    
-                    const result = await response.json();
-                    
+            // 書卷向量資料庫預熱功能（靜默背景執行）
+            function warmupBookDatabase(bookEn) {
+                // 靜默預熱，不影響用戶體驗，不等待結果
+                fetch('/api/bible/warmup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ bookEn })
+                }).then(response => response.json()).then(result => {
+                    // 靜默記錄結果，不顯示給用戶
                     if (result.success) {
-                        console.log(`✅ ${bookEn} 資料庫預熱已啟動 (檔案數: ${result.fileCount})`);
-                    } else {
-                        console.log(`ℹ️ ${bookEn} 資料庫預熱跳過: ${result.message}`);
+                        console.log(`✅ ${bookEn} 資料庫預熱完成`);
                     }
-                } catch (error) {
-                    console.warn(`⚠️ ${bookEn} 資料庫預熱失敗:`, error.message);
-                }
+                }).catch(error => {
+                    // 靜默處理錯誤，不影響用戶
+                    console.warn(`${bookEn} 預熱失敗:`, error.message);
+                });
+                
+                // 立即返回，不阻塞用戶操作
+                return Promise.resolve();
             }
 
             function renderBooks(list) {
@@ -5104,8 +5131,8 @@
                         const id = parseInt(btn.getAttribute('data-id'), 10);
                         document.getElementById('bibleBookEngs').value = engs;
                         
-                        // 🔥 用戶點擊書卷時立即預熱該書卷的向量資料庫
-                        warmupBookDatabase(enName).catch(console.warn);
+                        // 🔥 用戶點擊書卷時在背景預熱該書卷的向量資料庫（不阻塞 UI）
+                        setTimeout(() => warmupBookDatabase(enName), 100); // 延遲100ms，讓UI先響應
                         // 若同一本已展開，則收起並返回（切換）
                         const existingForThisBook = document.querySelector(`.chapters-inline-row[data-parent-book='${id}']`);
                         if (existingForThisBook) {
