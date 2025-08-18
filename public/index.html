@@ -1524,9 +1524,8 @@
                         startBiblePreloading().catch(error => {
                             console.error('預載入聖經文本失敗:', error);
                         });
-                    } else {
-                        console.warn('startBiblePreloading 函數尚未定義');
                     }
+                    // 移除警告訊息，因為這是可選功能
                 } catch (error) {
                     console.error('啟動預載入失敗:', error);
                 }
