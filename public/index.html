@@ -6326,20 +6326,51 @@
                 // 載入作者對照表（失敗不影響主流程）
                 try { await loadAuthorTranslations(); } catch {}
 
-                // 檢查認證狀態 - 優化流程避免閃爍
+                // 先顯示載入狀態，避免閃爍
+                const mainContent = window.DOMCache.mainContent;
+                if (mainContent) {
+                    mainContent.innerHTML = `
+                        <div class="flex items-center justify-center min-h-screen">
+                            <div class="text-center">
+                                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                                <p class="text-gray-600">載入中...</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 檢查認證狀態並直接顯示對應頁面
                 console.log('🔄 開始檢查用戶認證狀態...');
                 
                 try { 
-                    const isAuthenticated = await checkAuthStatus(); 
+                    const response = await fetch('/api/user');
+                    const data = await response.json();
                     
-                    if (isAuthenticated) {
-                        console.log('🎉 認證成功，已直接進入首頁');
+                    if (data.success && data.user && data.user.id && data.user.email) {
+                        console.log('✅ 用戶已認證:', data.user.email, '- 直接顯示首頁');
+                        // 直接顯示首頁，不經過登入畫面
+                        showAuthenticatedUI(data.user);
+                        // 更新快取
+                        authCache = {
+                            status: true,
+                            user: data.user,
+                            timestamp: Date.now(),
+                            duration: 30000
+                        };
                     } else {
-                        console.log('⏳ 用戶需要登入');
+                        console.log('❌ 用戶未認證，顯示登入頁面');
+                        showLoginUI();
+                        // 更新快取
+                        authCache = {
+                            status: false,
+                            user: null,
+                            timestamp: Date.now(),
+                            duration: 10000
+                        };
                     }
                 } catch (error) {
                     console.error('❌ 認證檢查失敗:', error);
-                    // 確保顯示登入畫面
+                    // 顯示登入畫面
                     showLoginUI();
                 }
 
