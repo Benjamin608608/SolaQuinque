@@ -1489,7 +1489,11 @@
                         console.log('👑 管理員界面已啟用');
                         
                         // 添加管理員功能按鈕
-                        setTimeout(() => addAdminControls(), 100);
+                        setTimeout(() => {
+                            if (typeof addAdminControls === 'function') {
+                                addAdminControls();
+                            }
+                        }, 100);
                     }
                     
                     userAvatar.innerHTML = avatarHTML;
@@ -1516,9 +1520,13 @@
             // 開始預載入聖經文本（非阻塞方式）
             setTimeout(() => {
                 try {
-                    startBiblePreloading().catch(error => {
-                        console.error('預載入聖經文本失敗:', error);
-                    });
+                    if (typeof startBiblePreloading === 'function') {
+                        startBiblePreloading().catch(error => {
+                            console.error('預載入聖經文本失敗:', error);
+                        });
+                    } else {
+                        console.warn('startBiblePreloading 函數尚未定義');
+                    }
                 } catch (error) {
                     console.error('啟動預載入失敗:', error);
                 }
