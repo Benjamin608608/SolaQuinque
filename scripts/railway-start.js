@@ -7,6 +7,15 @@
 
 console.log('🚀 Railway 優化啟動中...');
 
+// 暫時隱藏 punycode 棄用警告（來自 MongoDB 驅動程式）
+process.removeAllListeners('warning');
+process.on('warning', (warning) => {
+  if (warning.name === 'DeprecationWarning' && warning.message.includes('punycode')) {
+    return; // 忽略 punycode 警告
+  }
+  console.warn(warning.name + ': ' + warning.message);
+});
+
 // 設置記憶體限制
 const v8 = require('v8');
 v8.setFlagsFromString('--max-old-space-size=512');
