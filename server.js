@@ -200,9 +200,11 @@ const speedLimiter = slowDown({
 // app.use(generalLimiter);
 // app.use(speedLimiter);
 
-// 初始化 OpenAI 客戶端
+// 初始化 OpenAI 客戶端 - 啟用 HTTP Keep-Alive
+const { Agent } = require('http');
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  httpAgent: new Agent({ keepAlive: true }),
 });
 
 // 模型設定：使用 gpt-4o-mini
@@ -2648,60 +2650,91 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// 積極的 Assistant 預熱功能
-async function performActiveWarmup() {
+// 穩健的重試機制
+async function retryWithBackoff(fn, maxRetries = 3) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            const code = error?.error?.code || error?.code;
+            const retriable = ["server_error", "rate_limit_exceeded", "gateway_timeout"].includes(code) || 
+                             error.name === "APIConnectionError";
+            
+            if (!retriable || i === maxRetries - 1) {
+                throw error;
+            }
+            
+            // 指數退避 + 抖動
+            const backoff = Math.round(200 * Math.pow(2, i) * (0.7 + Math.random() * 0.6));
+            console.log(`⏳ 重試 ${i + 1}/${maxRetries}，等待 ${backoff}ms...`);
+            await new Promise(resolve => setTimeout(resolve, backoff));
+        }
+    }
+}
+
+// 使用 Responses API 進行輕量化預熱
+async function performLightweightWarmup() {
     try {
-        console.log('🔥 執行積極預熱 - 發送測試問題...');
+        console.log('🔥 開始輕量化預熱 - 使用 Responses API...');
+        
+        const startTime = Date.now();
+        
+        await retryWithBackoff(async () => {
+            const response = await openai.responses.create({
+                model: ASSISTANT_MODEL,
+                input: "ping",
+                max_output_tokens: 1
+            });
+            return response;
+        });
+        
+        const duration = Date.now() - startTime;
+        console.log(`✅ 輕量化預熱完成 - 耗時 ${duration}ms`);
+        
+    } catch (error) {
+        console.warn('⚠️ 輕量化預熱失敗:', error.message);
+        console.log('💡 這不影響系統正常運行，首次查詢可能稍慢');
+    }
+}
+
+// 穩健的 Assistant 預熱（備用方案）
+async function performAssistantWarmup() {
+    try {
+        console.log('🔥 開始 Assistant 預熱...');
         
         // 獲取或創建 Assistant
         const assistant = await getOrCreateAssistant();
         
-        // 創建 Thread
-        const thread = await openai.beta.threads.create();
-        
-        // 發送一個更簡單的測試問題
-        await openai.beta.threads.messages.create(thread.id, {
-            role: "user",
-            content: "Hello"
-        });
-        
-        // 創建 Run
-        const run = await openai.beta.threads.runs.create(thread.id, {
-            assistant_id: assistant.id
-        });
-        
-        // 等待完成 - 改善版本
-        let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-        let attempts = 0;
-        const maxAttempts = 20; // 減少到 20 秒超時
-        
-        console.log(`🔄 預熱進行中，初始狀態: ${runStatus.status}`);
-        
-        while (runStatus.status !== 'completed' && runStatus.status !== 'failed' && attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-            attempts++;
+        await retryWithBackoff(async () => {
+            // 創建 Thread
+            const thread = await openai.beta.threads.create();
             
-            // 每5秒報告一次狀態
-            if (attempts % 5 === 0) {
-                console.log(`🔄 預熱進度: ${attempts}/${maxAttempts}秒，狀態: ${runStatus.status}`);
+            // 發送極簡測試問題
+            await openai.beta.threads.messages.create(thread.id, {
+                role: "user",
+                content: "hi"
+            });
+            
+            // 創建並等待 Run 完成
+            const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
+                assistant_id: assistant.id
+            }, {
+                pollIntervalMs: 500,
+                maxWaitSeconds: 15
+            });
+            
+            if (run.status !== 'completed') {
+                throw new Error(`Run failed with status: ${run.status}`);
             }
-        }
+            
+            return run;
+        });
         
-        console.log(`🏁 預熱結束，最終狀態: ${runStatus.status}，耗時: ${attempts}秒`);
-        
-        if (runStatus.status === 'completed') {
-            console.log('✅ 積極預熱完成 - Assistant 已完全初始化');
-        } else if (runStatus.status === 'failed') {
-            const errorMsg = runStatus.last_error?.message || '未知錯誤';
-            console.warn(`⚠️ 積極預熱失敗 - ${errorMsg}`);
-            console.log('💡 這通常是 OpenAI API 的暫時性問題，不影響系統正常運行');
-        } else {
-            console.warn(`⚠️ 積極預熱超時 (${attempts}秒) - Assistant 已可用但預熱未完成`);
-        }
+        console.log('✅ Assistant 預熱完成');
         
     } catch (error) {
-        console.warn('⚠️ 積極預熱失敗:', error.message);
+        console.warn('⚠️ Assistant 預熱失敗:', error.message);
+        console.log('💡 這不影響系統正常運行');
     }
 }
 
@@ -2781,22 +2814,27 @@ app.listen(PORT, '0.0.0.0', async () => {
   // 載入作者對照表
   await loadAuthorTranslations();
   
-  // 啟動定期保溫機制（不進行積極預熱以避免啟動錯誤）
+  // 智能預熱策略
   setTimeout(async () => {
     try {
-      // 直接啟動定期保溫機制，跳過積極預熱
+      // 首先進行輕量化預熱（推薦方案）
+      await performLightweightWarmup();
+      
+      // 啟動定期保溫機制
       console.log('🔄 啟動 Assistant 保溫機制...');
       startPeriodicWarmup();
       console.log('✅ Assistant 保溫機制已啟動');
       
-      // 可選：如果環境變數啟用積極預熱
-      if (process.env.ENABLE_ACTIVE_WARMUP === 'true') {
-        console.log('🔥 開始積極預熱 Assistant...');
-        await performActiveWarmup();
+      // 可選：如果環境變數啟用 Assistant 預熱
+      if (process.env.ENABLE_ASSISTANT_WARMUP === 'true') {
+        // 延遲執行 Assistant 預熱，避免與輕量化預熱衝突
+        setTimeout(async () => {
+          await performAssistantWarmup();
+        }, 2000);
       }
       
     } catch (error) {
-      console.warn('⚠️ Assistant 保溫啟動失敗:', error.message);
+      console.warn('⚠️ 預熱系統啟動失敗:', error.message);
     }
   }, 1000); // 1秒後開始
   
