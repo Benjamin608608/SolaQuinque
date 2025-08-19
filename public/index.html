@@ -1546,33 +1546,7 @@
             addNavigationHandlers();
             setFooterVisibility();
             
-            // 開始預載入聖經文本（非阻塞方式）
-            setTimeout(() => {
-                try {
-                    console.log('🔍 檢查聖經預載入功能...');
-                    if (typeof window.startBiblePreloading === 'function') {
-                        console.log('✅ 找到聖經預載入函數，開始執行...');
-                        window.startBiblePreloading().catch(error => {
-                            console.error('預載入聖經文本失敗:', error);
-                        });
-                    } else {
-                        console.log('⚠️ startBiblePreloading 函數尚未定義，延遲重試...');
-                        // 延遲重試，等待函數定義完成
-                        setTimeout(() => {
-                            if (typeof window.startBiblePreloading === 'function') {
-                                console.log('✅ 延遲重試成功，開始聖經預載入...');
-                                window.startBiblePreloading().catch(error => {
-                                    console.error('延遲預載入聖經文本失敗:', error);
-                                });
-                            } else {
-                                console.log('💡 聖經預載入功能暫時不可用');
-                            }
-                        }, 2000);
-                    }
-                } catch (error) {
-                    console.error('啟動預載入失敗:', error);
-                }
-            }, 1000); // 延遲1秒啟動，確保頁面完全載入
+            // 聖經預載入已移至 showHomePage 函數中，避免重複執行
             
             console.log('🎉 已認證用戶界面設置完成');
             
@@ -3177,6 +3151,37 @@
             }
             setFooterVisibility();
             showSearchUI();
+            
+            // 檢查是否已登入，如果是則觸發聖經預載入
+            checkAuthStatusSilent().then(authStatus => {
+                if (authStatus.authenticated) {
+                    console.log('✅ 用戶已登入，觸發聖經預載入...');
+                    // 延遲觸發聖經預載入，讓首頁先完全載入
+                    setTimeout(() => {
+                        if (typeof window.startBiblePreloading === 'function') {
+                            console.log('🚀 首頁觸發聖經預載入...');
+                            window.startBiblePreloading().catch(error => {
+                                console.error('首頁聖經預載入失敗:', error);
+                            });
+                        } else {
+                            console.log('⚠️ 聖經預載入函數尚未定義，稍後重試...');
+                            // 延遲重試
+                            setTimeout(() => {
+                                if (typeof window.startBiblePreloading === 'function') {
+                                    console.log('🚀 延遲重試聖經預載入...');
+                                    window.startBiblePreloading().catch(error => {
+                                        console.error('延遲聖經預載入失敗:', error);
+                                    });
+                                }
+                            }, 2000);
+                        }
+                    }, 1000); // 延遲1秒，讓首頁動畫完成
+                } else {
+                    console.log('💡 用戶未登入，跳過聖經預載入');
+                }
+            }).catch(error => {
+                console.error('檢查認證狀態失敗:', error);
+            });
         }
 
         // 顯示參考書目頁面
@@ -4792,8 +4797,8 @@
                 window.biblePreloadStatus.isPreloading = true;
                 const versions = window.biblePreloadStatus.versions;
                 
-                console.log('🚀 開始預載入聖經文本...', versions);
-                showPreloadingStatus();
+                console.log('🚀 開始靜默預載入聖經文本...', versions);
+                // 完全靜默模式，不顯示任何前端進度
                 
                 try {
                     for (let i = 0; i < versions.length; i++) {
@@ -4816,15 +4821,12 @@
                     window.biblePreloadStatus.progress = 100;
                     window.biblePreloadStatus.current = null;
                     
-                    console.log('🎉 聖經文本預載入完成！');
+                    console.log('🎉 聖經文本靜默預載入完成！');
                     const cacheInfo = getBibleCacheInfo();
                     console.log(`💾 緩存狀態: ${cacheInfo.count} 個版本, ${cacheInfo.sizeMB}MB`);
                     
-                    hidePreloadingStatus();
-                    
                 } catch (error) {
-                    console.error('❌ 聖經預載入失敗:', error);
-                    hidePreloadingStatus();
+                    console.error('❌ 聖經靜默預載入失敗:', error);
                 } finally {
                     window.biblePreloadStatus.isPreloading = false;
                 }
@@ -4876,13 +4878,7 @@
                 }
             }
             
-            // 隱藏預載入狀態
-            function hidePreloadingStatus() {
-                const statusElement = document.getElementById('bible-preload-status');
-                if (statusElement) {
-                    statusElement.remove();
-                }
-            }
+            // 移除前端狀態隱藏功能
             
                     // 檢查預載入狀態
         function getBiblePreloadStatus() {
