@@ -19,6 +19,7 @@ let globalAssistant = null;
 let processingRequests = new Map();
 const CACHE_DURATION = 0; // 暫時禁用緩存以測試修復效果
 let assistantWarmupInterval = null; // 定期保溫計時器
+let isWarmedUp = false; // 追蹤是否已預熱
 
 // 作者對照表
 let authorTranslations = {};
@@ -1710,6 +1711,11 @@ app.post('/api/search/stream', ensureAuthenticated, async (req, res) => {
     const trimmedQuestion = question.trim();
     console.log(`收到串流搜索請求: ${trimmedQuestion} (用戶: ${req.user.email}, 語言: ${language})`);
 
+    // 懶加載預熱（在背景執行，不阻塞請求）
+    if (!isWarmedUp) {
+      lazyWarmup().catch(() => {}); // 靜默執行，不影響請求
+    }
+
     // 設置 SSE 響應頭
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -1758,6 +1764,11 @@ app.post('/api/search', ensureAuthenticated, async (req, res) => {
 
     const trimmedQuestion = question.trim();
     console.log(`收到搜索請求: ${trimmedQuestion} (用戶: ${req.user.email}, 語言: ${language})`);
+
+    // 懶加載預熱（在背景執行，不阻塞請求）
+    if (!isWarmedUp) {
+      lazyWarmup().catch(() => {}); // 靜默執行，不影響請求
+    }
 
     // 設置響應頭，改善移動設備相容性
     res.setHeader('Cache-Control', 'no-cache');
@@ -2665,20 +2676,22 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// 寬容的重試機制（適應網路較慢的環境）
-async function gentleRetry(fn, maxRetries = 1) {
+// OpenAI 建議的指數退避重試機制
+async function warmupWithBackoff(fn, maxRetries = 3) {
+    const delays = [1000, 3000, 5000]; // OpenAI 建議的延遲間隔
+    
     for (let i = 0; i < maxRetries; i++) {
         try {
             return await fn();
         } catch (error) {
-            console.log(`嘗試 ${i + 1}/${maxRetries} 失敗:`, error.message);
+            console.log(`❌ 預熱失敗 [${i + 1}/${maxRetries}]:`, error.message);
             
             if (i === maxRetries - 1) {
+                console.log('💡 已達最大重試次數，跳過預熱');
                 throw error;
             }
             
-            // 更長的延遲，給網路更多時間
-            const delay = (i + 1) * 2000; // 2s, 4s
+            const delay = delays[i];
             console.log(`⏳ 等待 ${delay}ms 後重試...`);
             await new Promise(resolve => setTimeout(resolve, delay));
         }
@@ -2693,7 +2706,7 @@ async function performLightweightWarmup() {
     const startTime = Date.now();
     
     try {
-        const response = await gentleRetry(async () => {
+        const response = await warmupWithBackoff(async () => {
             return await openai.responses.create({
                 model: ASSISTANT_MODEL,
                 input: "ping"
@@ -2735,6 +2748,28 @@ async function performLightweightWarmup() {
     }
 }
 
+// 懶加載預熱：在第一次用戶請求時執行
+async function lazyWarmup() {
+    if (isWarmedUp) return;
+    
+    console.log('🔥 執行懶加載預熱（首次用戶請求觸發）...');
+    
+    try {
+        const response = await openai.responses.create({
+            model: ASSISTANT_MODEL,
+            input: "ping"
+        });
+        
+        isWarmedUp = true;
+        console.log(`✅ 懶加載預熱成功 - Response ID: ${response.id}`);
+        console.log('🎯 後續查詢將更快速');
+        
+    } catch (error) {
+        console.log('💡 懶加載預熱失敗，不影響當前請求:', error.message);
+        // 不設定 isWarmedUp = true，讓下次請求再試
+    }
+}
+
 // 穩健的 Assistant 預熱（使用更穩定的策略）
 async function performAssistantWarmup() {
     try {
@@ -2744,7 +2779,7 @@ async function performAssistantWarmup() {
         // 獲取或創建 Assistant
         const assistant = await getOrCreateAssistant();
         
-        await gentleRetry(async () => {
+        await warmupWithBackoff(async () => {
             // 創建 Thread
             const thread = await openai.beta.threads.create();
             
