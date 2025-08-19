@@ -2546,31 +2546,8 @@ app.get('/', (req, res) => {
     if (process.env.GOOGLE_SITE_VERIFICATION) {
       html = html.replace('</head>', `  <meta name="google-site-verification" content="${process.env.GOOGLE_SITE_VERIFICATION}">\n</head>`);
     }
-    // Inject GA4 if present - 根據環境選擇不同的 Measurement ID
-    const isProduction = process.env.NODE_ENV === 'production';
-    
-    // 調試：顯示所有相關環境變數
-    console.log('🔍 GA 環境變數調試:');
-    console.log(`  NODE_ENV: ${process.env.NODE_ENV}`);
-    console.log(`  GA_MEASUREMENT_ID: ${process.env.GA_MEASUREMENT_ID}`);
-    console.log(`  GA_MEASUREMENT_ID_PROD: ${process.env.GA_MEASUREMENT_ID_PROD}`);
-    console.log(`  GA_MEASUREMENT_ID_DEV: ${process.env.GA_MEASUREMENT_ID_DEV}`);
-    console.log(`  isProduction: ${isProduction}`);
-    
-    const gaMeasurementId = isProduction 
-      ? process.env.GA_MEASUREMENT_ID_PROD || process.env.GA_MEASUREMENT_ID
-      : process.env.GA_MEASUREMENT_ID_DEV || process.env.GA_MEASUREMENT_ID;
-    
-    console.log(`  選擇的 GA ID: ${gaMeasurementId}`);
-    
-    if (gaMeasurementId) {
-      const gtag = `\n<script async src="https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}"></script>\n<script>\nwindow.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config','${gaMeasurementId}',{debug_mode:${!isProduction}});window.GA_MEASUREMENT_ID='${gaMeasurementId}';window.GA_ENVIRONMENT='${isProduction ? 'production' : 'development'}';\n</script>\n`;
-      html = html.replace('</head>', `${gtag}</head>`);
-      console.log(`📊 GA4 已注入 (${isProduction ? '正式' : '開發'}環境): ${gaMeasurementId}`);
-    } else {
-      console.log('📊 GA4 未配置，追蹤功能將只在 Console 顯示');
-      console.log('💡 請檢查環境變數設定是否正確');
-    }
+    // GA4 已直接在 HTML 中設定，不需要動態注入
+    console.log('📊 GA4 已直接在 HTML 中設定 (開發環境): G-QF244M02C5');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   } catch (e) {
