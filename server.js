@@ -206,16 +206,19 @@ const { Agent: HttpsAgent } = require('https');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  timeout: 15000, // 15秒超時
+  timeout: 30000, // 增加到30秒超時，適應網路較慢的環境
+  maxRetries: 2, // OpenAI SDK 內建重試
   httpAgent: new Agent({ 
     keepAlive: true,
-    keepAliveMsecs: 30000,
-    maxSockets: 10
+    keepAliveMsecs: 60000, // 增加到60秒
+    maxSockets: 5, // 減少併發連接數
+    timeout: 30000
   }),
   httpsAgent: new HttpsAgent({ 
     keepAlive: true,
-    keepAliveMsecs: 30000,
-    maxSockets: 10
+    keepAliveMsecs: 60000,
+    maxSockets: 5,
+    timeout: 30000
   }),
 });
 
@@ -2662,8 +2665,8 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// 簡化的重試機制
-async function simpleRetry(fn, maxRetries = 2) {
+// 寬容的重試機制（適應網路較慢的環境）
+async function gentleRetry(fn, maxRetries = 1) {
     for (let i = 0; i < maxRetries; i++) {
         try {
             return await fn();
@@ -2674,8 +2677,8 @@ async function simpleRetry(fn, maxRetries = 2) {
                 throw error;
             }
             
-            // 簡單的固定延遲
-            const delay = (i + 1) * 1000; // 1s, 2s
+            // 更長的延遲，給網路更多時間
+            const delay = (i + 1) * 2000; // 2s, 4s
             console.log(`⏳ 等待 ${delay}ms 後重試...`);
             await new Promise(resolve => setTimeout(resolve, delay));
         }
@@ -2690,7 +2693,7 @@ async function performLightweightWarmup() {
     const startTime = Date.now();
     
     try {
-        const response = await simpleRetry(async () => {
+        const response = await gentleRetry(async () => {
             return await openai.responses.create({
                 model: ASSISTANT_MODEL,
                 input: "ping"
@@ -2741,7 +2744,7 @@ async function performAssistantWarmup() {
         // 獲取或創建 Assistant
         const assistant = await getOrCreateAssistant();
         
-        await simpleRetry(async () => {
+        await gentleRetry(async () => {
             // 創建 Thread
             const thread = await openai.beta.threads.create();
             
@@ -2859,30 +2862,49 @@ app.listen(PORT, '0.0.0.0', async () => {
       startPeriodicWarmup();
       console.log('✅ Assistant 保溫機制已啟動');
       
-      // 預設啟用預熱（可透過環境變數停用）
+      // 寬容的預熱策略（預設啟用但容錯性高）
       if (process.env.DISABLE_WARMUP !== 'true') {
         console.log('🔥 開始系統預熱...');
         setTimeout(async () => {
+          // 網路連接診斷
+          console.log('🌐 檢查網路連接狀況...');
+          console.log(`🔗 API Key 狀態: ${process.env.OPENAI_API_KEY ? '已設定' : '未設定'}`);
+          console.log(`🚀 運行環境: ${process.env.NODE_ENV || 'development'}`);
+          
           try {
-            // 第一階段：Responses API 預熱（推薦，成功率高）
+            // 第一階段：輕量化預熱（容錯處理）
             await performLightweightWarmup();
-            
-            // 第二階段：可選的 Assistant 預熱
-            if (process.env.ENABLE_ASSISTANT_WARMUP === 'true') {
-              console.log('🔥 環境變數啟用 Assistant 預熱...');
-              setTimeout(async () => {
-                try {
-                  await performAssistantWarmup();
-                } catch (error) {
-                  console.log('💡 Assistant 預熱失敗，但系統正常運行');
-                }
-              }, 1000); // 延遲1秒，讓 Responses API 預熱先完成
-            }
+            console.log('🎉 預熱成功！後續 API 調用將更快速');
             
           } catch (error) {
-            console.log('💡 預熱失敗，系統仍可正常運行');
+            console.log('💡 預熱失敗，分析可能原因：');
+            
+            if (error.message.includes('Connection error')) {
+              console.log('   • 網路連接問題（Railway 環境網路限制？）');
+              console.log('   • OpenAI API 服務暫時不可用');
+              console.log('   • 防火牆或代理設定問題');
+            } else if (error.message.includes('API key')) {
+              console.log('   • API Key 未設定或無效');
+            } else {
+              console.log('   • 其他 OpenAI API 問題');
+            }
+            
+            console.log('💡 系統仍可正常運行，首次查詢時會自動初始化');
           }
-        }, 2000); // 延遲2秒執行，讓系統先穩定
+          
+          // 第二階段：可選的 Assistant 預熱（僅在明確要求時執行）
+          if (process.env.ENABLE_ASSISTANT_WARMUP === 'true') {
+            console.log('🔥 環境變數啟用 Assistant 預熱...');
+            setTimeout(async () => {
+              try {
+                await performAssistantWarmup();
+              } catch (error) {
+                console.log('💡 Assistant 預熱失敗，但不影響系統運行');
+              }
+            }, 3000); // 延遲3秒，給網路更多時間
+          }
+          
+        }, 3000); // 延遲3秒執行，確保系統完全穩定
       } else {
         console.log('💡 預熱功能已停用 (DISABLE_WARMUP=true)');
       }
