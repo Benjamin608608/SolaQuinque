@@ -202,8 +202,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 模型設定：優先使用環境變數（預設 gpt-5），若失敗則回退到 gpt-4o-mini
-const PREFERRED_ASSISTANT_MODEL = process.env.OPENAI_ASSISTANT_MODEL || process.env.OPENAI_MODEL || 'gpt-5';
+// 模型設定：使用 gpt-4o-mini
+const ASSISTANT_MODEL = process.env.OPENAI_ASSISTANT_MODEL || process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 // 簡易 LRU/TTL 快取：聖經經文解釋 & 每卷向量庫 ID
 // 需求：經文解釋不使用快取 → 直接關閉即可
@@ -1228,13 +1228,10 @@ async function getOrCreateAssistant() {
             try {
                 if (!vectorStoreId) {
                     console.log('⚠️ 未設置 VECTOR_STORE_ID，創建不帶文件搜索的 Assistant');
-                    // 嘗試使用偏好模型，失敗回退到 gpt-4o-mini
-                    let modelToUse = PREFERRED_ASSISTANT_MODEL;
-                    try {
-                        globalAssistant = await openai.beta.assistants.create({
-                            model: modelToUse,
-                            name: 'Theology Assistant (No File Search)',
-                            instructions: `你是一個專業的神學助手。
+                    globalAssistant = await openai.beta.assistants.create({
+                        model: ASSISTANT_MODEL,
+                        name: 'Theology Assistant (No File Search)',
+                        instructions: `你是一個專業的神學助手。
  
 重要規則：
 1. 回答要準確、簡潔且有幫助
@@ -1245,34 +1242,12 @@ async function getOrCreateAssistant() {
 格式要求：
 - 直接回答問題內容
 - 不需要在回答中手動添加資料來源`
-                        });
-                    } catch (e) {
-                        console.warn(`⚠️ 以 ${modelToUse} 建立 Assistant 失敗，回退至 gpt-4o-mini：`, e.message);
-                        modelToUse = 'gpt-4o-mini';
-                        globalAssistant = await openai.beta.assistants.create({
-                            model: modelToUse,
-                            name: 'Theology Assistant (No File Search)',
-                            instructions: `你是一個專業的神學助手。
- 
-重要規則：
-1. 回答要準確、簡潔且有幫助
-2. 使用繁體中文回答
-3. 專注於提供基於神學知識的準確資訊
-4. 如果沒有相關資訊，請明確說明
- 
-格式要求：
-- 直接回答問題內容
-- 不需要在回答中手動添加資料來源`
-                        });
-                    }
+                    });
                 } else {
-                    // 嘗試使用偏好模型，失敗回退到 gpt-4o-mini
-                    let modelToUse = PREFERRED_ASSISTANT_MODEL;
-                    try {
-                        globalAssistant = await openai.beta.assistants.create({
-                            model: modelToUse,
-                            name: 'Theology RAG Assistant',
-                            instructions: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
+                    globalAssistant = await openai.beta.assistants.create({
+                        model: ASSISTANT_MODEL,
+                        name: 'Theology RAG Assistant',
+                        instructions: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
 
 重要規則：
 1. 只使用檢索到的資料來回答問題
@@ -1286,41 +1261,13 @@ async function getOrCreateAssistant() {
 - 直接回答問題內容
 - 引用相關的資料片段（如果有的話）
 - 不需要在回答中手動添加資料來源，系統會自動處理`,
-                            tools: [{ type: 'file_search' }],
-                            tool_resources: {
-                                file_search: {
-                                    vector_store_ids: [vectorStoreId]
-                                }
+                        tools: [{ type: 'file_search' }],
+                        tool_resources: {
+                            file_search: {
+                                vector_store_ids: [vectorStoreId]
                             }
-                        });
-                    } catch (e) {
-                        console.warn(`⚠️ 以 ${modelToUse} 建立 RAG Assistant 失敗，回退至 gpt-4o-mini：`, e.message);
-                        modelToUse = 'gpt-4o-mini';
-                        globalAssistant = await openai.beta.assistants.create({
-                            model: modelToUse,
-                            name: 'Theology RAG Assistant',
-                            instructions: `你是一個專業的神學助手，只能根據提供的知識庫資料來回答問題。
-
-重要規則：
-1. 只使用檢索到的資料來回答問題
-2. 如果資料庫中沒有相關資訊，請明確說明「很抱歉，我在資料庫中找不到相關資訊來回答這個問題，因為資料庫都為英文，建議將專有名詞替換成英文或許會有幫助」
-3. 回答要準確、簡潔且有幫助
-4. 使用繁體中文回答
-5. 專注於提供基於資料庫內容的準確資訊
-6. 盡可能引用具體的資料片段
-
-格式要求：
-- 直接回答問題內容
-- 引用相關的資料片段（如果有的話）
-- 不需要在回答中手動添加資料來源，系統會自動處理`,
-                            tools: [{ type: 'file_search' }],
-                            tool_resources: {
-                                file_search: {
-                                    vector_store_ids: [vectorStoreId]
-                                }
-                            }
-                        });
-                    }
+                        }
+                    });
                 }
                 
                 console.log(`✅ 全局 Assistant 創建成功 (嘗試 ${attempt}/3)`);
