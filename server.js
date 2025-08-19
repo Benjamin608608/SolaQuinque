@@ -2484,7 +2484,74 @@ app.get('/robots.txt', (req, res) => {
 app.get('/sitemap.xml', (req, res) => {
   res.type('application/xml');
   const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${base.replace(/\/$/, '')}/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n</urlset>`;
+  const baseUrl = base.replace(/\/$/, '');
+  const currentDate = new Date().toISOString().split('T')[0];
+  
+  // 聖經書卷列表
+  const bibleBooks = [
+    // 舊約
+    'genesis', 'exodus', 'leviticus', 'numbers', 'deuteronomy', 'joshua', 'judges', 'ruth',
+    '1samuel', '2samuel', '1kings', '2kings', '1chronicles', '2chronicles', 'ezra', 'nehemiah',
+    'esther', 'job', 'psalms', 'proverbs', 'ecclesiastes', 'songofsolomon', 'isaiah', 'jeremiah',
+    'lamentations', 'ezekiel', 'daniel', 'hosea', 'joel', 'amos', 'obadiah', 'jonah', 'micah',
+    'nahum', 'habakkuk', 'zephaniah', 'haggai', 'zechariah', 'malachi',
+    // 新約
+    'matthew', 'mark', 'luke', 'john', 'acts', 'romans', '1corinthians', '2corinthians',
+    'galatians', 'ephesians', 'philippians', 'colossians', '1thessalonians', '2thessalonians',
+    '1timothy', '2timothy', 'titus', 'philemon', 'hebrews', 'james', '1peter', '2peter',
+    '1john', '2john', '3john', 'jude', 'revelation'
+  ];
+  
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  
+  <!-- 首頁 -->
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- 主要功能頁面 -->
+  <url>
+    <loc>${baseUrl}/bible</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>${baseUrl}/search</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>${baseUrl}/commentary</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+
+  // 添加聖經書卷
+  bibleBooks.forEach(book => {
+    const priority = ['psalms', 'proverbs', 'matthew', 'mark', 'luke', 'john', 'romans', 'revelation'].includes(book) ? '0.8' : '0.7';
+    xml += `
+  
+  <url>
+    <loc>${baseUrl}/bible/${book}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>${priority}</priority>
+  </url>`;
+  });
+
+  xml += `
+
+</urlset>`;
+  
   res.send(xml);
 });
 
