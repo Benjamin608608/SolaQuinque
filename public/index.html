@@ -1549,12 +1549,26 @@
             // 開始預載入聖經文本（非阻塞方式）
             setTimeout(() => {
                 try {
-                    if (typeof startBiblePreloading === 'function') {
-                        startBiblePreloading().catch(error => {
+                    console.log('🔍 檢查聖經預載入功能...');
+                    if (typeof window.startBiblePreloading === 'function') {
+                        console.log('✅ 找到聖經預載入函數，開始執行...');
+                        window.startBiblePreloading().catch(error => {
                             console.error('預載入聖經文本失敗:', error);
                         });
+                    } else {
+                        console.log('⚠️ startBiblePreloading 函數尚未定義，延遲重試...');
+                        // 延遲重試，等待函數定義完成
+                        setTimeout(() => {
+                            if (typeof window.startBiblePreloading === 'function') {
+                                console.log('✅ 延遲重試成功，開始聖經預載入...');
+                                window.startBiblePreloading().catch(error => {
+                                    console.error('延遲預載入聖經文本失敗:', error);
+                                });
+                            } else {
+                                console.log('💡 聖經預載入功能暫時不可用');
+                            }
+                        }, 2000);
                     }
-                    // 移除警告訊息，因為這是可選功能
                 } catch (error) {
                     console.error('啟動預載入失敗:', error);
                 }
@@ -4759,8 +4773,8 @@
                 progress: 0
             };
             
-            // 開始預載入聖經文本
-            async function startBiblePreloading() {
+            // 開始預載入聖經文本（設為全局函數）
+            window.startBiblePreloading = async function() {
                 console.log('🔧 startBiblePreloading 被調用');
                 
                 // 檢查是否已經完成預載入
@@ -4814,7 +4828,7 @@
                 } finally {
                     window.biblePreloadStatus.isPreloading = false;
                 }
-            }
+            };
             
             // 顯示預載入狀態
             function showPreloadingStatus() {
