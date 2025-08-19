@@ -2546,8 +2546,19 @@ app.get('/', (req, res) => {
     if (process.env.GOOGLE_SITE_VERIFICATION) {
       html = html.replace('</head>', `  <meta name="google-site-verification" content="${process.env.GOOGLE_SITE_VERIFICATION}">\n</head>`);
     }
-    // GA4 已直接在 HTML 中設定，不需要動態注入
-    console.log('📊 GA4 已直接在 HTML 中設定 (開發環境): G-QF244M02C5');
+    // 動態替換 GA 設定
+    const isProduction = process.env.NODE_ENV === 'production';
+    const gaMeasurementId = isProduction 
+      ? process.env.GA_MEASUREMENT_ID_PROD || process.env.GA_MEASUREMENT_ID || 'G-TMB36DPDSV'
+      : process.env.GA_MEASUREMENT_ID_DEV || process.env.GA_MEASUREMENT_ID || 'G-QF244M02C5';
+    
+    const gaEnvironment = isProduction ? 'production' : 'development';
+    
+    // 替換 HTML 中的 GA 設定
+    html = html.replace(/G-QF244M02C5/g, gaMeasurementId);
+    html = html.replace(/window\.GA_ENVIRONMENT = 'development'/g, `window.GA_ENVIRONMENT = '${gaEnvironment}'`);
+    
+    console.log(`📊 GA4 動態設定 (${gaEnvironment}環境): ${gaMeasurementId}`);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   } catch (e) {
