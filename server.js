@@ -189,8 +189,11 @@ const authLimiter = rateLimit({
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 分鐘
   delayAfter: 50, // 允許前 50 個請求正常速度
-  delayMs: 500, // 超過後每個請求延遲 500ms
+  delayMs: () => 500, // 固定延遲 500ms（新版本語法）
   maxDelayMs: 5000, // 最大延遲 5 秒
+  validate: {
+    delayMs: false // 禁用警告訊息
+  }
 });
 
 // 🚀 暫時移除所有速率限制以優化性能
@@ -419,7 +422,6 @@ async function connectToMongoDB() {
   
   try {
     mongoClient = new MongoClient(process.env.MONGO_URI, { 
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       connectTimeoutMS: 10000
     });
