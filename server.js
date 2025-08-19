@@ -2672,18 +2672,19 @@ async function retryWithBackoff(fn, maxRetries = 3) {
     }
 }
 
-// 使用 Responses API 進行輕量化預熱
+// 使用 Chat Completions API 進行輕量化預熱
 async function performLightweightWarmup() {
     try {
-        console.log('🔥 開始輕量化預熱 - 使用 Responses API...');
+        console.log('🔥 開始輕量化預熱 - 使用 Chat Completions API...');
         
         const startTime = Date.now();
         
         await retryWithBackoff(async () => {
-            const response = await openai.responses.create({
+            const response = await openai.chat.completions.create({
                 model: ASSISTANT_MODEL,
-                input: "ping",
-                max_output_tokens: 1
+                messages: [{ role: "user", content: "hi" }],
+                max_tokens: 1,
+                temperature: 0
             });
             return response;
         });
@@ -2817,8 +2818,12 @@ app.listen(PORT, '0.0.0.0', async () => {
   // 智能預熱策略
   setTimeout(async () => {
     try {
-      // 首先進行輕量化預熱（推薦方案）
-      await performLightweightWarmup();
+      // 首先嘗試輕量化預熱
+      try {
+        await performLightweightWarmup();
+      } catch (error) {
+        console.log('💡 輕量化預熱失敗，跳過預熱步驟');
+      }
       
       // 啟動定期保溫機制
       console.log('🔄 啟動 Assistant 保溫機制...');
@@ -2829,12 +2834,17 @@ app.listen(PORT, '0.0.0.0', async () => {
       if (process.env.ENABLE_ASSISTANT_WARMUP === 'true') {
         // 延遲執行 Assistant 預熱，避免與輕量化預熱衝突
         setTimeout(async () => {
-          await performAssistantWarmup();
+          try {
+            await performAssistantWarmup();
+          } catch (error) {
+            console.log('💡 Assistant 預熱失敗，系統仍可正常運行');
+          }
         }, 2000);
       }
       
     } catch (error) {
       console.warn('⚠️ 預熱系統啟動失敗:', error.message);
+      console.log('💡 系統將正常啟動，預熱功能已停用');
     }
   }, 1000); // 1秒後開始
   
