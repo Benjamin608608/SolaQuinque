@@ -2682,73 +2682,96 @@ async function simpleRetry(fn, maxRetries = 2) {
     }
 }
 
-// 簡化的輕量化預熱
+// 使用 Responses API 進行輕量化預熱（推薦方案）
 async function performLightweightWarmup() {
-    console.log('🔥 開始輕量化預熱...');
-    console.log(`🔧 使用模型: ${ASSISTANT_MODEL}`);
+    console.log('🔥 開始輕量化預熱 - 使用 Responses API...');
+    console.log(`🔧 預熱模型: ${ASSISTANT_MODEL}`);
     
     const startTime = Date.now();
     
     try {
         const response = await simpleRetry(async () => {
-            return await openai.chat.completions.create({
+            return await openai.responses.create({
                 model: ASSISTANT_MODEL,
-                messages: [{ role: "user", content: "hi" }],
-                max_tokens: 1,
-                temperature: 0
+                input: "ping"
             });
         });
         
         const duration = Date.now() - startTime;
         console.log(`✅ 輕量化預熱完成 - 耗時 ${duration}ms`);
         console.log(`📊 Response ID: ${response.id}`);
+        console.log('🎯 模型已在伺服器端熱身，後續查詢將更穩定');
         
     } catch (error) {
         const duration = Date.now() - startTime;
-        console.warn(`⚠️ 輕量化預熱失敗 (耗時 ${duration}ms):`, error.message);
-        console.log('💡 系統仍可正常運行，首次查詢可能稍慢');
-        throw error; // 重新拋出錯誤以便上層處理
+        console.warn(`⚠️ Responses API 預熱失敗 (耗時 ${duration}ms):`, error.message);
+        console.log('🔄 嘗試使用 Chat Completions API 備用預熱...');
+        
+        // 備用方案：使用 Chat Completions API + 更穩定的模型
+        try {
+            const fallbackModel = ASSISTANT_MODEL === 'gpt-4o-mini' ? 'gpt-4o' : ASSISTANT_MODEL;
+            console.log(`🔧 備用預熱模型: ${fallbackModel}`);
+            
+            const chatResponse = await openai.chat.completions.create({
+                model: fallbackModel,
+                messages: [{ role: "user", content: "hi" }],
+                max_tokens: 1,
+                temperature: 0
+            });
+            
+            const totalDuration = Date.now() - startTime;
+            console.log(`✅ 備用預熱完成 - 總耗時 ${totalDuration}ms`);
+            console.log(`📊 Chat Response ID: ${chatResponse.id}`);
+            
+        } catch (fallbackError) {
+            const totalDuration = Date.now() - startTime;
+            console.warn(`⚠️ 備用預熱也失敗 (總耗時 ${totalDuration}ms):`, fallbackError.message);
+            console.log('💡 系統仍可正常運行，首次查詢可能稍慢');
+            throw fallbackError;
+        }
     }
 }
 
-// 穩健的 Assistant 預熱（備用方案）
+// 穩健的 Assistant 預熱（使用更穩定的策略）
 async function performAssistantWarmup() {
     try {
         console.log('🔥 開始 Assistant 預熱...');
+        console.log('💡 建議：先執行 Responses API 預熱，可大幅提升 Assistant 穩定性');
         
         // 獲取或創建 Assistant
         const assistant = await getOrCreateAssistant();
         
-        await retryWithBackoff(async () => {
+        await simpleRetry(async () => {
             // 創建 Thread
             const thread = await openai.beta.threads.create();
             
             // 發送極簡測試問題
             await openai.beta.threads.messages.create(thread.id, {
                 role: "user",
-                content: "hi"
+                content: "test"
             });
             
-            // 創建並等待 Run 完成
+            // 創建並等待 Run 完成（縮短等待時間）
             const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
                 assistant_id: assistant.id
             }, {
-                pollIntervalMs: 500,
-                maxWaitSeconds: 15
+                pollIntervalMs: 1000,
+                maxWaitSeconds: 10  // 縮短到10秒
             });
             
             if (run.status !== 'completed') {
-                throw new Error(`Run failed with status: ${run.status}`);
+                throw new Error(`Run failed with status: ${run.status}, error: ${run.last_error?.message || 'unknown'}`);
             }
             
             return run;
         });
         
-        console.log('✅ Assistant 預熱完成');
+        console.log('✅ Assistant 預熱完成 - 系統已完全準備就緒');
         
     } catch (error) {
         console.warn('⚠️ Assistant 預熱失敗:', error.message);
-        console.log('💡 這不影響系統正常運行');
+        console.log('💡 這通常是因為 gpt-4o-mini 在 Assistants API 的動態資源分配問題');
+        console.log('💡 建議使用 gpt-4o 或在 Railway 設定 ASSISTANT_MODEL=gpt-4o');
     }
 }
 
@@ -2841,7 +2864,21 @@ app.listen(PORT, '0.0.0.0', async () => {
         console.log('🔥 開始系統預熱...');
         setTimeout(async () => {
           try {
+            // 第一階段：Responses API 預熱（推薦，成功率高）
             await performLightweightWarmup();
+            
+            // 第二階段：可選的 Assistant 預熱
+            if (process.env.ENABLE_ASSISTANT_WARMUP === 'true') {
+              console.log('🔥 環境變數啟用 Assistant 預熱...');
+              setTimeout(async () => {
+                try {
+                  await performAssistantWarmup();
+                } catch (error) {
+                  console.log('💡 Assistant 預熱失敗，但系統正常運行');
+                }
+              }, 1000); // 延遲1秒，讓 Responses API 預熱先完成
+            }
+            
           } catch (error) {
             console.log('💡 預熱失敗，系統仍可正常運行');
           }
