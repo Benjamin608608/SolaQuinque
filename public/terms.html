@@ -7,20 +7,46 @@
     <meta name="robots" content="noindex, nofollow">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/ecclesia.css">
+    <script src="/theme.js" defer></script>
     <style>
-        body { font-family: 'Noto Serif TC', serif; }
+        :root {
+            --primary: #6D4C41;
+            --primary-dark: #5D3C31;
+            --secondary: #F5F5F5;
+            --background: #FFFFFF;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --accent: #E0E0E0;
+        }
+        body { 
+            font-family: 'Noto Serif TC', serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+        }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
+<body class="min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-4xl">
         <!-- Header -->
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">使用條款</h1>
-            <p class="text-gray-600">Terms of Service</p>
-            <p class="text-sm text-gray-500 mt-2">最後更新：2025年1月13日</p>
+            <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full" style="background-color: var(--secondary);">
+                <span class="text-3xl font-light" style="color: var(--primary);">†</span>
+            </div>
+            <h1 class="text-3xl font-bold mb-2" style="color: var(--text-primary);">使用條款</h1>
+            <p style="color: var(--text-secondary);">Terms of Service</p>
+            <p class="text-sm mt-2" style="color: var(--text-secondary);">最後更新：2025年1月17日</p>
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-8 space-y-8">
+        <!-- 返回首頁按鈕 -->
+        <div class="text-center mb-6">
+            <a href="/" class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors" style="background-color: var(--primary); color: white;" onmouseover="this.style.backgroundColor='var(--primary-dark)'" onmouseout="this.style.backgroundColor='var(--primary)'">
+                <span class="mr-2">←</span>
+                返回首頁
+            </a>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-8 space-y-8" style="border: 1px solid var(--accent);">
             <!-- 前言 -->
             <section>
                 <h2 class="text-xl font-semibold text-gray-800 mb-4">1. 條款接受</h2>
