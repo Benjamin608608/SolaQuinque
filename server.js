@@ -2670,21 +2670,32 @@ async function performActiveWarmup() {
             assistant_id: assistant.id
         });
         
-        // 等待完成
+        // 等待完成 - 改善版本
         let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
         let attempts = 0;
-        const maxAttempts = 30; // 30 秒超時
+        const maxAttempts = 20; // 減少到 20 秒超時
+        
+        console.log(`🔄 預熱進行中，初始狀態: ${runStatus.status}`);
         
         while (runStatus.status !== 'completed' && runStatus.status !== 'failed' && attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, 1000));
             runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
             attempts++;
+            
+            // 每5秒報告一次狀態
+            if (attempts % 5 === 0) {
+                console.log(`🔄 預熱進度: ${attempts}/${maxAttempts}秒，狀態: ${runStatus.status}`);
+            }
         }
+        
+        console.log(`🏁 預熱結束，最終狀態: ${runStatus.status}，耗時: ${attempts}秒`);
         
         if (runStatus.status === 'completed') {
             console.log('✅ 積極預熱完成 - Assistant 已完全初始化');
+        } else if (runStatus.status === 'failed') {
+            console.warn(`⚠️ 積極預熱失敗 - ${runStatus.last_error?.message || '未知錯誤'}`);
         } else {
-            console.warn('⚠️ 積極預熱未完全完成，但 Assistant 已可用');
+            console.warn(`⚠️ 積極預熱超時 (${attempts}秒) - Assistant 已可用但預熱未完成`);
         }
         
     } catch (error) {
