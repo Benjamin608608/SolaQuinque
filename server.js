@@ -200,11 +200,23 @@ const speedLimiter = slowDown({
 // app.use(generalLimiter);
 // app.use(speedLimiter);
 
-// 初始化 OpenAI 客戶端 - 啟用 HTTP Keep-Alive
+// 初始化 OpenAI 客戶端 - 優化連接設定
 const { Agent } = require('http');
+const { Agent: HttpsAgent } = require('https');
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  httpAgent: new Agent({ keepAlive: true }),
+  timeout: 15000, // 15秒超時
+  httpAgent: new Agent({ 
+    keepAlive: true,
+    keepAliveMsecs: 30000,
+    maxSockets: 10
+  }),
+  httpsAgent: new HttpsAgent({ 
+    keepAlive: true,
+    keepAliveMsecs: 30000,
+    maxSockets: 10
+  }),
 });
 
 // 模型設定：使用 gpt-4o-mini
@@ -2650,66 +2662,52 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// 穩健的重試機制
-async function retryWithBackoff(fn, maxRetries = 3) {
+// 簡化的重試機制
+async function simpleRetry(fn, maxRetries = 2) {
     for (let i = 0; i < maxRetries; i++) {
         try {
             return await fn();
         } catch (error) {
-            const code = error?.error?.code || error?.code;
-            const retriable = ["server_error", "rate_limit_exceeded", "gateway_timeout"].includes(code) || 
-                             error.name === "APIConnectionError";
+            console.log(`嘗試 ${i + 1}/${maxRetries} 失敗:`, error.message);
             
-            if (!retriable || i === maxRetries - 1) {
+            if (i === maxRetries - 1) {
                 throw error;
             }
             
-            // 指數退避 + 抖動
-            const backoff = Math.round(200 * Math.pow(2, i) * (0.7 + Math.random() * 0.6));
-            console.log(`⏳ 重試 ${i + 1}/${maxRetries}，等待 ${backoff}ms...`);
-            await new Promise(resolve => setTimeout(resolve, backoff));
+            // 簡單的固定延遲
+            const delay = (i + 1) * 1000; // 1s, 2s
+            console.log(`⏳ 等待 ${delay}ms 後重試...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
 }
 
-// 使用 Chat Completions API 進行輕量化預熱
+// 簡化的輕量化預熱
 async function performLightweightWarmup() {
+    console.log('🔥 開始輕量化預熱...');
+    console.log(`🔧 使用模型: ${ASSISTANT_MODEL}`);
+    
+    const startTime = Date.now();
+    
     try {
-        console.log('🔥 開始輕量化預熱 - 使用 Chat Completions API...');
-        console.log(`🔧 使用模型: ${ASSISTANT_MODEL}`);
-        console.log(`🔗 API Key 狀態: ${process.env.OPENAI_API_KEY ? '已設定' : '未設定'}`);
-        
-        const startTime = Date.now();
-        
-        await retryWithBackoff(async () => {
-            const response = await openai.chat.completions.create({
+        const response = await simpleRetry(async () => {
+            return await openai.chat.completions.create({
                 model: ASSISTANT_MODEL,
                 messages: [{ role: "user", content: "hi" }],
                 max_tokens: 1,
                 temperature: 0
             });
-            return response;
         });
         
         const duration = Date.now() - startTime;
         console.log(`✅ 輕量化預熱完成 - 耗時 ${duration}ms`);
+        console.log(`📊 Response ID: ${response.id}`);
         
     } catch (error) {
-        console.warn('⚠️ 輕量化預熱失敗:', error.message);
-        
-        // 提供更詳細的錯誤診斷
-        if (error.message.includes('Connection error')) {
-            console.log('🌐 網路連線問題 - 可能的原因：');
-            console.log('   • 網路連線不穩定');
-            console.log('   • OpenAI API 服務暫時不可用');
-            console.log('   • 防火牆或代理伺服器阻擋');
-        } else if (error.message.includes('API key')) {
-            console.log('🔑 API Key 問題 - 請檢查 OPENAI_API_KEY 環境變數');
-        } else {
-            console.log('🔍 其他錯誤 - 詳細信息:', error.code || 'unknown');
-        }
-        
-        console.log('💡 這不影響系統正常運行，首次查詢可能稍慢');
+        const duration = Date.now() - startTime;
+        console.warn(`⚠️ 輕量化預熱失敗 (耗時 ${duration}ms):`, error.message);
+        console.log('💡 系統仍可正常運行，首次查詢可能稍慢');
+        throw error; // 重新拋出錯誤以便上層處理
     }
 }
 
@@ -2830,33 +2828,33 @@ app.listen(PORT, '0.0.0.0', async () => {
   // 載入作者對照表
   await loadAuthorTranslations();
   
-  // 簡化啟動策略 - 停用預熱以避免連接問題
+  // 改進的啟動策略 - 預設啟用預熱
   setTimeout(async () => {
     try {
-      // 啟動定期保溫機制（輕量級）
+      // 啟動定期保溫機制
       console.log('🔄 啟動 Assistant 保溫機制...');
       startPeriodicWarmup();
       console.log('✅ Assistant 保溫機制已啟動');
       
-      // 可選：如果明確要求預熱
-      if (process.env.ENABLE_WARMUP === 'true') {
-        console.log('🔥 環境變數啟用預熱，開始預熱...');
+      // 預設啟用預熱（可透過環境變數停用）
+      if (process.env.DISABLE_WARMUP !== 'true') {
+        console.log('🔥 開始系統預熱...');
         setTimeout(async () => {
           try {
             await performLightweightWarmup();
           } catch (error) {
-            console.log('💡 預熱失敗，但系統正常運行');
+            console.log('💡 預熱失敗，系統仍可正常運行');
           }
-        }, 3000); // 延遲3秒執行
+        }, 2000); // 延遲2秒執行，讓系統先穩定
       } else {
-        console.log('💡 預熱功能已停用，系統將在首次使用時初始化');
+        console.log('💡 預熱功能已停用 (DISABLE_WARMUP=true)');
       }
       
     } catch (error) {
-      console.warn('⚠️ 保溫系統啟動失敗:', error.message);
-      console.log('💡 系統將正常運行，無保溫功能');
+      console.warn('⚠️ 啟動系統失敗:', error.message);
+      console.log('💡 系統將以最小配置運行');
     }
-  }, 500); // 0.5秒後開始
+  }, 1000); // 1秒後開始，確保系統完全初始化
   
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     console.log(`⚠️  注意: Google OAuth 未配置，登入功能將不可用`);
