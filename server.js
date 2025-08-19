@@ -2676,6 +2676,8 @@ async function retryWithBackoff(fn, maxRetries = 3) {
 async function performLightweightWarmup() {
     try {
         console.log('🔥 開始輕量化預熱 - 使用 Chat Completions API...');
+        console.log(`🔧 使用模型: ${ASSISTANT_MODEL}`);
+        console.log(`🔗 API Key 狀態: ${process.env.OPENAI_API_KEY ? '已設定' : '未設定'}`);
         
         const startTime = Date.now();
         
@@ -2694,6 +2696,19 @@ async function performLightweightWarmup() {
         
     } catch (error) {
         console.warn('⚠️ 輕量化預熱失敗:', error.message);
+        
+        // 提供更詳細的錯誤診斷
+        if (error.message.includes('Connection error')) {
+            console.log('🌐 網路連線問題 - 可能的原因：');
+            console.log('   • 網路連線不穩定');
+            console.log('   • OpenAI API 服務暫時不可用');
+            console.log('   • 防火牆或代理伺服器阻擋');
+        } else if (error.message.includes('API key')) {
+            console.log('🔑 API Key 問題 - 請檢查 OPENAI_API_KEY 環境變數');
+        } else {
+            console.log('🔍 其他錯誤 - 詳細信息:', error.code || 'unknown');
+        }
+        
         console.log('💡 這不影響系統正常運行，首次查詢可能稍慢');
     }
 }
@@ -2815,38 +2830,33 @@ app.listen(PORT, '0.0.0.0', async () => {
   // 載入作者對照表
   await loadAuthorTranslations();
   
-  // 智能預熱策略
+  // 簡化啟動策略 - 停用預熱以避免連接問題
   setTimeout(async () => {
     try {
-      // 首先嘗試輕量化預熱
-      try {
-        await performLightweightWarmup();
-      } catch (error) {
-        console.log('💡 輕量化預熱失敗，跳過預熱步驟');
-      }
-      
-      // 啟動定期保溫機制
+      // 啟動定期保溫機制（輕量級）
       console.log('🔄 啟動 Assistant 保溫機制...');
       startPeriodicWarmup();
       console.log('✅ Assistant 保溫機制已啟動');
       
-      // 可選：如果環境變數啟用 Assistant 預熱
-      if (process.env.ENABLE_ASSISTANT_WARMUP === 'true') {
-        // 延遲執行 Assistant 預熱，避免與輕量化預熱衝突
+      // 可選：如果明確要求預熱
+      if (process.env.ENABLE_WARMUP === 'true') {
+        console.log('🔥 環境變數啟用預熱，開始預熱...');
         setTimeout(async () => {
           try {
-            await performAssistantWarmup();
+            await performLightweightWarmup();
           } catch (error) {
-            console.log('💡 Assistant 預熱失敗，系統仍可正常運行');
+            console.log('💡 預熱失敗，但系統正常運行');
           }
-        }, 2000);
+        }, 3000); // 延遲3秒執行
+      } else {
+        console.log('💡 預熱功能已停用，系統將在首次使用時初始化');
       }
       
     } catch (error) {
-      console.warn('⚠️ 預熱系統啟動失敗:', error.message);
-      console.log('💡 系統將正常啟動，預熱功能已停用');
+      console.warn('⚠️ 保溫系統啟動失敗:', error.message);
+      console.log('💡 系統將正常運行，無保溫功能');
     }
-  }, 1000); // 1秒後開始
+  }, 500); // 0.5秒後開始
   
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     console.log(`⚠️  注意: Google OAuth 未配置，登入功能將不可用`);
