@@ -155,7 +155,7 @@ cp env.example .env
 # OpenAI 設定
 OPENAI_API_KEY=your_openai_api_key
 VECTOR_STORE_ID=your_vector_store_id
-OPENAI_ASSISTANT_MODEL=gpt-4o
+OPENAI_ASSISTANT_MODEL=gpt-4o-mini
 
 # Google OAuth
 GOOGLE_CLIENT_ID=your_google_client_id

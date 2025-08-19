@@ -1221,6 +1221,7 @@ function setCachedResult(question, result) {
 async function getOrCreateAssistant() {
     if (!globalAssistant) {
         console.log('🔄 創建全局 Assistant...');
+        console.log(`🔧 使用模型: ${ASSISTANT_MODEL}`);
         
         // 檢查是否有向量資料庫 ID
         const vectorStoreId = process.env.VECTOR_STORE_ID;

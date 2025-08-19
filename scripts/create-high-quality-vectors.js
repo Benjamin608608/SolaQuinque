@@ -314,7 +314,7 @@ class HighQualityVectorPreprocessor {
     async validateChunkSemantics(chunk) {
         try {
                 const response = await this.openai.chat.completions.create({
-                    model: process.env.OPENAI_ASSISTANT_MODEL || process.env.OPENAI_MODEL || "gpt-5",
+                    model: process.env.OPENAI_ASSISTANT_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini",
                 messages: [
                     {
                         role: "system",
