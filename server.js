@@ -2546,10 +2546,18 @@ app.get('/', (req, res) => {
     if (process.env.GOOGLE_SITE_VERIFICATION) {
       html = html.replace('</head>', `  <meta name="google-site-verification" content="${process.env.GOOGLE_SITE_VERIFICATION}">\n</head>`);
     }
-    // Inject GA4 if present
-    if (process.env.GA_MEASUREMENT_ID) {
-      const gtag = `\n<script async src="https://www.googletagmanager.com/gtag/js?id=${process.env.GA_MEASUREMENT_ID}"></script>\n<script>\nwindow.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config','${process.env.GA_MEASUREMENT_ID}');\n</script>\n`;
+    // Inject GA4 if present - 根據環境選擇不同的 Measurement ID
+    const isProduction = process.env.NODE_ENV === 'production';
+    const gaMeasurementId = isProduction 
+      ? process.env.GA_MEASUREMENT_ID_PROD || process.env.GA_MEASUREMENT_ID
+      : process.env.GA_MEASUREMENT_ID_DEV || process.env.GA_MEASUREMENT_ID;
+    
+    if (gaMeasurementId) {
+      const gtag = `\n<script async src="https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}"></script>\n<script>\nwindow.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config','${gaMeasurementId}',{debug_mode:${!isProduction}});window.GA_MEASUREMENT_ID='${gaMeasurementId}';window.GA_ENVIRONMENT='${isProduction ? 'production' : 'development'}';\n</script>\n`;
       html = html.replace('</head>', `${gtag}</head>`);
+      console.log(`📊 GA4 已注入 (${isProduction ? '正式' : '開發'}環境): ${gaMeasurementId}`);
+    } else {
+      console.log('📊 GA4 未配置，追蹤功能將只在 Console 顯示');
     }
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);

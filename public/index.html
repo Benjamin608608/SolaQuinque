@@ -1136,6 +1136,127 @@
     
 
     <script>
+        // Google Analytics 事件追蹤系統
+        window.GATracker = {
+            // 檢查 GA 是否可用
+            isAvailable() {
+                return typeof gtag === 'function' && window.GA_MEASUREMENT_ID;
+            },
+            
+            // 獲取環境信息
+            getEnvironment() {
+                return window.GA_ENVIRONMENT || 'unknown';
+            },
+            
+            // 追蹤通用事件
+            trackEvent(eventName, parameters = {}) {
+                const environment = this.getEnvironment();
+                
+                if (!this.isAvailable()) {
+                    console.log(`📊 GA 事件 (${environment}, 未啟用):`, eventName, parameters);
+                    return;
+                }
+                
+                // 添加環境標識到所有事件
+                const enrichedParams = {
+                    environment: environment,
+                    timestamp: new Date().toISOString(),
+                    event_category: 'user_interaction',
+                    ...parameters
+                };
+                
+                console.log(`📊 GA 事件 (${environment}):`, eventName, enrichedParams);
+                gtag('event', eventName, enrichedParams);
+            },
+            
+            // 追蹤頁面瀏覽
+            trackPageView(pageName, additionalParams = {}) {
+                const environment = this.getEnvironment();
+                
+                if (!this.isAvailable()) {
+                    console.log(`📊 GA 頁面瀏覽 (${environment}, 未啟用):`, pageName);
+                    return;
+                }
+                
+                const pageParams = {
+                    page_title: pageName,
+                    page_location: window.location.href,
+                    environment: environment,
+                    timestamp: new Date().toISOString(),
+                    ...additionalParams
+                };
+                
+                gtag('event', 'page_view', pageParams);
+                console.log(`📊 GA 頁面瀏覽 (${environment}):`, pageName, pageParams);
+            },
+            
+            // 追蹤用戶登入
+            trackLogin(method = 'google') {
+                this.trackEvent('login', {
+                    method: method,
+                    event_category: 'authentication'
+                });
+            },
+            
+            // 追蹤用戶登出
+            trackLogout() {
+                this.trackEvent('logout', {
+                    event_category: 'authentication'
+                });
+            },
+            
+            // 追蹤搜尋查詢
+            trackSearch(query, language = 'zh', method = 'general') {
+                this.trackEvent('search', {
+                    search_term: query.substring(0, 100), // 限制長度
+                    language: language,
+                    search_method: method,
+                    event_category: 'search'
+                });
+            },
+            
+            // 追蹤聖經查詢
+            trackBibleQuery(book, chapter, version, action = 'view') {
+                this.trackEvent('bible_query', {
+                    bible_book: book,
+                    bible_chapter: chapter,
+                    bible_version: version,
+                    action: action,
+                    event_category: 'bible'
+                });
+            },
+            
+            // 追蹤聖經解釋請求
+            trackBibleExplanation(book, chapter, verse, version) {
+                this.trackEvent('bible_explanation', {
+                    bible_book: book,
+                    bible_chapter: chapter,
+                    bible_verse: verse,
+                    bible_version: version,
+                    event_category: 'bible'
+                });
+            },
+            
+            // 追蹤功能使用
+            trackFeatureUse(featureName, details = {}) {
+                this.trackEvent('feature_use', {
+                    feature_name: featureName,
+                    event_category: 'features',
+                    ...details
+                });
+            },
+            
+            // 追蹤錯誤
+            trackError(errorType, errorMessage, context = '') {
+                this.trackEvent('error', {
+                    error_type: errorType,
+                    error_message: errorMessage.substring(0, 100),
+                    error_context: context,
+                    event_category: 'errors'
+                });
+            }
+        };
+
         // DOM 緩存系統 - 提升性能，減少重複查詢
         window.DOMCache = {
             _cache: new Map(),
@@ -1490,6 +1611,10 @@
         function showAuthenticatedUI(user) {
             console.log('🔧 設置已認證用戶界面:', user.email);
             
+            // GA 追蹤：用戶登入成功
+            window.GATracker.trackLogin('google');
+            window.GATracker.trackPageView('首頁 (已登入)', { user_type: 'authenticated' });
+            
             // 設置當前頁面狀態
             window.currentPage = 'home';
             
@@ -1534,7 +1659,11 @@
             const logoutBtn = window.DOMCache.logoutBtn;
             if (logoutBtn) {
                 logoutBtn.style.display = 'flex';
-                logoutBtn.onclick = () => window.location.href = '/auth/logout';
+                logoutBtn.onclick = () => {
+                    // GA 追蹤：用戶登出
+                    window.GATracker.trackLogout();
+                    window.location.href = '/auth/logout';
+                };
                 console.log('✅ 登出按鈕已設置');
             }
             
@@ -2265,6 +2394,9 @@
             
             if (!question) return;
             
+            // GA 追蹤：搜尋查詢
+            window.GATracker.trackSearch(question, window.currentLanguage || 'zh', 'main_search');
+            
             // 檢查認證狀態
             const authStatus = await checkAuthStatusSilent();
             if (!authStatus.authenticated) {
@@ -2719,6 +2851,11 @@
 
         // 登入函數
         function login() {
+            // GA 追蹤：用戶嘗試登入
+            window.GATracker.trackEvent('login_attempt', {
+                method: 'google',
+                event_category: 'authentication'
+            });
             window.location.href = '/auth/google';
         }
 
@@ -3064,15 +3201,24 @@
             };
             
             if (homeLink) {
-                homeLink.addEventListener('click', createClickHandler(showHomePage, '首頁'));
+                homeLink.addEventListener('click', createClickHandler(() => {
+                    window.GATracker.trackPageView('首頁', { navigation_source: 'header' });
+                    showHomePage();
+                }, '首頁'));
             }
             
             if (catalogLink) {
-                catalogLink.addEventListener('click', createClickHandler(showCatalogPage, '參考'));
+                catalogLink.addEventListener('click', createClickHandler(() => {
+                    window.GATracker.trackPageView('參考書目', { navigation_source: 'header' });
+                    showCatalogPage();
+                }, '參考'));
             }
             
             if (bibleLink) {
-                bibleLink.addEventListener('click', createClickHandler(showBiblePage, '聖經查詢'));
+                bibleLink.addEventListener('click', createClickHandler(() => {
+                    window.GATracker.trackPageView('聖經查詢', { navigation_source: 'header' });
+                    showBiblePage();
+                }, '聖經查詢'));
             }
 
             navigationHandlersAdded = true;
@@ -4824,6 +4970,12 @@
                     console.log('🎉 聖經文本靜默預載入完成！');
                     const cacheInfo = getBibleCacheInfo();
                     console.log(`💾 緩存狀態: ${cacheInfo.count} 個版本, ${cacheInfo.sizeMB}MB`);
+                    
+                    // GA 追蹤：聖經預載入完成
+                    window.GATracker.trackFeatureUse('bible_preload_complete', {
+                        versions_loaded: cacheInfo.count,
+                        total_size_mb: cacheInfo.sizeMB
+                    });
                     
                 } catch (error) {
                     console.error('❌ 聖經靜默預載入失敗:', error);
