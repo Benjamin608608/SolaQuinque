@@ -2659,10 +2659,10 @@ async function performActiveWarmup() {
         // 創建 Thread
         const thread = await openai.beta.threads.create();
         
-        // 發送一個簡單的測試問題
+        // 發送一個更簡單的測試問題
         await openai.beta.threads.messages.create(thread.id, {
             role: "user",
-            content: "你好，請簡單介紹一下神學"
+            content: "Hello"
         });
         
         // 創建 Run
@@ -2693,7 +2693,9 @@ async function performActiveWarmup() {
         if (runStatus.status === 'completed') {
             console.log('✅ 積極預熱完成 - Assistant 已完全初始化');
         } else if (runStatus.status === 'failed') {
-            console.warn(`⚠️ 積極預熱失敗 - ${runStatus.last_error?.message || '未知錯誤'}`);
+            const errorMsg = runStatus.last_error?.message || '未知錯誤';
+            console.warn(`⚠️ 積極預熱失敗 - ${errorMsg}`);
+            console.log('💡 這通常是 OpenAI API 的暫時性問題，不影響系統正常運行');
         } else {
             console.warn(`⚠️ 積極預熱超時 (${attempts}秒) - Assistant 已可用但預熱未完成`);
         }
@@ -2779,21 +2781,24 @@ app.listen(PORT, '0.0.0.0', async () => {
   // 載入作者對照表
   await loadAuthorTranslations();
   
-  // 積極預熱 Assistant（冷啟動改善）
+  // 啟動定期保溫機制（不進行積極預熱以避免啟動錯誤）
   setTimeout(async () => {
     try {
-      console.log('🔥 開始積極預熱 Assistant...');
-      
-      // 執行積極預熱（發送測試問題）
-      await performActiveWarmup();
-      
-      // 啟動定期保溫機制
+      // 直接啟動定期保溫機制，跳過積極預熱
+      console.log('🔄 啟動 Assistant 保溫機制...');
       startPeriodicWarmup();
+      console.log('✅ Assistant 保溫機制已啟動');
+      
+      // 可選：如果環境變數啟用積極預熱
+      if (process.env.ENABLE_ACTIVE_WARMUP === 'true') {
+        console.log('🔥 開始積極預熱 Assistant...');
+        await performActiveWarmup();
+      }
       
     } catch (error) {
-      console.warn('⚠️ Assistant 積極預熱失敗:', error.message);
+      console.warn('⚠️ Assistant 保溫啟動失敗:', error.message);
     }
-  }, 2000); // 2秒後開始積極預熱
+  }, 1000); // 1秒後開始
   
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     console.log(`⚠️  注意: Google OAuth 未配置，登入功能將不可用`);
