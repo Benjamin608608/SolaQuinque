@@ -13,8 +13,7 @@ const slowDown = require('express-slow-down');
 
 // 筆記功能
 const { NotesDB, initDatabase } = require('./database');
-// 暫時禁用 PostgreSQL 以解決部署問題
-// const { PostgreSQLNotesDB, initPostgreSQLDatabase } = require('./database-pg');
+const { PostgreSQLNotesDB, initPostgreSQLDatabase } = require('./database-pg');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -2659,18 +2658,46 @@ app.post('/api/bible/warmup', ensureAuthenticated, async (req, res) => {
 });
 
 // 初始化筆記資料庫
-// 筆記資料庫初始化 - 暫時只使用 SQLite
+// 筆記資料庫初始化 - 優先使用 PostgreSQL，備用 SQLite
 let notesDB = null;
 let usingPostgreSQL = false;
 
-try {
-  if (initDatabase()) {
-    notesDB = new NotesDB();
-    console.log('✅ 筆記資料庫已初始化');
+async function initNotesDatabase() {
+  try {
+    // 檢查是否有 PostgreSQL 環境變數
+    if (process.env.DATABASE_URL) {
+      console.log('🔄 嘗試連接 PostgreSQL...');
+      try {
+        const pgDB = await initPostgreSQLDatabase();
+        if (pgDB) {
+          notesDB = pgDB;
+          usingPostgreSQL = true;
+          console.log('✅ 使用 PostgreSQL 筆記資料庫');
+          return;
+        }
+      } catch (pgError) {
+        console.warn('⚠️  PostgreSQL 初始化失敗，退回 SQLite:', pgError.message);
+      }
+    } else {
+      console.log('⚠️  未找到 DATABASE_URL，跳過 PostgreSQL');
+    }
+    
+    // 備用：使用 SQLite
+    console.log('🔄 使用 SQLite 作為備用資料庫...');
+    if (initDatabase()) {
+      notesDB = new NotesDB();
+      usingPostgreSQL = false;
+      console.log('✅ 使用 SQLite 筆記資料庫（備用）');
+      console.log('⚠️  注意：SQLite 資料在部署時會丟失，建議設置 PostgreSQL');
+    }
+  } catch (error) {
+    console.error('❌ 筆記資料庫初始化失敗:', error);
+    notesDB = null;
   }
-} catch (error) {
-  console.error('❌ 筆記資料庫初始化失敗:', error);
 }
+
+// 立即初始化資料庫
+initNotesDatabase();
 
 // 筆記 API 中間件：檢查資料庫是否可用
 function ensureNotesDBAvailable(req, res, next) {
@@ -2728,7 +2755,9 @@ app.post('/api/notes', ensureAuthenticated, ensureNotesDBAvailable, async (req, 
       isPublic: Boolean(isPublic)
     };
 
-    const result = notesDB.createNote(noteData);
+    const result = usingPostgreSQL ? 
+      await notesDB.createNote(noteData) : 
+      notesDB.createNote(noteData);
     
     if (result.success) {
       res.json({
@@ -2758,13 +2787,21 @@ app.get('/api/notes', ensureAuthenticated, ensureNotesDBAvailable, async (req, r
     let notes;
 
     if (search) {
-      notes = notesDB.searchNotes(req.user.id, search);
+      notes = usingPostgreSQL ? 
+        await notesDB.searchNotes(req.user.id, search) :
+        notesDB.searchNotes(req.user.id, search);
     } else if (category) {
-      notes = notesDB.getNotesByCategory(req.user.id, category);
+      notes = usingPostgreSQL ? 
+        await notesDB.getNotesByCategory(req.user.id, category) :
+        notesDB.getNotesByCategory(req.user.id, category);
     } else if (book && chapter) {
-      notes = notesDB.getNotesByBibleRef(req.user.id, book, parseInt(chapter));
+      notes = usingPostgreSQL ? 
+        await notesDB.getNotesByBibleRef(req.user.id, book, parseInt(chapter)) :
+        notesDB.getNotesByBibleRef(req.user.id, book, parseInt(chapter));
     } else {
-      notes = notesDB.getUserNotes(req.user.id);
+      notes = usingPostgreSQL ? 
+        await notesDB.getUserNotes(req.user.id) :
+        notesDB.getUserNotes(req.user.id);
     }
 
     res.json({
@@ -2783,8 +2820,12 @@ app.get('/api/notes', ensureAuthenticated, ensureNotesDBAvailable, async (req, r
 // 獲取用戶筆記統計
 app.get('/api/notes/stats', ensureAuthenticated, ensureNotesDBAvailable, async (req, res) => {
   try {
-    const stats = notesDB.getUserStats(req.user.id);
-    const tags = notesDB.getUserTags(req.user.id);
+    const stats = usingPostgreSQL ? 
+      await notesDB.getUserStats(req.user.id) :
+      notesDB.getUserStats(req.user.id);
+    const tags = usingPostgreSQL ? 
+      await notesDB.getUserTags(req.user.id) :
+      notesDB.getUserTags(req.user.id);
 
     res.json({
       success: true,
@@ -2806,7 +2847,9 @@ app.get('/api/notes/stats', ensureAuthenticated, ensureNotesDBAvailable, async (
 app.get('/api/notes/:id', ensureAuthenticated, ensureNotesDBAvailable, async (req, res) => {
   try {
     const noteId = parseInt(req.params.id);
-    const note = notesDB.getNoteById(noteId, req.user.id);
+    const note = usingPostgreSQL ? 
+      await notesDB.getNoteById(noteId, req.user.id) :
+      notesDB.getNoteById(noteId, req.user.id);
 
     if (!note) {
       return res.status(404).json({
@@ -2850,7 +2893,9 @@ app.put('/api/notes/:id', ensureAuthenticated, ensureNotesDBAvailable, async (re
       isPublic: Boolean(isPublic)
     };
 
-    const result = notesDB.updateNote(noteId, req.user.id, updateData);
+    const result = usingPostgreSQL ? 
+      await notesDB.updateNote(noteId, req.user.id, updateData) :
+      notesDB.updateNote(noteId, req.user.id, updateData);
 
     if (result.success) {
       res.json({
@@ -2876,7 +2921,9 @@ app.put('/api/notes/:id', ensureAuthenticated, ensureNotesDBAvailable, async (re
 app.delete('/api/notes/:id', ensureAuthenticated, ensureNotesDBAvailable, async (req, res) => {
   try {
     const noteId = parseInt(req.params.id);
-    const result = notesDB.deleteNote(noteId, req.user.id);
+    const result = usingPostgreSQL ? 
+      await notesDB.deleteNote(noteId, req.user.id) :
+      notesDB.deleteNote(noteId, req.user.id);
 
     if (result.success) {
       res.json({
