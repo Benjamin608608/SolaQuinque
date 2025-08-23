@@ -4824,7 +4824,7 @@
             }
 
             // 關閉筆記編輯器
-            function closeNoteEditor() {
+            window.closeNoteEditor = function() {
                 const modal = document.getElementById('note-editor-modal');
                 if (modal) {
                     modal.classList.remove('show');
@@ -4835,7 +4835,7 @@
             }
 
             // 儲存筆記
-            async function saveNote() {
+            window.saveNote = async function() {
                 const modal = document.getElementById('note-editor-modal');
                 const title = document.getElementById('note-title').value.trim();
                 const content = document.getElementById('note-content').value.trim();
@@ -5083,7 +5083,7 @@
             }
 
             // 編輯筆記
-            async function editNote(noteId) {
+            window.editNote = async function(noteId) {
                 try {
                     const response = await fetch(`/api/notes/${noteId}`);
                     const result = await response.json();
@@ -5100,7 +5100,7 @@
             }
 
             // 刪除筆記
-            async function deleteNote(noteId) {
+            window.deleteNote = async function(noteId) {
                 if (!confirm('確定要刪除這則筆記嗎？此操作無法復原。')) {
                     return;
                 }
