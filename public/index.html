@@ -3708,19 +3708,19 @@
                 `;
                 
                 // 載入筆記和統計
-                loadUserNotes();
-                loadNotesStats();
+                window.loadUserNotes();
+                window.loadNotesStats();
                 
                 // 添加搜尋功能
                 const searchInput = document.getElementById('notes-search');
                 const categoryFilter = document.getElementById('notes-category-filter');
                 
                 if (searchInput) {
-                    searchInput.addEventListener('input', debounce(filterNotes, 300));
+                    searchInput.addEventListener('input', debounce(window.filterNotes, 300));
                 }
                 
                 if (categoryFilter) {
-                    categoryFilter.addEventListener('change', filterNotes);
+                    categoryFilter.addEventListener('change', window.filterNotes);
                 }
             }
         }
@@ -4884,7 +4884,7 @@
                         
                         // 如果在筆記頁面，重新載入筆記列表
                         if (window.currentPage === 'notes') {
-                            loadUserNotes();
+                            window.loadUserNotes();
                         }
                     } else {
                         alert('儲存失敗：' + (result.error || '未知錯誤'));
@@ -4903,7 +4903,7 @@
                     
                     if (result.success) {
                         window.userNotes = result.data;
-                        renderNotesList(result.data);
+                        window.renderNotesList(result.data);
                     } else {
                         throw new Error(result.error || '載入筆記失敗');
                     }
@@ -4928,7 +4928,7 @@
                     const result = await response.json();
                     
                     if (result.success) {
-                        renderNotesStats(result.data);
+                        window.renderNotesStats(result.data);
                     }
                 } catch (error) {
                     console.error('載入統計錯誤:', error);
@@ -5079,7 +5079,7 @@
                     filteredNotes = filteredNotes.filter(note => note.category === categoryFilter);
                 }
                 
-                renderNotesList(filteredNotes);
+                window.renderNotesList(filteredNotes);
             }
 
             // 編輯筆記
@@ -5114,8 +5114,8 @@
                     
                     if (result.success) {
                         alert('筆記已刪除');
-                        loadUserNotes();
-                        loadNotesStats();
+                        window.loadUserNotes();
+                        window.loadNotesStats();
                     } else {
                         alert('刪除失敗：' + (result.error || '未知錯誤'));
                     }
