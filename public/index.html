@@ -4895,235 +4895,6 @@
                 }
             }
 
-            // 載入用戶筆記
-            window.loadUserNotes = async function() {
-                try {
-                    const response = await fetch('/api/notes');
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        window.userNotes = result.data;
-                        window.renderNotesList(result.data);
-                    } else {
-                        throw new Error(result.error || '載入筆記失敗');
-                    }
-                } catch (error) {
-                    console.error('載入筆記錯誤:', error);
-                    const notesList = document.getElementById('notes-list');
-                    if (notesList) {
-                        notesList.innerHTML = `
-                            <div class="text-center py-8">
-                                <span class="material-icons-outlined text-4xl text-gray-400 mb-4">error_outline</span>
-                                <p class="text-gray-600">載入筆記失敗，請稍後再試</p>
-                            </div>
-                        `;
-                    }
-                }
-            }
-
-            // 載入筆記統計
-            window.loadNotesStats = async function() {
-                try {
-                    const response = await fetch('/api/notes/stats');
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        window.renderNotesStats(result.data);
-                    }
-                } catch (error) {
-                    console.error('載入統計錯誤:', error);
-                }
-            }
-
-            // 渲染筆記統計
-            window.renderNotesStats = function(stats) {
-                const statsContainer = document.getElementById('notes-stats');
-                if (!statsContainer) return;
-
-                const categoryNames = {
-                    default: '默認',
-                    devotion: '靈修',
-                    study: '研經',
-                    sermon: '講道',
-                    prayer: '禱告',
-                    reflection: '反思'
-                };
-
-                statsContainer.innerHTML = `
-                    <div class="bg-white rounded-lg p-4 border border-gray-200">
-                        <div class="text-2xl font-bold text-[var(--primary)]">${stats.total_notes || 0}</div>
-                        <div class="text-sm text-gray-600">總筆記數</div>
-                    </div>
-                    <div class="bg-white rounded-lg p-4 border border-gray-200">
-                        <div class="text-2xl font-bold text-green-600">${stats.categories_count || 0}</div>
-                        <div class="text-sm text-gray-600">分類數</div>
-                    </div>
-                    <div class="bg-white rounded-lg p-4 border border-gray-200">
-                        <div class="text-2xl font-bold text-blue-600">${stats.books_count || 0}</div>
-                        <div class="text-sm text-gray-600">涉及書卷</div>
-                    </div>
-                    <div class="bg-white rounded-lg p-4 border border-gray-200">
-                        <div class="text-2xl font-bold text-purple-600">${(stats.tags || []).length}</div>
-                        <div class="text-sm text-gray-600">標籤數</div>
-                    </div>
-                `;
-            }
-
-            // 渲染筆記列表
-            window.renderNotesList = function(notes) {
-                const notesList = document.getElementById('notes-list');
-                if (!notesList) return;
-
-                if (!notes || notes.length === 0) {
-                    notesList.innerHTML = `
-                        <div class="text-center py-12">
-                            <span class="material-icons-outlined text-6xl text-gray-400 mb-4">note_add</span>
-                            <h3 class="text-xl font-semibold text-gray-700 mb-2">還沒有筆記</h3>
-                            <p class="text-gray-600 mb-6">開始建立您的第一則聖經筆記吧！</p>
-                            <button onclick="showNoteEditor()" class="px-6 py-3 bg-[var(--primary)] text-white rounded-lg hover:bg-opacity-90 transition-colors">
-                                建立筆記
-                            </button>
-                        </div>
-                    `;
-                    return;
-                }
-
-                const categoryNames = {
-                    default: '默認',
-                    devotion: '靈修',
-                    study: '研經',
-                    sermon: '講道',
-                    prayer: '禱告',
-                    reflection: '反思'
-                };
-
-                const colorClasses = {
-                    blue: 'border-l-blue-500',
-                    green: 'border-l-green-500',
-                    yellow: 'border-l-yellow-500',
-                    red: 'border-l-red-500',
-                    purple: 'border-l-purple-500',
-                    pink: 'border-l-pink-500'
-                };
-
-                notesList.innerHTML = notes.map(note => {
-                    const colorClass = colorClasses[note.color] || 'border-l-blue-500';
-                    const bibleRef = note.bibleReference;
-                    const bibleRefText = bibleRef ? 
-                        `${bibleRef.bookZh || bibleRef.book} ${bibleRef.chapter}:${bibleRef.verseStart}${bibleRef.verseEnd !== bibleRef.verseStart ? `-${bibleRef.verseEnd}` : ''}` : '';
-                    
-                    return `
-                        <div class="bg-white rounded-lg border-l-4 ${colorClass} p-4 shadow-sm hover:shadow-md transition-shadow">
-                            <div class="flex justify-between items-start mb-2">
-                                <h3 class="text-lg font-semibold text-[var(--text-primary)] flex-1">${note.title}</h3>
-                                <div class="flex items-center gap-2 ml-4">
-                                    <span class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-                                        ${categoryNames[note.category] || note.category}
-                                    </span>
-                                    <div class="flex items-center gap-1">
-                                        <button onclick="editNote(${note.id})" class="p-1 text-gray-500 hover:text-blue-600 transition-colors" title="編輯">
-                                            <span class="material-icons-outlined text-sm">edit</span>
-                                        </button>
-                                        <button onclick="deleteNote(${note.id})" class="p-1 text-gray-500 hover:text-red-600 transition-colors" title="刪除">
-                                            <span class="material-icons-outlined text-sm">delete</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            ${bibleRefText ? `
-                                <div class="text-sm text-blue-600 mb-2 flex items-center gap-1">
-                                    <span class="material-icons-outlined text-sm">menu_book</span>
-                                    ${bibleRefText}
-                                </div>
-                            ` : ''}
-                            
-                            <p class="text-gray-700 mb-3 line-clamp-3">${note.content.substring(0, 150)}${note.content.length > 150 ? '...' : ''}</p>
-                            
-                            <div class="flex justify-between items-center text-sm text-gray-500">
-                                <div class="flex items-center gap-4">
-                                    ${note.tags && note.tags.length > 0 ? `
-                                        <div class="flex items-center gap-1">
-                                            <span class="material-icons-outlined text-xs">local_offer</span>
-                                            <span>${note.tags.slice(0, 3).join(', ')}${note.tags.length > 3 ? '...' : ''}</span>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                                <span>${new Date(note.createdAt).toLocaleDateString('zh-TW')}</span>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            // 篩選筆記
-            window.filterNotes = function() {
-                const searchTerm = document.getElementById('notes-search')?.value.toLowerCase() || '';
-                const categoryFilter = document.getElementById('notes-category-filter')?.value || '';
-                
-                if (!window.userNotes) return;
-                
-                let filteredNotes = window.userNotes;
-                
-                // 按搜尋詞篩選
-                if (searchTerm) {
-                    filteredNotes = filteredNotes.filter(note => 
-                        note.title.toLowerCase().includes(searchTerm) ||
-                        note.content.toLowerCase().includes(searchTerm) ||
-                        (note.tags && note.tags.some(tag => tag.toLowerCase().includes(searchTerm)))
-                    );
-                }
-                
-                // 按分類篩選
-                if (categoryFilter) {
-                    filteredNotes = filteredNotes.filter(note => note.category === categoryFilter);
-                }
-                
-                window.renderNotesList(filteredNotes);
-            }
-
-            // 編輯筆記
-            window.editNote = async function(noteId) {
-                try {
-                    const response = await fetch(`/api/notes/${noteId}`);
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        showNoteEditor(null, result.data);
-                    } else {
-                        alert('載入筆記失敗：' + (result.error || '未知錯誤'));
-                    }
-                } catch (error) {
-                    console.error('載入筆記錯誤:', error);
-                    alert('載入筆記失敗，請稍後再試');
-                }
-            }
-
-            // 刪除筆記
-            window.deleteNote = async function(noteId) {
-                if (!confirm('確定要刪除這則筆記嗎？此操作無法復原。')) {
-                    return;
-                }
-                
-                try {
-                    const response = await fetch(`/api/notes/${noteId}`, {
-                        method: 'DELETE'
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        alert('筆記已刪除');
-                        window.loadUserNotes();
-                        window.loadNotesStats();
-                    } else {
-                        alert('刪除失敗：' + (result.error || '未知錯誤'));
-                    }
-                } catch (error) {
-                    console.error('刪除筆記錯誤:', error);
-                    alert('刪除失敗，請稍後再試');
-                }
-            }
 
             // 防抖函數
             function debounce(func, wait) {
@@ -5138,151 +4909,6 @@
                 };
             }
 
-            // ==================== 筆記功能全局函數 ====================
-            
-            // 載入用戶筆記
-            window.loadUserNotes = async function() {
-                try {
-                    const response = await fetch('/api/notes');
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        window.userNotes = result.data;
-                        window.renderNotesList(result.data);
-                    } else {
-                        throw new Error(result.error || '載入筆記失敗');
-                    }
-                } catch (error) {
-                    console.error('載入筆記錯誤:', error);
-                    if (error.message.includes('需要登入')) {
-                        const notesList = document.getElementById('notes-list');
-                        if (notesList) {
-                            notesList.innerHTML = `
-                                <div class="text-center py-8 text-gray-500">
-                                    <p>請先登入以查看您的筆記</p>
-                                </div>
-                            `;
-                        }
-                    }
-                }
-            }
-
-            // 載入筆記統計
-            window.loadNotesStats = async function() {
-                try {
-                    const response = await fetch('/api/notes/stats');
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        window.renderNotesStats(result.data);
-                    }
-                } catch (error) {
-                    console.error('載入統計錯誤:', error);
-                }
-            }
-
-            // 渲染筆記統計
-            window.renderNotesStats = function(stats) {
-                const statsContainer = document.getElementById('notes-stats');
-                if (!statsContainer) return;
-
-                const categoryNames = {
-                    default: '默認',
-                    study: '研經',
-                    prayer: '禱告',
-                    reflection: '反思',
-                    sermon: '講道',
-                    devotion: '靈修'
-                };
-
-                statsContainer.innerHTML = `
-                    <div class="stats-overview">
-                        <div class="stat-item">
-                            <span class="stat-number">${stats.totalNotes || 0}</span>
-                            <span class="stat-label">總筆記</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">${stats.categoryCounts ? Object.keys(stats.categoryCounts).length : 0}</span>
-                            <span class="stat-label">分類</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">${stats.tags ? stats.tags.length : 0}</span>
-                            <span class="stat-label">標籤</span>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // 渲染筆記列表
-            window.renderNotesList = function(notes) {
-                const notesList = document.getElementById('notes-list');
-                if (!notesList) return;
-
-                if (!notes || notes.length === 0) {
-                    notesList.innerHTML = `
-                        <div class="text-center py-8 text-gray-500">
-                            <p>還沒有筆記，快去聖經頁面選取經文建立第一則筆記吧！</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                notesList.innerHTML = notes.map(note => {
-                    const bibleRef = note.bible_book && note.bible_chapter 
-                        ? `${note.bible_book_zh || note.bible_book} ${note.bible_chapter}:${note.bible_verse_start}${note.bible_verse_end ? '-' + note.bible_verse_end : ''}`
-                        : '';
-                    
-                    const tags = note.tags ? note.tags.map(tag => `<span class="note-tag">${tag}</span>`).join('') : '';
-                    
-                    return `
-                        <div class="note-item" style="border-left: 4px solid var(--color-${note.color || 'blue'});">
-                            <div class="note-header">
-                                <h3 class="note-title">${note.title}</h3>
-                                <div class="note-actions">
-                                    <button onclick="window.editNote(${note.id})" class="note-action-btn">
-                                        <span class="material-icons-outlined">edit</span>
-                                    </button>
-                                    <button onclick="window.deleteNote(${note.id})" class="note-action-btn">
-                                        <span class="material-icons-outlined">delete</span>
-                                    </button>
-                                </div>
-                            </div>
-                            ${bibleRef ? `<div class="note-bible-ref">${bibleRef}</div>` : ''}
-                            <div class="note-content">${note.content.substring(0, 200)}${note.content.length > 200 ? '...' : ''}</div>
-                            <div class="note-footer">
-                                <div class="note-tags">${tags}</div>
-                                <div class="note-date">${new Date(note.created_at).toLocaleDateString('zh-TW')}</div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            // 篩選筆記
-            window.filterNotes = function() {
-                const searchTerm = document.getElementById('notes-search')?.value.toLowerCase() || '';
-                const categoryFilter = document.getElementById('notes-category-filter')?.value || '';
-                
-                if (!window.userNotes) return;
-                
-                let filteredNotes = window.userNotes;
-                
-                // 按搜尋詞篩選
-                if (searchTerm) {
-                    filteredNotes = filteredNotes.filter(note => 
-                        note.title.toLowerCase().includes(searchTerm) ||
-                        note.content.toLowerCase().includes(searchTerm) ||
-                        (note.tags && note.tags.some(tag => tag.toLowerCase().includes(searchTerm)))
-                    );
-                }
-                
-                // 按分類篩選
-                if (categoryFilter) {
-                    filteredNotes = filteredNotes.filter(note => note.category === categoryFilter);
-                }
-                
-                window.renderNotesList(filteredNotes);
-            }
 
             // 顯示經文註釋
             function showVerseCommentary() {
@@ -7741,6 +7367,152 @@
                 apply();
             }
         })();
+
+        // ==================== 筆記功能全局函數 ====================
+        
+        // 載入用戶筆記
+        window.loadUserNotes = async function() {
+            try {
+                const response = await fetch('/api/notes');
+                const result = await response.json();
+                
+                if (result.success) {
+                    window.userNotes = result.data;
+                    window.renderNotesList(result.data);
+                } else {
+                    throw new Error(result.error || '載入筆記失敗');
+                }
+            } catch (error) {
+                console.error('載入筆記錯誤:', error);
+                if (error.message.includes('需要登入')) {
+                    const notesList = document.getElementById('notes-list');
+                    if (notesList) {
+                        notesList.innerHTML = `
+                            <div class="text-center py-8 text-gray-500">
+                                <p>請先登入以查看您的筆記</p>
+                            </div>
+                        `;
+                    }
+                }
+            }
+        }
+
+        // 載入筆記統計
+        window.loadNotesStats = async function() {
+            try {
+                const response = await fetch('/api/notes/stats');
+                const result = await response.json();
+                
+                if (result.success) {
+                    window.renderNotesStats(result.data);
+                }
+            } catch (error) {
+                console.error('載入統計錯誤:', error);
+            }
+        }
+
+        // 渲染筆記統計
+        window.renderNotesStats = function(stats) {
+            const statsContainer = document.getElementById('notes-stats');
+            if (!statsContainer) return;
+
+            const categoryNames = {
+                default: '默認',
+                study: '研經',
+                prayer: '禱告',
+                reflection: '反思',
+                sermon: '講道',
+                devotion: '靈修'
+            };
+
+            statsContainer.innerHTML = `
+                <div class="stats-overview">
+                    <div class="stat-item">
+                        <span class="stat-number">${stats.totalNotes || 0}</span>
+                        <span class="stat-label">總筆記</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${stats.categoryCounts ? Object.keys(stats.categoryCounts).length : 0}</span>
+                        <span class="stat-label">分類</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${stats.tags ? stats.tags.length : 0}</span>
+                        <span class="stat-label">標籤</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染筆記列表
+        window.renderNotesList = function(notes) {
+            const notesList = document.getElementById('notes-list');
+            if (!notesList) return;
+
+            if (!notes || notes.length === 0) {
+                notesList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <p>還沒有筆記，快去聖經頁面選取經文建立第一則筆記吧！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            notesList.innerHTML = notes.map(note => {
+                const bibleRef = note.bible_book && note.bible_chapter 
+                    ? `${note.bible_book_zh || note.bible_book} ${note.bible_chapter}:${note.bible_verse_start}${note.bible_verse_end ? '-' + note.bible_verse_end : ''}`
+                    : '';
+                
+                const tags = note.tags ? note.tags.map(tag => `<span class="note-tag">${tag}</span>`).join('') : '';
+                
+                return `
+                    <div class="note-item" style="border-left: 4px solid var(--color-${note.color || 'blue'});">
+                        <div class="note-header">
+                            <h3 class="note-title">${note.title}</h3>
+                            <div class="note-actions">
+                                <button onclick="window.editNote(${note.id})" class="note-action-btn">
+                                    <span class="material-icons-outlined">edit</span>
+                                </button>
+                                <button onclick="window.deleteNote(${note.id})" class="note-action-btn">
+                                    <span class="material-icons-outlined">delete</span>
+                                </button>
+                            </div>
+                        </div>
+                        ${bibleRef ? `<div class="note-bible-ref">${bibleRef}</div>` : ''}
+                        <div class="note-content">${note.content.substring(0, 200)}${note.content.length > 200 ? '...' : ''}</div>
+                        <div class="note-footer">
+                            <div class="note-tags">${tags}</div>
+                            <div class="note-date">${new Date(note.created_at).toLocaleDateString('zh-TW')}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 篩選筆記
+        window.filterNotes = function() {
+            const searchTerm = document.getElementById('notes-search')?.value.toLowerCase() || '';
+            const categoryFilter = document.getElementById('notes-category-filter')?.value || '';
+            
+            if (!window.userNotes) return;
+            
+            let filteredNotes = window.userNotes;
+            
+            // 按搜尋詞篩選
+            if (searchTerm) {
+                filteredNotes = filteredNotes.filter(note => 
+                    note.title.toLowerCase().includes(searchTerm) ||
+                    note.content.toLowerCase().includes(searchTerm) ||
+                    (note.tags && note.tags.some(tag => tag.toLowerCase().includes(searchTerm)))
+                );
+            }
+            
+            // 按分類篩選
+            if (categoryFilter) {
+                filteredNotes = filteredNotes.filter(note => note.category === categoryFilter);
+            }
+            
+            window.renderNotesList(filteredNotes);
+        }
     </script>
     <script src="/theme.js" defer></script>
     <script src="/performance-monitor.js" defer></script>
