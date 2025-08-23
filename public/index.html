@@ -7863,24 +7863,52 @@
         
         // 載入用戶筆記
         window.loadUserNotes = async function() {
+            console.log('開始載入筆記...');
+            const notesList = document.getElementById('notes-list');
+            
+            if (!notesList) {
+                console.error('找不到 notes-list 元素');
+                return;
+            }
+            
             try {
+                console.log('發送API請求到 /api/notes');
                 const response = await fetch('/api/notes');
                 const result = await response.json();
                 
+                console.log('API回應:', result);
+                
                 if (result.success) {
                     window.userNotes = result.data;
+                    console.log('筆記數據:', result.data);
+                    console.log('筆記數量:', result.data ? result.data.length : 0);
                     window.renderNotesList(result.data);
                 } else {
                     throw new Error(result.error || '載入筆記失敗');
                 }
             } catch (error) {
                 console.error('載入筆記錯誤:', error);
-                if (error.message.includes('需要登入')) {
-                    const notesList = document.getElementById('notes-list');
-                    if (notesList) {
+                if (notesList) {
+                    if (error.message.includes('需要登入') || error.message.includes('Unauthorized')) {
                         notesList.innerHTML = `
-                            <div class="text-center py-8 text-gray-500">
-                                <p>請先登入以查看您的筆記</p>
+                            <div class="notes-empty-state fade-in">
+                                <div class="notes-empty-icon">
+                                    <span class="material-icons-outlined">lock</span>
+                                </div>
+                                <div class="notes-empty-title">需要登入</div>
+                                <div class="notes-empty-description">請先登入以查看您的筆記</div>
+                                <button onclick="login()" class="btn btn-primary">立即登入</button>
+                            </div>
+                        `;
+                    } else {
+                        notesList.innerHTML = `
+                            <div class="notes-empty-state fade-in">
+                                <div class="notes-empty-icon">
+                                    <span class="material-icons-outlined">error</span>
+                                </div>
+                                <div class="notes-empty-title">載入失敗</div>
+                                <div class="notes-empty-description">無法載入筆記，請重新整理頁面或稍後再試</div>
+                                <button onclick="window.loadUserNotes()" class="btn btn-secondary">重新載入</button>
                             </div>
                         `;
                     }
@@ -7891,11 +7919,16 @@
         // 載入筆記統計
         window.loadNotesStats = async function() {
             try {
+                console.log('開始載入筆記統計...');
                 const response = await fetch('/api/notes/stats');
                 const result = await response.json();
                 
+                console.log('統計API回應:', result);
+                
                 if (result.success) {
                     window.renderNotesStats(result.data);
+                } else {
+                    console.error('統計API失敗:', result.error);
                 }
             } catch (error) {
                 console.error('載入統計錯誤:', error);
@@ -7904,8 +7937,12 @@
 
         // 渲染筆記統計
         window.renderNotesStats = function(stats) {
+            console.log('開始渲染統計數據:', stats);
             const statsContainer = document.getElementById('notes-stats');
-            if (!statsContainer) return;
+            if (!statsContainer) {
+                console.error('找不到 notes-stats 元素');
+                return;
+            }
 
             const categoryNames = {
                 default: '默認',
@@ -7916,44 +7953,55 @@
                 devotion: '靈修'
             };
 
+            // 修正數據結構以匹配數據庫返回的格式
+            const totalNotes = stats.total_notes || stats.totalNotes || 0;
+            const categoriesCount = stats.categories_count || (stats.categoryCounts ? Object.keys(stats.categoryCounts).length : 0);
+            const tagsCount = stats.tags ? stats.tags.length : 0;
+            const booksCount = stats.books_count || 0;
+
             statsContainer.innerHTML = `
                 <div class="stat-card">
                     <div class="stat-card-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
                         <span class="material-icons-outlined" style="color: white;">edit_note</span>
                     </div>
-                    <div class="stat-card-value">${stats.totalNotes || 0}</div>
+                    <div class="stat-card-value">${totalNotes}</div>
                     <div class="stat-card-label">總筆記</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
                         <span class="material-icons-outlined" style="color: white;">category</span>
                     </div>
-                    <div class="stat-card-value">${stats.categoryCounts ? Object.keys(stats.categoryCounts).length : 0}</div>
+                    <div class="stat-card-value">${categoriesCount}</div>
                     <div class="stat-card-label">分類</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
                         <span class="material-icons-outlined" style="color: white;">local_offer</span>
                     </div>
-                    <div class="stat-card-value">${stats.tags ? stats.tags.length : 0}</div>
+                    <div class="stat-card-value">${tagsCount}</div>
                     <div class="stat-card-label">標籤</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-                        <span class="material-icons-outlined" style="color: white;">schedule</span>
+                        <span class="material-icons-outlined" style="color: white;">menu_book</span>
                     </div>
-                    <div class="stat-card-value">${stats.recentNotes || 0}</div>
-                    <div class="stat-card-label">本月新增</div>
+                    <div class="stat-card-value">${booksCount}</div>
+                    <div class="stat-card-label">書卷數</div>
                 </div>
             `;
         }
 
                     // 渲染筆記列表
             window.renderNotesList = function(notes) {
+                console.log('開始渲染筆記列表，筆記數量:', notes ? notes.length : 0);
                 const notesList = document.getElementById('notes-list');
-                if (!notesList) return;
+                if (!notesList) {
+                    console.error('找不到 notes-list 元素');
+                    return;
+                }
 
                 if (!notes || notes.length === 0) {
+                    console.log('沒有筆記，顯示空狀態');
                     notesList.innerHTML = `
                         <div class="notes-empty-state fade-in">
                             <div class="notes-empty-icon">
