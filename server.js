@@ -2764,6 +2764,28 @@ app.get('/api/notes', ensureAuthenticated, async (req, res) => {
   }
 });
 
+// 獲取用戶筆記統計
+app.get('/api/notes/stats', ensureAuthenticated, async (req, res) => {
+  try {
+    const stats = notesDB.getUserStats(req.user.id);
+    const tags = notesDB.getUserTags(req.user.id);
+
+    res.json({
+      success: true,
+      data: {
+        ...stats,
+        tags
+      }
+    });
+  } catch (error) {
+    console.error('獲取統計 API 錯誤:', error);
+    res.status(500).json({
+      success: false,
+      error: '獲取統計失敗'
+    });
+  }
+});
+
 // 獲取特定筆記
 app.get('/api/notes/:id', ensureAuthenticated, async (req, res) => {
   try {
@@ -2860,27 +2882,7 @@ app.delete('/api/notes/:id', ensureAuthenticated, async (req, res) => {
   }
 });
 
-// 獲取用戶筆記統計
-app.get('/api/notes/stats', ensureAuthenticated, async (req, res) => {
-  try {
-    const stats = notesDB.getUserStats(req.user.id);
-    const tags = notesDB.getUserTags(req.user.id);
 
-    res.json({
-      success: true,
-      data: {
-        ...stats,
-        tags
-      }
-    });
-  } catch (error) {
-    console.error('獲取統計 API 錯誤:', error);
-    res.status(500).json({
-      success: false,
-      error: '獲取統計失敗'
-    });
-  }
-});
 
 // ==================== 筆記 API 端點結束 ====================
 

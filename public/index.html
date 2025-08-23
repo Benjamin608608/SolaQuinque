@@ -4896,18 +4896,7 @@
             }
 
 
-            // 防抖函數
-            function debounce(func, wait) {
-                let timeout;
-                return function executedFunction(...args) {
-                    const later = () => {
-                        clearTimeout(timeout);
-                        func(...args);
-                    };
-                    clearTimeout(timeout);
-                    timeout = setTimeout(later, wait);
-                };
-            }
+
 
 
             // 顯示經文註釋
@@ -7369,6 +7358,19 @@
         })();
 
         // ==================== 筆記功能全局函數 ====================
+        
+        // 防抖函數
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
         
         // 載入用戶筆記
         window.loadUserNotes = async function() {
