@@ -7515,6 +7515,49 @@
             
             window.renderNotesList(filteredNotes);
         }
+
+        // 編輯筆記
+        window.editNote = async function(noteId) {
+            try {
+                const response = await fetch(`/api/notes/${noteId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNoteEditor(null, result.data);
+                } else {
+                    alert('載入筆記失敗：' + (result.error || '未知錯誤'));
+                }
+            } catch (error) {
+                console.error('載入筆記錯誤:', error);
+                alert('載入筆記失敗，請稍後再試');
+            }
+        }
+
+        // 刪除筆記
+        window.deleteNote = async function(noteId) {
+            if (!confirm('確定要刪除這則筆記嗎？此操作無法復原。')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/notes/${noteId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('筆記已刪除');
+                    window.loadUserNotes();
+                    window.loadNotesStats();
+                } else {
+                    alert('刪除失敗：' + (result.error || '未知錯誤'));
+                }
+            } catch (error) {
+                console.error('刪除筆記錯誤:', error);
+                alert('刪除失敗，請稍後再試');
+            }
+        }
     </script>
     <script src="/theme.js" defer></script>
     <script src="/performance-monitor.js" defer></script>
