@@ -2666,7 +2666,8 @@ async function initNotesDatabase() {
   try {
     // 檢查是否有 PostgreSQL 環境變數
     if (process.env.DATABASE_URL) {
-      console.log('🔄 嘗試連接 PostgreSQL...');
+      console.log('🔄 檢測到 DATABASE_URL，嘗試連接 PostgreSQL...');
+      console.log('🔗 連接字串格式:', process.env.DATABASE_URL.substring(0, 20) + '...');
       try {
         const pgDB = await initPostgreSQLDatabase();
         if (pgDB) {
@@ -2677,6 +2678,7 @@ async function initNotesDatabase() {
         }
       } catch (pgError) {
         console.warn('⚠️  PostgreSQL 初始化失敗，退回 SQLite:', pgError.message);
+        console.warn('🔍 連接字串問題，請檢查 DATABASE_URL 格式');
       }
     } else {
       console.log('⚠️  未找到 DATABASE_URL，跳過 PostgreSQL');
