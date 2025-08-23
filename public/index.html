@@ -3634,7 +3634,7 @@
         }
 
         // 顯示筆記頁面
-        async function showNotesPage() {
+        window.showNotesPage = async function() {
             // 設置當前頁面狀態
             window.currentPage = 'notes';
             
@@ -4896,7 +4896,7 @@
             }
 
             // 載入用戶筆記
-            async function loadUserNotes() {
+            window.loadUserNotes = async function() {
                 try {
                     const response = await fetch('/api/notes');
                     const result = await response.json();
@@ -4922,7 +4922,7 @@
             }
 
             // 載入筆記統計
-            async function loadNotesStats() {
+            window.loadNotesStats = async function() {
                 try {
                     const response = await fetch('/api/notes/stats');
                     const result = await response.json();
@@ -4936,7 +4936,7 @@
             }
 
             // 渲染筆記統計
-            function renderNotesStats(stats) {
+            window.renderNotesStats = function(stats) {
                 const statsContainer = document.getElementById('notes-stats');
                 if (!statsContainer) return;
 
@@ -4970,7 +4970,7 @@
             }
 
             // 渲染筆記列表
-            function renderNotesList(notes) {
+            window.renderNotesList = function(notes) {
                 const notesList = document.getElementById('notes-list');
                 if (!notesList) return;
 
@@ -5057,7 +5057,7 @@
             }
 
             // 篩選筆記
-            function filterNotes() {
+            window.filterNotes = function() {
                 const searchTerm = document.getElementById('notes-search')?.value.toLowerCase() || '';
                 const categoryFilter = document.getElementById('notes-category-filter')?.value || '';
                 
