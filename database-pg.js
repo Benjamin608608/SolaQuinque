@@ -9,7 +9,8 @@ class PostgreSQLNotesDB {
             ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
         });
         
-        this.initDatabase();
+        // 不在構造函數中調用 initDatabase，避免未處理的 Promise
+        // this.initDatabase();
     }
     
     // 初始化資料庫表格
@@ -344,6 +345,9 @@ async function initPostgreSQLDatabase() {
         // 測試連接
         await db.pool.query('SELECT 1');
         console.log('✅ PostgreSQL 連接測試成功');
+        
+        // 初始化資料庫表格
+        await db.initDatabase();
         
         console.log('✅ PostgreSQL 筆記資料庫已初始化');
         return db;

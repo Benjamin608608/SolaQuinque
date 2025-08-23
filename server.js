@@ -2696,8 +2696,10 @@ async function initNotesDatabase() {
   }
 }
 
-// 立即初始化資料庫
-initNotesDatabase();
+// 立即初始化資料庫，捕獲所有錯誤
+initNotesDatabase().catch(error => {
+  console.warn('⚠️  資料庫初始化異步失敗，將使用備用 SQLite:', error.message);
+});
 
 // 筆記 API 中間件：檢查資料庫是否可用
 function ensureNotesDBAvailable(req, res, next) {
