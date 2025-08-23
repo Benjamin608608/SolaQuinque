@@ -1331,92 +1331,259 @@
         font-weight: 500;
       }
       
-      /* 筆記列表樣式 */
-      .notes-list-header {
-        display: grid;
-        grid-template-columns: 20px 80px 120px 1fr 80px;
-        gap: 1rem;
-        padding: 1rem 1.5rem;
-        background: #f9fafb;
-        border-bottom: 1px solid #e5e7eb;
-        font-weight: 600;
-        color: #374151;
-        font-size: 0.875rem;
+      /* 筆記頁面樣式 */
+      .notes-page {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        min-height: 100vh;
+        padding: 2rem 0;
       }
       
-      .note-row {
-        display: grid;
-        grid-template-columns: 20px 80px 120px 1fr 80px;
-        gap: 1rem;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid #f3f4f6;
+      .notes-header {
+        background: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        margin-bottom: 2rem;
+      }
+      
+      .notes-title {
+        display: flex;
         align-items: center;
-        transition: background-color 0.2s ease;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
       }
       
-      .note-row:hover {
-        background-color: #f9fafb;
+      .notes-title h2 {
+        background: linear-gradient(135deg, var(--primary), #d4af37);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
       }
       
-      .note-row:last-child {
-        border-bottom: none;
+      .notes-search-filter {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+      
+      @media (min-width: 768px) {
+        .notes-search-filter {
+          flex-direction: row;
+          align-items: center;
+        }
+      }
+      
+      .search-input-wrapper {
+        position: relative;
+        flex: 1;
+      }
+      
+      .search-input-wrapper .material-icons-outlined {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        pointer-events: none;
+      }
+      
+      .notes-search-input {
+        width: 100%;
+        padding: 0.875rem 1rem 0.875rem 2.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.75rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+      }
+      
+      .notes-search-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+      }
+      
+      .notes-category-select {
+        padding: 0.875rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.75rem;
+        font-size: 1rem;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 160px;
+      }
+      
+      .notes-category-select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+      }
+      
+      /* 統計卡片樣式 */
+      .notes-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+      
+      .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        text-align: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      
+      .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+      }
+      
+      .stat-card-icon {
+        width: 3rem;
+        height: 3rem;
+        margin: 0 auto 1rem;
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+      }
+      
+      .stat-card-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+      }
+      
+      .stat-card-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+      
+      /* 筆記卡片列表樣式 */
+      .notes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+      }
+      
+      @media (max-width: 768px) {
+        .notes-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      
+      .note-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+      
+      .note-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      }
+      
+      .note-card-header {
+        padding: 1.5rem 1.5rem 1rem;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      
+      .note-card-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
       }
       
       .note-color-marker {
-        width: 12px;
-        height: 12px;
+        width: 0.75rem;
+        height: 0.75rem;
         border-radius: 50%;
-        margin: 0 auto;
+        flex-shrink: 0;
       }
       
-      .note-category {
-        font-size: 0.875rem;
-        color: #6b7280;
+      .note-category-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0.75rem;
+        background: #f3f4f6;
+        color: #374151;
+        border-radius: 9999px;
+        font-size: 0.75rem;
         font-weight: 500;
       }
       
       .note-bible-ref {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        color: var(--primary);
         font-size: 0.875rem;
-        color: #374151;
-        font-weight: 500;
+        font-weight: 600;
+        text-decoration: none;
       }
       
-      .note-content-wrapper {
-        position: relative;
-        overflow: hidden;
+      .note-bible-ref:hover {
+        text-decoration: underline;
+      }
+      
+      .note-card-content {
+        padding: 0 1.5rem 1.5rem;
       }
       
       .note-content-text {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
         color: #4b5563;
-        font-size: 0.875rem;
-        line-height: 1.4;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
       
-      .note-content-wrapper::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 40px;
-        height: 100%;
-        background: linear-gradient(to right, transparent, white);
-        pointer-events: none;
+      .note-card-footer {
+        padding: 1rem 1.5rem;
+        background: #f9fafb;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      
+      .note-date {
+        font-size: 0.75rem;
+        color: #6b7280;
       }
       
       .note-actions {
         display: flex;
         gap: 0.5rem;
-        justify-content: center;
       }
       
       .note-action-btn {
         background: none;
         border: none;
         padding: 0.5rem;
-        border-radius: 0.375rem;
+        border-radius: 0.5rem;
         cursor: pointer;
         transition: all 0.2s ease;
         color: #6b7280;
@@ -1426,12 +1593,219 @@
       }
       
       .note-action-btn:hover {
-        background-color: #f3f4f6;
+        background-color: #e5e7eb;
         color: #374151;
+      }
+      
+      .note-action-btn.delete-btn:hover {
+        background-color: #fef2f2;
+        color: #dc2626;
       }
       
       .note-action-btn .material-icons-outlined {
         font-size: 1.125rem;
+      }
+      
+      /* 空狀態樣式 */
+      .notes-empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+      }
+      
+      .notes-empty-icon {
+        width: 4rem;
+        height: 4rem;
+        margin: 0 auto 1.5rem;
+        background: linear-gradient(135deg, var(--primary), #d4af37);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+      }
+      
+      .notes-empty-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+      }
+      
+      .notes-empty-description {
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+      }
+      
+      /* 載入動畫 */
+      .notes-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+      }
+      
+      .loading-spinner {
+        width: 3rem;
+        height: 3rem;
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* 淡入動畫 */
+      .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+      
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      /* 按鈕樣式 */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+      }
+      
+      .btn-primary {
+        background: linear-gradient(135deg, var(--primary), #d4af37);
+        color: white;
+        box-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+      }
+      
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
+      }
+      
+      .btn-secondary {
+        background: #f3f4f6;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+      }
+      
+      .btn-secondary:hover {
+        background: #e5e7eb;
+        transform: translateY(-1px);
+      }
+      
+      /* 響應式優化 */
+      @media (max-width: 640px) {
+        .notes-page {
+          padding: 1rem 0;
+        }
+        
+        .notes-header {
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        .notes-title h2 {
+          font-size: 1.5rem;
+        }
+        
+        .notes-stats {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1rem;
+        }
+        
+        .stat-card {
+          padding: 1rem;
+        }
+        
+        .stat-card-icon {
+          width: 2.5rem;
+          height: 2.5rem;
+          font-size: 1.25rem;
+        }
+        
+        .stat-card-value {
+          font-size: 1.5rem;
+        }
+        
+        .notes-grid {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+        
+        .note-card-header {
+          padding: 1rem 1rem 0.75rem;
+        }
+        
+        .note-card-content {
+          padding: 0 1rem 1rem;
+        }
+        
+        .note-card-footer {
+          padding: 0.75rem 1rem;
+        }
+        
+        .note-card-meta {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.5rem;
+        }
+        
+        .notes-search-filter {
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        
+        .notes-category-select {
+          min-width: auto;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .notes-stats {
+          grid-template-columns: 1fr;
+        }
+        
+        .notes-empty-state {
+          padding: 3rem 1.5rem;
+        }
+        
+        .notes-empty-icon {
+          width: 3rem;
+          height: 3rem;
+          font-size: 1.5rem;
+        }
+        
+        .note-content-text {
+          -webkit-line-clamp: 2;
+        }
       }
       
       /* 筆記顏色變數 */
@@ -3781,19 +4155,23 @@
             const main = window.DOMCache.mainContent;
             if (main) {
                 main.innerHTML = `
-                    <div class="notes-page w-full max-w-4xl mx-auto px-2 sm:px-4 md:px-0" style="display: block;">
-                        <div class="notes-header mb-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-2xl font-bold text-[var(--text-primary)]">📝 我的筆記</h2>
+                    <div class="notes-page w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8" style="display: block;">
+                        <div class="notes-header">
+                            <div class="notes-title">
+                                <div class="notes-empty-icon" style="width: 3rem; height: 3rem; margin: 0;">
+                                    <span class="material-icons-outlined" style="font-size: 1.5rem;">edit_note</span>
+                                </div>
+                                <h2>我的筆記</h2>
                             </div>
                             
                             <!-- 搜尋和篩選 -->
-                            <div class="flex flex-col sm:flex-row gap-3 mb-4">
-                                <div class="flex-1">
-                                    <input type="text" id="notes-search" placeholder="搜尋筆記..." 
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--primary)]">
+                            <div class="notes-search-filter">
+                                <div class="search-input-wrapper">
+                                    <span class="material-icons-outlined">search</span>
+                                    <input type="text" id="notes-search" placeholder="搜尋筆記內容、標籤或經文..." 
+                                           class="notes-search-input">
                                 </div>
-                                <select id="notes-category-filter" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--primary)]">
+                                <select id="notes-category-filter" class="notes-category-select">
                                     <option value="">所有分類</option>
                                     <option value="default">默認</option>
                                     <option value="devotion">靈修</option>
@@ -3803,29 +4181,17 @@
                                     <option value="reflection">反思</option>
                                 </select>
                             </div>
-                            
-                            <!-- 統計資訊 -->
-                            <div id="notes-stats" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                                <!-- 統計卡片將由 JavaScript 動態載入 -->
-                            </div>
+                        </div>
+                        
+                        <!-- 統計資訊 -->
+                        <div id="notes-stats" class="notes-stats fade-in">
+                            <!-- 統計卡片將由 JavaScript 動態載入 -->
                         </div>
                         
                         <!-- 筆記列表 -->
-                        <div id="notes-list" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                            <!-- 列表標題行 -->
-                            <div class="notes-list-header">
-                                <div></div>
-                                <div>分類</div>
-                                <div>經卷章節</div>
-                                <div>筆記內容</div>
-                                <div>操作</div>
-                            </div>
-                            
-                            <!-- 筆記項目將由 JavaScript 動態載入 -->
-                            <div class="text-center py-8">
-                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)] mx-auto mb-4"></div>
-                                <p class="text-gray-600">載入筆記中...</p>
-                            </div>
+                        <div id="notes-list" class="notes-loading">
+                            <div class="loading-spinner"></div>
+                            <p class="text-gray-600">載入筆記中...</p>
                         </div>
                     </div>
                 `;
@@ -7551,19 +7917,33 @@
             };
 
             statsContainer.innerHTML = `
-                <div class="stats-overview">
-                    <div class="stat-item">
-                        <span class="stat-number">${stats.totalNotes || 0}</span>
-                        <span class="stat-label">總筆記</span>
+                <div class="stat-card">
+                    <div class="stat-card-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                        <span class="material-icons-outlined" style="color: white;">edit_note</span>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-number">${stats.categoryCounts ? Object.keys(stats.categoryCounts).length : 0}</span>
-                        <span class="stat-label">分類</span>
+                    <div class="stat-card-value">${stats.totalNotes || 0}</div>
+                    <div class="stat-card-label">總筆記</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <span class="material-icons-outlined" style="color: white;">category</span>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-number">${stats.tags ? stats.tags.length : 0}</span>
-                        <span class="stat-label">標籤</span>
+                    <div class="stat-card-value">${stats.categoryCounts ? Object.keys(stats.categoryCounts).length : 0}</div>
+                    <div class="stat-card-label">分類</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <span class="material-icons-outlined" style="color: white;">local_offer</span>
                     </div>
+                    <div class="stat-card-value">${stats.tags ? stats.tags.length : 0}</div>
+                    <div class="stat-card-label">標籤</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                        <span class="material-icons-outlined" style="color: white;">schedule</span>
+                    </div>
+                    <div class="stat-card-value">${stats.recentNotes || 0}</div>
+                    <div class="stat-card-label">本月新增</div>
                 </div>
             `;
         }
@@ -7575,8 +7955,13 @@
 
                 if (!notes || notes.length === 0) {
                     notesList.innerHTML = `
-                        <div class="text-center py-8 text-gray-500">
-                            <p>還沒有筆記，快去聖經頁面選取經文建立第一則筆記吧！</p>
+                        <div class="notes-empty-state fade-in">
+                            <div class="notes-empty-icon">
+                                <span class="material-icons-outlined">note_add</span>
+                            </div>
+                            <div class="notes-empty-title">還沒有筆記</div>
+                            <div class="notes-empty-description">快去聖經頁面選取經文建立第一則筆記吧！</div>
+                            <button onclick="showBiblePage()" class="btn btn-primary">開始建立筆記</button>
                         </div>
                     `;
                     return;
@@ -7591,33 +7976,64 @@
                     devotion: '靈修'
                 };
 
-                notesList.innerHTML = notes.map(note => {
-                    // 處理聖經引用
-                    let bibleRef = '';
-                    if (note.bibleReference) {
-                        const ref = note.bibleReference;
-                        bibleRef = `${ref.bookZh || ref.book} ${ref.chapter}:${ref.verseStart}${ref.verseEnd ? '-' + ref.verseEnd : ''}`;
-                    }
-                    
-                    return `
-                        <div class="note-row">
-                            <div class="note-color-marker" style="background-color: var(--color-${note.color || 'blue'});"></div>
-                            <div class="note-category">${categoryNames[note.category] || note.category || '默認'}</div>
-                            <div class="note-bible-ref">${bibleRef || '-'}</div>
-                            <div class="note-content-wrapper">
-                                <div class="note-content-text">${note.content || ''}</div>
-                            </div>
-                            <div class="note-actions">
-                                <button onclick="window.editNote(${note.id})" class="note-action-btn" title="編輯">
-                                    <span class="material-icons-outlined">edit</span>
-                                </button>
-                                <button onclick="window.deleteNote(${note.id})" class="note-action-btn" title="刪除">
-                                    <span class="material-icons-outlined">delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                const categoryIcons = {
+                    default: 'note',
+                    study: 'school',
+                    prayer: 'hands',
+                    reflection: 'psychology',
+                    sermon: 'mic',
+                    devotion: 'favorite'
+                };
+
+                notesList.innerHTML = `
+                    <div class="notes-grid">
+                        ${notes.map(note => {
+                            // 處理聖經引用
+                            let bibleRef = '';
+                            if (note.bibleReference) {
+                                const ref = note.bibleReference;
+                                bibleRef = `${ref.bookZh || ref.book} ${ref.chapter}:${ref.verseStart}${ref.verseEnd ? '-' + ref.verseEnd : ''}`;
+                            }
+                            
+                            // 格式化日期
+                            const createdAt = note.created_at ? new Date(note.created_at).toLocaleDateString('zh-TW') : '';
+                            
+                            return `
+                                <div class="note-card fade-in">
+                                    <div class="note-card-header">
+                                        <div class="note-card-meta">
+                                            <div class="note-category-badge">
+                                                <div class="note-color-marker" style="background-color: var(--color-${note.color || 'blue'});"></div>
+                                                <span class="material-icons-outlined" style="font-size: 0.875rem;">${categoryIcons[note.category] || 'note'}</span>
+                                                ${categoryNames[note.category] || note.category || '默認'}
+                                            </div>
+                                            ${bibleRef ? `
+                                                <a href="#" onclick="showBibleVerse('${bibleRef}')" class="note-bible-ref">
+                                                    <span class="material-icons-outlined" style="font-size: 0.875rem;">menu_book</span>
+                                                    ${bibleRef}
+                                                </a>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="note-card-content">
+                                        <div class="note-content-text">${note.content || ''}</div>
+                                    </div>
+                                    <div class="note-card-footer">
+                                        <div class="note-date">${createdAt}</div>
+                                        <div class="note-actions">
+                                            <button onclick="window.editNote(${note.id})" class="note-action-btn" title="編輯">
+                                                <span class="material-icons-outlined">edit</span>
+                                            </button>
+                                            <button onclick="window.deleteNote(${note.id})" class="note-action-btn delete-btn" title="刪除">
+                                                <span class="material-icons-outlined">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
             }
 
         // 篩選筆記
