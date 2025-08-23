@@ -1433,6 +1433,20 @@
       .note-action-btn .material-icons-outlined {
         font-size: 1.125rem;
       }
+      
+      /* 筆記顏色變數 */
+      :root {
+        --color-blue: #3b82f6;
+        --color-red: #ef4444;
+        --color-green: #10b981;
+        --color-yellow: #f59e0b;
+        --color-purple: #8b5cf6;
+        --color-pink: #ec4899;
+        --color-indigo: #6366f1;
+        --color-gray: #6b7280;
+        --color-orange: #f97316;
+        --color-teal: #14b8a6;
+      }
     </style>
 </head>
 <body class="flex flex-col min-h-screen antialiased">
@@ -7578,17 +7592,20 @@
                 };
 
                 notesList.innerHTML = notes.map(note => {
-                    const bibleRef = note.bible_book && note.bible_chapter 
-                        ? `${note.bible_book_zh || note.bible_book} ${note.bible_chapter}:${note.bible_verse_start}${note.bible_verse_end ? '-' + note.bible_verse_end : ''}`
-                        : '';
+                    // 處理聖經引用
+                    let bibleRef = '';
+                    if (note.bibleReference) {
+                        const ref = note.bibleReference;
+                        bibleRef = `${ref.bookZh || ref.book} ${ref.chapter}:${ref.verseStart}${ref.verseEnd ? '-' + ref.verseEnd : ''}`;
+                    }
                     
                     return `
                         <div class="note-row">
                             <div class="note-color-marker" style="background-color: var(--color-${note.color || 'blue'});"></div>
-                            <div class="note-category">${categoryNames[note.category] || note.category}</div>
+                            <div class="note-category">${categoryNames[note.category] || note.category || '默認'}</div>
                             <div class="note-bible-ref">${bibleRef || '-'}</div>
                             <div class="note-content-wrapper">
-                                <div class="note-content-text">${note.content}</div>
+                                <div class="note-content-text">${note.content || ''}</div>
                             </div>
                             <div class="note-actions">
                                 <button onclick="window.editNote(${note.id})" class="note-action-btn" title="編輯">
