@@ -1330,6 +1330,109 @@
         border-radius: 0.2rem;
         font-weight: 500;
       }
+      
+      /* 筆記列表樣式 */
+      .notes-list-header {
+        display: grid;
+        grid-template-columns: 20px 80px 120px 1fr 80px;
+        gap: 1rem;
+        padding: 1rem 1.5rem;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.875rem;
+      }
+      
+      .note-row {
+        display: grid;
+        grid-template-columns: 20px 80px 120px 1fr 80px;
+        gap: 1rem;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #f3f4f6;
+        align-items: center;
+        transition: background-color 0.2s ease;
+      }
+      
+      .note-row:hover {
+        background-color: #f9fafb;
+      }
+      
+      .note-row:last-child {
+        border-bottom: none;
+      }
+      
+      .note-color-marker {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin: 0 auto;
+      }
+      
+      .note-category {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+      }
+      
+      .note-bible-ref {
+        font-size: 0.875rem;
+        color: #374151;
+        font-weight: 500;
+      }
+      
+      .note-content-wrapper {
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .note-content-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #4b5563;
+        font-size: 0.875rem;
+        line-height: 1.4;
+      }
+      
+      .note-content-wrapper::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 40px;
+        height: 100%;
+        background: linear-gradient(to right, transparent, white);
+        pointer-events: none;
+      }
+      
+      .note-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+      }
+      
+      .note-action-btn {
+        background: none;
+        border: none;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .note-action-btn:hover {
+        background-color: #f3f4f6;
+        color: #374151;
+      }
+      
+      .note-action-btn .material-icons-outlined {
+        font-size: 1.125rem;
+      }
     </style>
 </head>
 <body class="flex flex-col min-h-screen antialiased">
@@ -3668,10 +3771,6 @@
                         <div class="notes-header mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="text-2xl font-bold text-[var(--text-primary)]">📝 我的筆記</h2>
-                                <button onclick="showNoteEditor()" class="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-opacity-90 transition-colors flex items-center gap-2">
-                                    <span class="material-icons-outlined text-sm">add</span>
-                                    新增筆記
-                                </button>
                             </div>
                             
                             <!-- 搜尋和篩選 -->
@@ -3698,7 +3797,17 @@
                         </div>
                         
                         <!-- 筆記列表 -->
-                        <div id="notes-list" class="space-y-4">
+                        <div id="notes-list" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                            <!-- 列表標題行 -->
+                            <div class="notes-list-header">
+                                <div></div>
+                                <div>分類</div>
+                                <div>經卷章節</div>
+                                <div>筆記內容</div>
+                                <div>操作</div>
+                            </div>
+                            
+                            <!-- 筆記項目將由 JavaScript 動態載入 -->
                             <div class="text-center py-8">
                                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)] mx-auto mb-4"></div>
                                 <p class="text-gray-600">載入筆記中...</p>
@@ -7445,50 +7554,54 @@
             `;
         }
 
-        // 渲染筆記列表
-        window.renderNotesList = function(notes) {
-            const notesList = document.getElementById('notes-list');
-            if (!notesList) return;
+                    // 渲染筆記列表
+            window.renderNotesList = function(notes) {
+                const notesList = document.getElementById('notes-list');
+                if (!notesList) return;
 
-            if (!notes || notes.length === 0) {
-                notesList.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <p>還沒有筆記，快去聖經頁面選取經文建立第一則筆記吧！</p>
-                    </div>
-                `;
-                return;
-            }
+                if (!notes || notes.length === 0) {
+                    notesList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <p>還沒有筆記，快去聖經頁面選取經文建立第一則筆記吧！</p>
+                        </div>
+                    `;
+                    return;
+                }
 
-            notesList.innerHTML = notes.map(note => {
-                const bibleRef = note.bible_book && note.bible_chapter 
-                    ? `${note.bible_book_zh || note.bible_book} ${note.bible_chapter}:${note.bible_verse_start}${note.bible_verse_end ? '-' + note.bible_verse_end : ''}`
-                    : '';
-                
-                const tags = note.tags ? note.tags.map(tag => `<span class="note-tag">${tag}</span>`).join('') : '';
-                
-                return `
-                    <div class="note-item" style="border-left: 4px solid var(--color-${note.color || 'blue'});">
-                        <div class="note-header">
-                            <h3 class="note-title">${note.title}</h3>
+                const categoryNames = {
+                    default: '默認',
+                    study: '研經',
+                    prayer: '禱告',
+                    reflection: '反思',
+                    sermon: '講道',
+                    devotion: '靈修'
+                };
+
+                notesList.innerHTML = notes.map(note => {
+                    const bibleRef = note.bible_book && note.bible_chapter 
+                        ? `${note.bible_book_zh || note.bible_book} ${note.bible_chapter}:${note.bible_verse_start}${note.bible_verse_end ? '-' + note.bible_verse_end : ''}`
+                        : '';
+                    
+                    return `
+                        <div class="note-row">
+                            <div class="note-color-marker" style="background-color: var(--color-${note.color || 'blue'});"></div>
+                            <div class="note-category">${categoryNames[note.category] || note.category}</div>
+                            <div class="note-bible-ref">${bibleRef || '-'}</div>
+                            <div class="note-content-wrapper">
+                                <div class="note-content-text">${note.content}</div>
+                            </div>
                             <div class="note-actions">
-                                <button onclick="window.editNote(${note.id})" class="note-action-btn">
+                                <button onclick="window.editNote(${note.id})" class="note-action-btn" title="編輯">
                                     <span class="material-icons-outlined">edit</span>
                                 </button>
-                                <button onclick="window.deleteNote(${note.id})" class="note-action-btn">
+                                <button onclick="window.deleteNote(${note.id})" class="note-action-btn" title="刪除">
                                     <span class="material-icons-outlined">delete</span>
                                 </button>
                             </div>
                         </div>
-                        ${bibleRef ? `<div class="note-bible-ref">${bibleRef}</div>` : ''}
-                        <div class="note-content">${note.content.substring(0, 200)}${note.content.length > 200 ? '...' : ''}</div>
-                        <div class="note-footer">
-                            <div class="note-tags">${tags}</div>
-                            <div class="note-date">${new Date(note.created_at).toLocaleDateString('zh-TW')}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
+                    `;
+                }).join('');
+            }
 
         // 篩選筆記
         window.filterNotes = function() {
