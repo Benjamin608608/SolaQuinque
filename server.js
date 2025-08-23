@@ -11,6 +11,9 @@ const { google } = require('googleapis');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 
+// 筆記功能
+const { NotesDB, initDatabase } = require('./database');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -2883,6 +2886,236 @@ async function appendToGoogleSheet(rowValues) {
     console.error('❌ 寫入 Google Sheet 失敗:', err.message);
   }
 }
+
+// 初始化筆記資料庫
+let notesDB = null;
+try {
+  if (initDatabase()) {
+    notesDB = new NotesDB();
+    console.log('✅ 筆記資料庫已初始化');
+  }
+} catch (error) {
+  console.error('❌ 筆記資料庫初始化失敗:', error);
+}
+
+// 筆記功能使用現有的 ensureAuthenticated 中間件
+
+// ==================== 筆記 API 端點 ====================
+
+// 建立新筆記
+app.post('/api/notes', ensureAuthenticated, async (req, res) => {
+  try {
+    const {
+      title,
+      content,
+      bibleBook,
+      bibleBookZh,
+      bibleChapter,
+      bibleVerseStart,
+      bibleVerseEnd,
+      bibleVersion,
+      bibleText,
+      tags,
+      category,
+      color,
+      isPublic
+    } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({
+        success: false,
+        error: '標題和內容為必填項目'
+      });
+    }
+
+    const noteData = {
+      userId: req.user.id,
+      title: title.trim(),
+      content: content.trim(),
+      bibleBook,
+      bibleBookZh,
+      bibleChapter: bibleChapter ? parseInt(bibleChapter) : null,
+      bibleVerseStart: bibleVerseStart ? parseInt(bibleVerseStart) : null,
+      bibleVerseEnd: bibleVerseEnd ? parseInt(bibleVerseEnd) : null,
+      bibleVersion: bibleVersion || 'CUV',
+      bibleText,
+      tags: Array.isArray(tags) ? tags : [],
+      category: category || 'default',
+      color: color || 'blue',
+      isPublic: Boolean(isPublic)
+    };
+
+    const result = notesDB.createNote(noteData);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        data: { id: result.id },
+        message: '筆記建立成功'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error || '建立筆記失敗'
+      });
+    }
+  } catch (error) {
+    console.error('建立筆記 API 錯誤:', error);
+    res.status(500).json({
+      success: false,
+      error: '伺服器錯誤'
+    });
+  }
+});
+
+// 獲取用戶所有筆記
+app.get('/api/notes', ensureAuthenticated, async (req, res) => {
+  try {
+    const { category, search, book, chapter } = req.query;
+    let notes;
+
+    if (search) {
+      notes = notesDB.searchNotes(req.user.id, search);
+    } else if (category) {
+      notes = notesDB.getNotesByCategory(req.user.id, category);
+    } else if (book && chapter) {
+      notes = notesDB.getNotesByBibleRef(req.user.id, book, parseInt(chapter));
+    } else {
+      notes = notesDB.getUserNotes(req.user.id);
+    }
+
+    res.json({
+      success: true,
+      data: notes
+    });
+  } catch (error) {
+    console.error('獲取筆記 API 錯誤:', error);
+    res.status(500).json({
+      success: false,
+      error: '獲取筆記失敗'
+    });
+  }
+});
+
+// 獲取特定筆記
+app.get('/api/notes/:id', ensureAuthenticated, async (req, res) => {
+  try {
+    const noteId = parseInt(req.params.id);
+    const note = notesDB.getNoteById(noteId, req.user.id);
+
+    if (!note) {
+      return res.status(404).json({
+        success: false,
+        error: '筆記不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: note
+    });
+  } catch (error) {
+    console.error('獲取筆記 API 錯誤:', error);
+    res.status(500).json({
+      success: false,
+      error: '獲取筆記失敗'
+    });
+  }
+});
+
+// 更新筆記
+app.put('/api/notes/:id', ensureAuthenticated, async (req, res) => {
+  try {
+    const noteId = parseInt(req.params.id);
+    const { title, content, tags, category, color, isPublic } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({
+        success: false,
+        error: '標題和內容為必填項目'
+      });
+    }
+
+    const updateData = {
+      title: title.trim(),
+      content: content.trim(),
+      tags: Array.isArray(tags) ? tags : [],
+      category: category || 'default',
+      color: color || 'blue',
+      isPublic: Boolean(isPublic)
+    };
+
+    const result = notesDB.updateNote(noteId, req.user.id, updateData);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: '筆記更新成功'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: '筆記不存在或更新失敗'
+      });
+    }
+  } catch (error) {
+    console.error('更新筆記 API 錯誤:', error);
+    res.status(500).json({
+      success: false,
+      error: '更新筆記失敗'
+    });
+  }
+});
+
+// 刪除筆記
+app.delete('/api/notes/:id', ensureAuthenticated, async (req, res) => {
+  try {
+    const noteId = parseInt(req.params.id);
+    const result = notesDB.deleteNote(noteId, req.user.id);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: '筆記刪除成功'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: '筆記不存在或刪除失敗'
+      });
+    }
+  } catch (error) {
+    console.error('刪除筆記 API 錯誤:', error);
+    res.status(500).json({
+      success: false,
+      error: '刪除筆記失敗'
+    });
+  }
+});
+
+// 獲取用戶筆記統計
+app.get('/api/notes/stats', ensureAuthenticated, async (req, res) => {
+  try {
+    const stats = notesDB.getUserStats(req.user.id);
+    const tags = notesDB.getUserTags(req.user.id);
+
+    res.json({
+      success: true,
+      data: {
+        ...stats,
+        tags
+      }
+    });
+  } catch (error) {
+    console.error('獲取統計 API 錯誤:', error);
+    res.status(500).json({
+      success: false,
+      error: '獲取統計失敗'
+    });
+  }
+});
+
+// ==================== 筆記 API 端點結束 ====================
 
 // 啟動服務器
 app.listen(PORT, '0.0.0.0', async () => {

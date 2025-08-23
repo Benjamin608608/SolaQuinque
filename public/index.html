@@ -886,6 +886,278 @@
         /* 保證註釋區域粗體可見 */
         #theological-commentary strong { font-weight: 700; }
 
+        /* 筆記編輯器模態視窗樣式 */
+        .note-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .note-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .note-modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .note-modal.show .note-modal-content {
+            transform: translateY(0);
+        }
+
+        .note-modal-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .note-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .note-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .note-modal-close:hover {
+            background-color: #f3f4f6;
+        }
+
+        .note-modal-body {
+            padding: 20px 24px;
+        }
+
+        .note-form-group {
+            margin-bottom: 16px;
+        }
+
+        .note-form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .note-form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .note-form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(109, 76, 65, 0.1);
+        }
+
+        .note-form-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+
+        .note-form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(109, 76, 65, 0.1);
+        }
+
+        .note-form-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            transition: border-color 0.2s;
+        }
+
+        .note-form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(109, 76, 65, 0.1);
+        }
+
+        .note-tags-input {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            min-height: 40px;
+            cursor: text;
+        }
+
+        .note-tags-input:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(109, 76, 65, 0.1);
+        }
+
+        .note-tag {
+            background: var(--primary);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .note-tag-remove {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .note-tag-remove:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .note-tag-input {
+            border: none;
+            outline: none;
+            flex: 1;
+            min-width: 100px;
+            font-size: 14px;
+        }
+
+        .note-bible-ref {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .note-bible-ref-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .note-bible-ref-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .note-modal-footer {
+            padding: 16px 24px 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .note-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .note-btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .note-btn-primary:hover {
+            background: #8b5a4a;
+        }
+
+        .note-btn-secondary {
+            background: white;
+            color: var(--text-secondary);
+            border-color: #d1d5db;
+        }
+
+        .note-btn-secondary:hover {
+            background: #f9fafb;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .color-option {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-option.selected {
+            border-color: #374151;
+            transform: scale(1.1);
+        }
+
+        .color-option.blue { background: #3b82f6; }
+        .color-option.green { background: #10b981; }
+        .color-option.yellow { background: #f59e0b; }
+        .color-option.red { background: #ef4444; }
+        .color-option.purple { background: #8b5cf6; }
+        .color-option.pink { background: #ec4899; }
+
         /* 展開中的經卷（麵包屑點亮） */
         .bible-book-btn.is-active {
             background: var(--primary) !important;
@@ -1066,6 +1338,10 @@
             <a class="nav-link" href="#" id="catalogLink">
                 <span class="material-icons-outlined text-lg">auto_stories</span>
                 <span class="text-base nav-label">參考</span>
+            </a>
+            <a class="nav-link" href="#" id="notesLink">
+                <span class="material-icons-outlined text-lg">note</span>
+                <span class="text-base nav-label">筆記</span>
             </a>
             <a class="nav-link" href="#" id="bibleLink">
                 <span class="material-icons-outlined text-lg">menu_book</span>
@@ -3120,6 +3396,8 @@
                 showHomePage();
             } else if (window.currentPage === 'catalog') {
                 showCatalogPage().catch(console.error);
+            } else if (window.currentPage === 'notes') {
+                showNotesPage().catch(console.error);
             } else if (window.currentPage === 'bible') {
                 // 語言切換時只重新載入聖經頁面，不自動恢復任何選擇狀態
                 showBiblePage().catch(console.error);
@@ -3225,6 +3503,14 @@
                     window.GATracker.trackPageView('參考書目', { navigation_source: 'header' });
                     showCatalogPage();
                 }, '參考'));
+            }
+            
+            const notesLink = document.getElementById('notesLink');
+            if (notesLink) {
+                notesLink.addEventListener('click', createClickHandler(() => {
+                    window.GATracker.trackPageView('我的筆記', { navigation_source: 'header' });
+                    showNotesPage();
+                }, '筆記'));
             }
             
             if (bibleLink) {
@@ -3341,6 +3627,98 @@
             }).catch(error => {
                 console.error('檢查認證狀態失敗:', error);
             });
+        }
+
+        // 顯示筆記頁面
+        async function showNotesPage() {
+            // 設置當前頁面狀態
+            window.currentPage = 'notes';
+            
+            // 檢查認證狀態
+            const authStatus = await checkAuthStatusSilent();
+            if (!authStatus.authenticated) {
+                const main = window.DOMCache.mainContent;
+                if (main) {
+                    main.innerHTML = `
+                        <div class="notes-page w-full max-w-4xl mx-auto px-2 sm:px-4 md:px-0" style="display: block;">
+                            <div class="text-center py-16">
+                                <div class="mb-6">
+                                    <span class="material-icons-outlined text-6xl text-gray-400">login</span>
+                                </div>
+                                <h2 class="text-2xl font-bold text-gray-700 mb-4">需要登入才能使用筆記功能</h2>
+                                <p class="text-gray-600 mb-6">登入後您可以建立、編輯和管理您的聖經筆記</p>
+                                <button onclick="login()" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    立即登入
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+                return;
+            }
+            
+            const main = window.DOMCache.mainContent;
+            if (main) {
+                main.innerHTML = `
+                    <div class="notes-page w-full max-w-4xl mx-auto px-2 sm:px-4 md:px-0" style="display: block;">
+                        <div class="notes-header mb-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-bold text-[var(--text-primary)]">📝 我的筆記</h2>
+                                <button onclick="showNoteEditor()" class="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-opacity-90 transition-colors flex items-center gap-2">
+                                    <span class="material-icons-outlined text-sm">add</span>
+                                    新增筆記
+                                </button>
+                            </div>
+                            
+                            <!-- 搜尋和篩選 -->
+                            <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                                <div class="flex-1">
+                                    <input type="text" id="notes-search" placeholder="搜尋筆記..." 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--primary)]">
+                                </div>
+                                <select id="notes-category-filter" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[var(--primary)]">
+                                    <option value="">所有分類</option>
+                                    <option value="default">默認</option>
+                                    <option value="devotion">靈修</option>
+                                    <option value="study">研經</option>
+                                    <option value="sermon">講道</option>
+                                    <option value="prayer">禱告</option>
+                                    <option value="reflection">反思</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 統計資訊 -->
+                            <div id="notes-stats" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                                <!-- 統計卡片將由 JavaScript 動態載入 -->
+                            </div>
+                        </div>
+                        
+                        <!-- 筆記列表 -->
+                        <div id="notes-list" class="space-y-4">
+                            <div class="text-center py-8">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)] mx-auto mb-4"></div>
+                                <p class="text-gray-600">載入筆記中...</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 載入筆記和統計
+                loadUserNotes();
+                loadNotesStats();
+                
+                // 添加搜尋功能
+                const searchInput = document.getElementById('notes-search');
+                const categoryFilter = document.getElementById('notes-category-filter');
+                
+                if (searchInput) {
+                    searchInput.addEventListener('input', debounce(filterNotes, 300));
+                }
+                
+                if (categoryFilter) {
+                    categoryFilter.addEventListener('change', filterNotes);
+                }
+            }
         }
 
         // 顯示參考書目頁面
@@ -4194,6 +4572,568 @@
                 }
             }
             
+            // 建立筆記功能
+            function createNoteFromSelection() {
+                if (!window.selectedVerseRange) {
+                    alert('請先選取一段經文後再建立筆記。');
+                    return;
+                }
+                
+                // 檢查用戶是否已登入
+                checkAuthStatusSilent().then(authStatus => {
+                    if (!authStatus.authenticated) {
+                        alert('請先登入才能建立筆記。');
+                        return;
+                    }
+                    
+                    // 獲取選中的經文資訊
+                    const { start, end } = window.selectedVerseRange;
+                    const currentBookId = window.currentBibleSelection?.bookId;
+                    const currentChapter = window.currentBibleSelection?.chapter;
+                    const currentVersion = window.currentBibleSelection?.version || 'CUV';
+                    
+                    if (currentBookId && currentChapter) {
+                        // 獲取選中經文的文本
+                        const selectedVerses = [];
+                        for (let i = start; i <= end; i++) {
+                            const verseElement = document.querySelector(`[data-verse="${i}"]`);
+                            if (verseElement) {
+                                const verseText = verseElement.textContent.replace(/^\d+\s*/, '').trim();
+                                selectedVerses.push(`${i} ${verseText}`);
+                            }
+                        }
+                        
+                        const bibleText = selectedVerses.join(' ');
+                        
+                        // 獲取書卷資訊
+                        const allBooks = [...window.booksOT, ...window.booksNT];
+                        const book = allBooks.find(b => b.id === currentBookId);
+                        
+                        // 顯示筆記編輯器
+                        showNoteEditor({
+                            bibleBook: book?.en || currentBookId,
+                            bibleBookZh: book?.zh || currentBookId,
+                            bibleChapter: currentChapter,
+                            bibleVerseStart: start,
+                            bibleVerseEnd: end,
+                            bibleVersion: currentVersion,
+                            bibleText: bibleText,
+                            title: `${book?.zh || currentBookId} ${currentChapter}:${start}${end !== start ? `-${end}` : ''}`
+                        });
+                    } else {
+                        alert('無法獲取當前章節信息');
+                    }
+                    
+                    // 隱藏選單
+                    const menu = document.getElementById('verse-action-menu');
+                    if (menu) {
+                        menu.classList.add('hidden');
+                    }
+                });
+            }
+
+            // 顯示筆記編輯器
+            function showNoteEditor(bibleData = null, noteData = null) {
+                // 移除現有的筆記編輯器
+                const existingModal = document.getElementById('note-editor-modal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                // 建立筆記編輯器模態視窗
+                const modal = document.createElement('div');
+                modal.id = 'note-editor-modal';
+                modal.className = 'note-modal';
+                
+                const isEdit = noteData && noteData.id;
+                const modalTitle = isEdit ? '編輯筆記' : '建立筆記';
+                
+                modal.innerHTML = `
+                    <div class="note-modal-content">
+                        <div class="note-modal-header">
+                            <h3 class="note-modal-title">${modalTitle}</h3>
+                            <button class="note-modal-close" onclick="closeNoteEditor()">&times;</button>
+                        </div>
+                        <div class="note-modal-body">
+                            ${bibleData ? `
+                                <div class="note-bible-ref">
+                                    <div class="note-bible-ref-title">
+                                        📖 ${bibleData.bibleBookZh || bibleData.bibleBook} ${bibleData.bibleChapter}:${bibleData.bibleVerseStart}${bibleData.bibleVerseEnd !== bibleData.bibleVerseStart ? `-${bibleData.bibleVerseEnd}` : ''}
+                                    </div>
+                                    <div class="note-bible-ref-text">${bibleData.bibleText}</div>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="note-form-group">
+                                <label class="note-form-label">標題 *</label>
+                                <input type="text" id="note-title" class="note-form-input" 
+                                       value="${noteData?.title || bibleData?.title || ''}" 
+                                       placeholder="請輸入筆記標題" required>
+                            </div>
+                            
+                            <div class="note-form-group">
+                                <label class="note-form-label">內容 *</label>
+                                <textarea id="note-content" class="note-form-textarea" 
+                                          placeholder="請輸入筆記內容..." required>${noteData?.content || ''}</textarea>
+                            </div>
+                            
+                            <div class="note-form-group">
+                                <label class="note-form-label">標籤</label>
+                                <div id="note-tags" class="note-tags-input">
+                                    <input type="text" class="note-tag-input" placeholder="輸入標籤後按 Enter">
+                                </div>
+                            </div>
+                            
+                            <div class="note-form-group">
+                                <label class="note-form-label">分類</label>
+                                <select id="note-category" class="note-form-select">
+                                    <option value="default">默認</option>
+                                    <option value="devotion">靈修</option>
+                                    <option value="study">研經</option>
+                                    <option value="sermon">講道</option>
+                                    <option value="prayer">禱告</option>
+                                    <option value="reflection">反思</option>
+                                </select>
+                            </div>
+                            
+                            <div class="note-form-group">
+                                <label class="note-form-label">顏色標記</label>
+                                <div class="color-picker">
+                                    <div class="color-option blue selected" data-color="blue"></div>
+                                    <div class="color-option green" data-color="green"></div>
+                                    <div class="color-option yellow" data-color="yellow"></div>
+                                    <div class="color-option red" data-color="red"></div>
+                                    <div class="color-option purple" data-color="purple"></div>
+                                    <div class="color-option pink" data-color="pink"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="note-modal-footer">
+                            <button class="note-btn note-btn-secondary" onclick="closeNoteEditor()">取消</button>
+                            <button class="note-btn note-btn-primary" onclick="saveNote()">${isEdit ? '更新' : '建立'}</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+                
+                // 初始化標籤功能
+                initTagsInput(noteData?.tags || []);
+                
+                // 設置分類和顏色
+                if (noteData) {
+                    document.getElementById('note-category').value = noteData.category || 'default';
+                    
+                    // 設置顏色選擇
+                    document.querySelectorAll('.color-option').forEach(option => {
+                        option.classList.remove('selected');
+                        if (option.dataset.color === (noteData.color || 'blue')) {
+                            option.classList.add('selected');
+                        }
+                    });
+                }
+                
+                // 顏色選擇事件
+                document.querySelectorAll('.color-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                        option.classList.add('selected');
+                    });
+                });
+                
+                // 儲存聖經引用資料
+                if (bibleData) {
+                    modal.dataset.bibleData = JSON.stringify(bibleData);
+                }
+                
+                // 儲存筆記 ID（編輯模式）
+                if (isEdit) {
+                    modal.dataset.noteId = noteData.id;
+                }
+                
+                // 顯示模態視窗
+                setTimeout(() => {
+                    modal.classList.add('show');
+                    document.getElementById('note-title').focus();
+                }, 10);
+            }
+
+            // 初始化標籤輸入功能
+            function initTagsInput(initialTags = []) {
+                const tagsContainer = document.getElementById('note-tags');
+                const tagInput = tagsContainer.querySelector('.note-tag-input');
+                let tags = [...initialTags];
+
+                // 渲染標籤
+                function renderTags() {
+                    const existingTags = tagsContainer.querySelectorAll('.note-tag');
+                    existingTags.forEach(tag => tag.remove());
+
+                    tags.forEach((tag, index) => {
+                        const tagElement = document.createElement('div');
+                        tagElement.className = 'note-tag';
+                        tagElement.innerHTML = `
+                            <span>${tag}</span>
+                            <button class="note-tag-remove" onclick="removeTag(${index})">&times;</button>
+                        `;
+                        tagsContainer.insertBefore(tagElement, tagInput);
+                    });
+                }
+
+                // 添加標籤
+                function addTag(tagText) {
+                    const trimmedTag = tagText.trim();
+                    if (trimmedTag && !tags.includes(trimmedTag)) {
+                        tags.push(trimmedTag);
+                        renderTags();
+                        tagInput.value = '';
+                    }
+                }
+
+                // 移除標籤
+                window.removeTag = function(index) {
+                    tags.splice(index, 1);
+                    renderTags();
+                };
+
+                // 標籤輸入事件
+                tagInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addTag(tagInput.value);
+                    } else if (e.key === 'Backspace' && tagInput.value === '' && tags.length > 0) {
+                        tags.pop();
+                        renderTags();
+                    }
+                });
+
+                // 點擊容器聚焦輸入框
+                tagsContainer.addEventListener('click', () => {
+                    tagInput.focus();
+                });
+
+                // 儲存標籤到模態視窗
+                tagsContainer.getTags = () => tags;
+
+                // 初始渲染
+                renderTags();
+            }
+
+            // 關閉筆記編輯器
+            function closeNoteEditor() {
+                const modal = document.getElementById('note-editor-modal');
+                if (modal) {
+                    modal.classList.remove('show');
+                    setTimeout(() => {
+                        modal.remove();
+                    }, 300);
+                }
+            }
+
+            // 儲存筆記
+            async function saveNote() {
+                const modal = document.getElementById('note-editor-modal');
+                const title = document.getElementById('note-title').value.trim();
+                const content = document.getElementById('note-content').value.trim();
+                const category = document.getElementById('note-category').value;
+                const selectedColor = document.querySelector('.color-option.selected')?.dataset.color || 'blue';
+                const tags = document.getElementById('note-tags').getTags();
+                
+                if (!title || !content) {
+                    alert('請填寫標題和內容');
+                    return;
+                }
+
+                const noteData = {
+                    title,
+                    content,
+                    tags,
+                    category,
+                    color: selectedColor,
+                    isPublic: false
+                };
+
+                // 添加聖經引用資料
+                if (modal.dataset.bibleData) {
+                    const bibleData = JSON.parse(modal.dataset.bibleData);
+                    Object.assign(noteData, bibleData);
+                }
+
+                try {
+                    const isEdit = modal.dataset.noteId;
+                    const url = isEdit ? `/api/notes/${modal.dataset.noteId}` : '/api/notes';
+                    const method = isEdit ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method,
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(noteData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert(isEdit ? '筆記更新成功！' : '筆記建立成功！');
+                        closeNoteEditor();
+                        
+                        // 如果在筆記頁面，重新載入筆記列表
+                        if (window.currentPage === 'notes') {
+                            loadUserNotes();
+                        }
+                    } else {
+                        alert('儲存失敗：' + (result.error || '未知錯誤'));
+                    }
+                } catch (error) {
+                    console.error('儲存筆記錯誤:', error);
+                    alert('儲存失敗，請稍後再試');
+                }
+            }
+
+            // 載入用戶筆記
+            async function loadUserNotes() {
+                try {
+                    const response = await fetch('/api/notes');
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        window.userNotes = result.data;
+                        renderNotesList(result.data);
+                    } else {
+                        throw new Error(result.error || '載入筆記失敗');
+                    }
+                } catch (error) {
+                    console.error('載入筆記錯誤:', error);
+                    const notesList = document.getElementById('notes-list');
+                    if (notesList) {
+                        notesList.innerHTML = `
+                            <div class="text-center py-8">
+                                <span class="material-icons-outlined text-4xl text-gray-400 mb-4">error_outline</span>
+                                <p class="text-gray-600">載入筆記失敗，請稍後再試</p>
+                            </div>
+                        `;
+                    }
+                }
+            }
+
+            // 載入筆記統計
+            async function loadNotesStats() {
+                try {
+                    const response = await fetch('/api/notes/stats');
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        renderNotesStats(result.data);
+                    }
+                } catch (error) {
+                    console.error('載入統計錯誤:', error);
+                }
+            }
+
+            // 渲染筆記統計
+            function renderNotesStats(stats) {
+                const statsContainer = document.getElementById('notes-stats');
+                if (!statsContainer) return;
+
+                const categoryNames = {
+                    default: '默認',
+                    devotion: '靈修',
+                    study: '研經',
+                    sermon: '講道',
+                    prayer: '禱告',
+                    reflection: '反思'
+                };
+
+                statsContainer.innerHTML = `
+                    <div class="bg-white rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-bold text-[var(--primary)]">${stats.total_notes || 0}</div>
+                        <div class="text-sm text-gray-600">總筆記數</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-bold text-green-600">${stats.categories_count || 0}</div>
+                        <div class="text-sm text-gray-600">分類數</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-bold text-blue-600">${stats.books_count || 0}</div>
+                        <div class="text-sm text-gray-600">涉及書卷</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border border-gray-200">
+                        <div class="text-2xl font-bold text-purple-600">${(stats.tags || []).length}</div>
+                        <div class="text-sm text-gray-600">標籤數</div>
+                    </div>
+                `;
+            }
+
+            // 渲染筆記列表
+            function renderNotesList(notes) {
+                const notesList = document.getElementById('notes-list');
+                if (!notesList) return;
+
+                if (!notes || notes.length === 0) {
+                    notesList.innerHTML = `
+                        <div class="text-center py-12">
+                            <span class="material-icons-outlined text-6xl text-gray-400 mb-4">note_add</span>
+                            <h3 class="text-xl font-semibold text-gray-700 mb-2">還沒有筆記</h3>
+                            <p class="text-gray-600 mb-6">開始建立您的第一則聖經筆記吧！</p>
+                            <button onclick="showNoteEditor()" class="px-6 py-3 bg-[var(--primary)] text-white rounded-lg hover:bg-opacity-90 transition-colors">
+                                建立筆記
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const categoryNames = {
+                    default: '默認',
+                    devotion: '靈修',
+                    study: '研經',
+                    sermon: '講道',
+                    prayer: '禱告',
+                    reflection: '反思'
+                };
+
+                const colorClasses = {
+                    blue: 'border-l-blue-500',
+                    green: 'border-l-green-500',
+                    yellow: 'border-l-yellow-500',
+                    red: 'border-l-red-500',
+                    purple: 'border-l-purple-500',
+                    pink: 'border-l-pink-500'
+                };
+
+                notesList.innerHTML = notes.map(note => {
+                    const colorClass = colorClasses[note.color] || 'border-l-blue-500';
+                    const bibleRef = note.bibleReference;
+                    const bibleRefText = bibleRef ? 
+                        `${bibleRef.bookZh || bibleRef.book} ${bibleRef.chapter}:${bibleRef.verseStart}${bibleRef.verseEnd !== bibleRef.verseStart ? `-${bibleRef.verseEnd}` : ''}` : '';
+                    
+                    return `
+                        <div class="bg-white rounded-lg border-l-4 ${colorClass} p-4 shadow-sm hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="text-lg font-semibold text-[var(--text-primary)] flex-1">${note.title}</h3>
+                                <div class="flex items-center gap-2 ml-4">
+                                    <span class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                                        ${categoryNames[note.category] || note.category}
+                                    </span>
+                                    <div class="flex items-center gap-1">
+                                        <button onclick="editNote(${note.id})" class="p-1 text-gray-500 hover:text-blue-600 transition-colors" title="編輯">
+                                            <span class="material-icons-outlined text-sm">edit</span>
+                                        </button>
+                                        <button onclick="deleteNote(${note.id})" class="p-1 text-gray-500 hover:text-red-600 transition-colors" title="刪除">
+                                            <span class="material-icons-outlined text-sm">delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            ${bibleRefText ? `
+                                <div class="text-sm text-blue-600 mb-2 flex items-center gap-1">
+                                    <span class="material-icons-outlined text-sm">menu_book</span>
+                                    ${bibleRefText}
+                                </div>
+                            ` : ''}
+                            
+                            <p class="text-gray-700 mb-3 line-clamp-3">${note.content.substring(0, 150)}${note.content.length > 150 ? '...' : ''}</p>
+                            
+                            <div class="flex justify-between items-center text-sm text-gray-500">
+                                <div class="flex items-center gap-4">
+                                    ${note.tags && note.tags.length > 0 ? `
+                                        <div class="flex items-center gap-1">
+                                            <span class="material-icons-outlined text-xs">local_offer</span>
+                                            <span>${note.tags.slice(0, 3).join(', ')}${note.tags.length > 3 ? '...' : ''}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <span>${new Date(note.createdAt).toLocaleDateString('zh-TW')}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // 篩選筆記
+            function filterNotes() {
+                const searchTerm = document.getElementById('notes-search')?.value.toLowerCase() || '';
+                const categoryFilter = document.getElementById('notes-category-filter')?.value || '';
+                
+                if (!window.userNotes) return;
+                
+                let filteredNotes = window.userNotes;
+                
+                // 按搜尋詞篩選
+                if (searchTerm) {
+                    filteredNotes = filteredNotes.filter(note => 
+                        note.title.toLowerCase().includes(searchTerm) ||
+                        note.content.toLowerCase().includes(searchTerm) ||
+                        (note.tags && note.tags.some(tag => tag.toLowerCase().includes(searchTerm)))
+                    );
+                }
+                
+                // 按分類篩選
+                if (categoryFilter) {
+                    filteredNotes = filteredNotes.filter(note => note.category === categoryFilter);
+                }
+                
+                renderNotesList(filteredNotes);
+            }
+
+            // 編輯筆記
+            async function editNote(noteId) {
+                try {
+                    const response = await fetch(`/api/notes/${noteId}`);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showNoteEditor(null, result.data);
+                    } else {
+                        alert('載入筆記失敗：' + (result.error || '未知錯誤'));
+                    }
+                } catch (error) {
+                    console.error('載入筆記錯誤:', error);
+                    alert('載入筆記失敗，請稍後再試');
+                }
+            }
+
+            // 刪除筆記
+            async function deleteNote(noteId) {
+                if (!confirm('確定要刪除這則筆記嗎？此操作無法復原。')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/notes/${noteId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('筆記已刪除');
+                        loadUserNotes();
+                        loadNotesStats();
+                    } else {
+                        alert('刪除失敗：' + (result.error || '未知錯誤'));
+                    }
+                } catch (error) {
+                    console.error('刪除筆記錯誤:', error);
+                    alert('刪除失敗，請稍後再試');
+                }
+            }
+
+            // 防抖函數
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
             // 顯示經文註釋
             function showVerseCommentary() {
                 if (!window.selectedVerseRange) {
@@ -5487,6 +6427,10 @@
                         <span class="material-icons-outlined">comment</span>
                         <span>註釋</span>
                     </button>
+                    <button class="verse-action-menu-item" id="create-note-btn">
+                        <span class="material-icons-outlined">note_add</span>
+                        <span>筆記</span>
+                    </button>
                     <button class="verse-action-menu-item" id="comparison-btn">
                         <span class="material-icons-outlined">compare_arrows</span>
                         <span>${window.currentLanguage === 'en' ? 'Compare' : '對照'}</span>
@@ -5495,10 +6439,14 @@
                 
                 // 添加按鈕事件監聽器
                 const commentaryBtn = actionMenu.querySelector('#commentary-btn');
+                const createNoteBtn = actionMenu.querySelector('#create-note-btn');
                 const comparisonBtn = actionMenu.querySelector('#comparison-btn');
                 
                 if (commentaryBtn) {
                     commentaryBtn.addEventListener('click', showVerseCommentary);
+                }
+                if (createNoteBtn) {
+                    createNoteBtn.addEventListener('click', createNoteFromSelection);
                 }
                 if (comparisonBtn) {
                     comparisonBtn.addEventListener('click', showVerseComparison);
