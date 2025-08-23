@@ -2664,13 +2664,19 @@ let usingPostgreSQL = false;
 
 async function initNotesDatabase() {
   try {
-    // 嘗試初始化 PostgreSQL
-    const pgDB = await initPostgreSQLDatabase();
-    if (pgDB) {
-      notesDB = pgDB;
-      usingPostgreSQL = true;
-      console.log('✅ 使用 PostgreSQL 筆記資料庫');
-      return;
+    // 嘗試初始化 PostgreSQL（只在有 DATABASE_URL 時）
+    if (process.env.DATABASE_URL || process.env.POSTGRES_URL) {
+      try {
+        const pgDB = await initPostgreSQLDatabase();
+        if (pgDB) {
+          notesDB = pgDB;
+          usingPostgreSQL = true;
+          console.log('✅ 使用 PostgreSQL 筆記資料庫');
+          return;
+        }
+      } catch (pgError) {
+        console.warn('⚠️  PostgreSQL 初始化失敗，退回 SQLite:', pgError.message);
+      }
     }
     
     // 備用：使用 SQLite
@@ -2678,20 +2684,37 @@ async function initNotesDatabase() {
       notesDB = new NotesDB();
       usingPostgreSQL = false;
       console.log('✅ 使用 SQLite 筆記資料庫（備用）');
-      console.log('⚠️  注意：SQLite 資料在部署時會丟失，建議設置 PostgreSQL');
+      if (process.env.NODE_ENV === 'production') {
+        console.log('⚠️  注意：SQLite 資料在部署時會丟失，建議設置 PostgreSQL');
+      }
     }
   } catch (error) {
     console.error('❌ 筆記資料庫初始化失敗:', error);
+    // 即使資料庫失敗，也要讓應用繼續啟動
+    notesDB = null;
   }
 }
 
-// 立即初始化資料庫
-initNotesDatabase();
+// 非阻塞初始化資料庫
+initNotesDatabase().catch(error => {
+  console.error('❌ 資料庫初始化異步失敗:', error);
+});
+
+// 筆記 API 中間件：檢查資料庫是否可用
+function ensureNotesDBAvailable(req, res, next) {
+  if (!notesDB) {
+    return res.status(503).json({ 
+      success: false, 
+      error: '筆記功能暫時無法使用，正在初始化資料庫' 
+    });
+  }
+  next();
+}
 
 // ==================== 筆記 API 端點 ====================
 
 // 建立新筆記
-app.post('/api/notes', ensureAuthenticated, async (req, res) => {
+app.post('/api/notes', ensureAuthenticated, ensureNotesDBAvailable, async (req, res) => {
   try {
     const {
       title,
@@ -2759,7 +2782,7 @@ app.post('/api/notes', ensureAuthenticated, async (req, res) => {
 });
 
 // 獲取用戶所有筆記
-app.get('/api/notes', ensureAuthenticated, async (req, res) => {
+app.get('/api/notes', ensureAuthenticated, ensureNotesDBAvailable, async (req, res) => {
   try {
     const { category, search, book, chapter } = req.query;
     let notes;
@@ -2796,7 +2819,7 @@ app.get('/api/notes', ensureAuthenticated, async (req, res) => {
 });
 
 // 獲取用戶筆記統計
-app.get('/api/notes/stats', ensureAuthenticated, async (req, res) => {
+app.get('/api/notes/stats', ensureAuthenticated, ensureNotesDBAvailable, async (req, res) => {
   try {
     const stats = usingPostgreSQL ? 
       await notesDB.getUserStats(req.user.id) :
@@ -2822,7 +2845,7 @@ app.get('/api/notes/stats', ensureAuthenticated, async (req, res) => {
 });
 
 // 獲取特定筆記
-app.get('/api/notes/:id', ensureAuthenticated, async (req, res) => {
+app.get('/api/notes/:id', ensureAuthenticated, ensureNotesDBAvailable, async (req, res) => {
   try {
     const noteId = parseInt(req.params.id);
     const note = usingPostgreSQL ? 
@@ -2850,7 +2873,7 @@ app.get('/api/notes/:id', ensureAuthenticated, async (req, res) => {
 });
 
 // 更新筆記
-app.put('/api/notes/:id', ensureAuthenticated, async (req, res) => {
+app.put('/api/notes/:id', ensureAuthenticated, ensureNotesDBAvailable, async (req, res) => {
   try {
     const noteId = parseInt(req.params.id);
     const { title, content, tags, category, color, isPublic } = req.body;
@@ -2896,7 +2919,7 @@ app.put('/api/notes/:id', ensureAuthenticated, async (req, res) => {
 });
 
 // 刪除筆記
-app.delete('/api/notes/:id', ensureAuthenticated, async (req, res) => {
+app.delete('/api/notes/:id', ensureAuthenticated, ensureNotesDBAvailable, async (req, res) => {
   try {
     const noteId = parseInt(req.params.id);
     const result = usingPostgreSQL ? 

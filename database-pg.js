@@ -338,11 +338,21 @@ async function initPostgreSQLDatabase() {
             return false;
         }
         
+        console.log('🔄 嘗試連接 PostgreSQL...');
         const db = new PostgreSQLNotesDB();
+        
+        // 測試連接
+        await db.pool.query('SELECT 1');
+        console.log('✅ PostgreSQL 連接測試成功');
+        
         console.log('✅ PostgreSQL 筆記資料庫已初始化');
         return db;
     } catch (error) {
-        console.error('❌ PostgreSQL 初始化失敗:', error);
+        console.error('❌ PostgreSQL 初始化失敗:', error.message);
+        // 詳細錯誤資訊（僅在開發環境）
+        if (process.env.NODE_ENV !== 'production') {
+            console.error('詳細錯誤:', error);
+        }
         return false;
     }
 }
