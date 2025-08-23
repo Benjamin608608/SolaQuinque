@@ -4746,7 +4746,7 @@
             }
 
             // 顯示筆記編輯器
-            function showNoteEditor(bibleData = null, noteData = null) {
+            window.showNoteEditor = function(bibleData = null, noteData = null) {
                 // 移除現有的筆記編輯器
                 const existingModal = document.getElementById('note-editor-modal');
                 if (existingModal) {
