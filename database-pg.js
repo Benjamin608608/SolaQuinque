@@ -334,17 +334,40 @@ class PostgreSQLNotesDB {
 async function initPostgreSQLDatabase() {
     try {
         // 檢查是否有 PostgreSQL 連接字串
-        if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+        const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+        if (!databaseUrl) {
             console.log('⚠️  未找到 PostgreSQL 連接字串，跳過 PostgreSQL 初始化');
             return false;
+        }
+        
+        // 檢查連接字串格式
+        if (databaseUrl.includes('.railway.internal')) {
+            console.log('🔗 使用內部網路連接（免費）');
+            // 等待 PostgreSQL 服務完全就緒
+            console.log('⏳ 等待 PostgreSQL 服務就緒...');
+            await new Promise(resolve => setTimeout(resolve, 5000)); // 等待5秒
         }
         
         console.log('🔄 嘗試連接 PostgreSQL...');
         const db = new PostgreSQLNotesDB();
         
-        // 測試連接
-        await db.pool.query('SELECT 1');
-        console.log('✅ PostgreSQL 連接測試成功');
+        // 測試連接，帶重試機制
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                await db.pool.query('SELECT 1');
+                console.log('✅ PostgreSQL 連接測試成功');
+                break;
+            } catch (error) {
+                retries--;
+                if (retries > 0) {
+                    console.log(`⏳ 連接失敗，等待重試... (剩餘 ${retries} 次)`);
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                } else {
+                    throw error;
+                }
+            }
+        }
         
         // 初始化資料庫表格
         await db.initDatabase();

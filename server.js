@@ -2667,8 +2667,8 @@ async function initNotesDatabase() {
     console.log('🚀 開始筆記資料庫初始化...');
     console.log('🔍 DATABASE_URL 存在:', !!process.env.DATABASE_URL);
     
-    // 暫時禁用 PostgreSQL，確保應用穩定運行
-    if (false && process.env.DATABASE_URL) {
+    // 嘗試連接 PostgreSQL
+    if (process.env.DATABASE_URL) {
       console.log('🔄 檢測到 DATABASE_URL，嘗試連接 PostgreSQL...');
       console.log('🔗 連接字串格式:', process.env.DATABASE_URL.substring(0, 30) + '...');
       try {
@@ -2684,7 +2684,7 @@ async function initNotesDatabase() {
         console.warn('🔍 連接字串問題，請檢查 DATABASE_URL 格式');
       }
     } else {
-      console.log('⚠️  暫時禁用 PostgreSQL，使用 SQLite');
+      console.log('⚠️  未找到 DATABASE_URL，使用 SQLite');
     }
     
     // 備用：使用 SQLite
